@@ -1,0 +1,22 @@
+"Games"
+{
+	"tf"
+	{
+		"Offsets"
+		{
+			"CTFPlayer::WantsLagCompensationOnEntity"
+			{
+				"windows"	"323"
+				"linux"		"324"
+				"mac"		"324"
+			}
+			
+			"CBaseEntity::ShouldTransmit"
+			{
+				"windows"	"18"
+				"linux"	"19"
+				"mac"	"19"
+			}
+		}
+	}
+}
