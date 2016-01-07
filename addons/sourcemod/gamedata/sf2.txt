@@ -17,6 +17,12 @@
 				"linux"	"19"
 				"mac"	"19"
 			}
+			"CTFPlayer::EquipWearable"
+			{
+				"windows"	"427"
+				"linux"		"428"
+				"mac"		"428"
+			}
 		}
 	}
 }

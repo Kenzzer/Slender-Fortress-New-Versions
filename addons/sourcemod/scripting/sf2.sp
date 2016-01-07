@@ -25,7 +25,7 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v1"
+#define PLUGIN_VERSION "0.2.8-v2"
 #define PLUGIN_VERSION_DISPLAY "0.2.8"
 
 
@@ -511,6 +511,8 @@ new Handle:g_hSDKGetMaxHealth;
 new Handle:g_hSDKWantsLagCompensationOnEntity;
 new Handle:g_hSDKShouldTransmit;
 
+new Handle:g_hSDKEquipWearable = INVALID_HANDLE;
+
 #include "sf2/stocks.sp"
 #include "sf2/logging.sp"
 #include "sf2/debug.sp"
@@ -853,6 +855,39 @@ static SetupHooks()
 	// Check our own gamedata.
 	hConfig = LoadGameConfigFile("sf2");
 	if (hConfig == INVALID_HANDLE) SetFailState("Could not find SF2 gamedata!");
+	
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf( hConfig, SDKConf_Virtual, "CTFPlayer::EquipWearable" );
+	PrepSDKCall_AddParameter( SDKType_CBaseEntity, SDKPass_Pointer );
+	g_hSDKEquipWearable = EndPrepSDKCall();
+	if( g_hSDKEquipWearable == INVALID_HANDLE )//In case the signature is missing, look if the server has the tf2 randomizer's gamedata.
+	{
+		decl String:strFilePath[PLATFORM_MAX_PATH];
+		BuildPath( Path_SM, strFilePath, sizeof(strFilePath), "gamedata/tf2items.randomizer.txt" );
+		if( FileExists( strFilePath ) )
+		{
+			new Handle:hGameConf = LoadGameConfigFile( "tf2items.randomizer" );
+			if( hGameConf != INVALID_HANDLE )
+			{
+				StartPrepSDKCall(SDKCall_Player);
+				PrepSDKCall_SetFromConf( hGameConf, SDKConf_Virtual, "CTFPlayer::EquipWearable" );
+				PrepSDKCall_AddParameter( SDKType_CBaseEntity, SDKPass_Pointer );
+				g_hSDKEquipWearable = EndPrepSDKCall();
+				if( g_hSDKEquipWearable == INVALID_HANDLE )
+				{
+					// Old gamedata
+					StartPrepSDKCall(SDKCall_Player);
+					PrepSDKCall_SetFromConf( hGameConf, SDKConf_Virtual, "EquipWearable" );
+					PrepSDKCall_AddParameter( SDKType_CBaseEntity, SDKPass_Pointer );
+					g_hSDKEquipWearable = EndPrepSDKCall();
+				}
+			}
+		}
+	}
+	if( g_hSDKEquipWearable == INVALID_HANDLE )
+	{
+		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SDKHooks gamedata!");
+	}
 	
 	new iOffset = GameConfGetOffset(hConfig, "CTFPlayer::WantsLagCompensationOnEntity"); 
 	g_hSDKWantsLagCompensationOnEntity = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, Hook_ClientWantsLagCompensationOnEntity); 
@@ -2367,7 +2402,7 @@ public Action:Timer_BossCountUpdate(Handle:timer)
 				}
 				else
 				{
-					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + 3.0;
+					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + 3.0;//Retry in 3secs.
 				}
 				
 #if defined DEBUG

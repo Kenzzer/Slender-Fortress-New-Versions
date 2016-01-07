@@ -2810,19 +2810,26 @@ public Menu_ProxyAsk(Handle:menu, MenuAction:action, param1, param2)
 					{
 						if (param2 == 0)
 						{
-							ClientEnableProxy(param1, iBossIndex);
-							decl String:sName[64];
-							new ent = -1;
-							while ((ent = FindEntityByClassname(ent, "info_target")) != -1)
+							if(!IsPointVisibleToAPlayer(g_iPlayerProxyAskPosition[param1], _, false))
 							{
-								GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
-								if (StrEqual(sName, "sf2_proxy_spawn_point", false))
+								ClientEnableProxy(param1, iBossIndex);
+								/*decl String:sName[64];
+								new ent = -1;
+								while ((ent = FindEntityByClassname(ent, "info_target")) != -1)
 								{
-									GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", g_iPlayerProxyAskPosition[param1]);
-									break;
-								}
+									GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
+									if (StrEqual(sName, "sf2_proxy_spawn_point", false))
+									{
+										GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", g_iPlayerProxyAskPosition[param1]);
+										break;
+									}
+								}*/
+								TeleportEntity(param1, g_iPlayerProxyAskPosition[param1], NULL_VECTOR, Float:{ 0.0, 0.0, 0.0 });
 							}
-							TeleportEntity(param1, g_iPlayerProxyAskPosition[param1], NULL_VECTOR, Float:{ 0.0, 0.0, 0.0 });
+							else
+							{
+								PrintToChat(param1,"[SF2]Sorry you took too much time, your spawnpoint is actually visible to a player.");
+							}
 						}
 						else
 						{
@@ -5906,7 +5913,14 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 			AcceptEntityInput(client, "SetCustomModel");
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
 		}
-		
+		new ent = -1;
+		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
+		{
+			if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client)
+			{
+				AcceptEntityInput(ent, "Kill");
+			}
+		}
 		if (IsPlayerAlive(client))
 		{
 			// Play any sounds, if any.
@@ -5920,6 +5934,41 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 				
 				EmitSoundToAll(sBuffer, client, iChannel, iLevel, iFlags, flVolume, iPitch);
 			}
+			new bool:Zombie = bool:GetProfileNum(sProfile, "proxies_zombie", 0);
+			if(Zombie)
+			{
+				new value = GetConVarInt(FindConVar("tf_forced_holiday"));
+				if(value != 9 && value != 2)
+					SetConVarInt(FindConVar("tf_forced_holiday"),9);//Full-Moon
+				new index;
+				new TFClassType:iClass = TF2_GetPlayerClass( client );
+				switch(iClass)
+				{
+					case TFClass_Scout: index = 5617;
+					case TFClass_Soldier: index = 5618;
+					case TFClass_Pyro: index = 5624;
+					case TFClass_DemoMan: index = 5620;
+					case TFClass_Engineer: index = 5621;
+					case TFClass_Heavy: index = 5619;
+					case TFClass_Medic: index = 5622;
+					case TFClass_Sniper: index = 5625;
+					case TFClass_Spy: index = 5623;
+				}
+				new Handle:ZombieSoul = PrepareItemHandle("tf_wearable", index, 100, 7,"448 ; 1.0 ; 450 ; 1");
+				new entity = TF2Items_GiveNamedItem(client, ZombieSoul);
+				CloseHandle(ZombieSoul);
+				if( IsValidEdict( entity ) )
+				{
+					if( g_hSDKEquipWearable != INVALID_HANDLE )
+					{
+						SDKCall( g_hSDKEquipWearable, client, entity );
+					}
+				}
+				if(TF2_GetPlayerClass(client) == TFClass_Spy)
+					SetEntProp(client, Prop_Send, "m_nForcedSkin", 23);
+				else
+					SetEntProp(client, Prop_Send, "m_nForcedSkin", 5);
+			}	
 		}
 	}
 }
