@@ -4109,6 +4109,12 @@ stock ClientUpdateMusicSystem(client, bool:bInitialize=false)
 	{
 		g_iPlayerMusicFlags[client] = 0;
 		g_iPlayerPageMusicMaster[client] = INVALID_ENT_REFERENCE;
+		if(MusicActive())//A boss is overriding the music.
+		{
+			decl String:sPath[PLATFORM_MAX_PATH];
+			GetBossMusic(sPath,sizeof(sPath));
+			StopSound(client, MUSIC_CHAN, sPath);
+		}
 	}
 	else
 	{
@@ -4335,11 +4341,19 @@ stock ClientUpdateMusicSystem(client, bool:bInitialize=false)
 		new bool:bWasAlert = ClientHasMusicFlag2(iOldMusicFlags, MUSICF_ALERT);
 		new bool:b20Dollars = ClientHasMusicFlag(client, MUSICF_20DOLLARS);
 		new bool:bWas20Dollars = ClientHasMusicFlag2(iOldMusicFlags, MUSICF_20DOLLARS);
-		
+		decl String:sPath[PLATFORM_MAX_PATH];
+		if (IsRoundEnding() || !IsClientInGame(client) || IsFakeClient(client) || DidClientEscape(client) || (g_bPlayerEliminated[client] && !IsClientInGhostMode(client) && !g_bPlayerProxy[client])) 
+		{
+		}
+		else if(MusicActive())//A boss is overriding the music.
+		{
+			GetBossMusic(sPath,sizeof(sPath));
+			ClientMusicStart(client, sPath, _, MUSIC_PAGE_VOLUME);
+			return;
+		}
 		// Custom system.
 		if (GetArraySize(g_hPageMusicRanges) > 0) 
 		{
-			decl String:sPath[PLATFORM_MAX_PATH];
 		
 			new iMaster = EntRefToEntIndex(g_iPlayerPageMusicMaster[client]);
 			if (iMaster != INVALID_ENT_REFERENCE)
@@ -4561,8 +4575,9 @@ stock ClientMusicStart(client, const String:sNewMusic[], Float:flVolume=-1.0, Fl
 	{
 		if (sOldMusic[0]) StopSound(client, MUSIC_CHAN, sOldMusic);
 	}
-	
 	strcopy(g_strPlayerMusic[client], sizeof(g_strPlayerMusic[]), sNewMusic);
+	if(MusicActive())//A boss is overriding the music.
+		GetBossMusic(g_strPlayerMusic[client],sizeof(g_strPlayerMusic[]));
 	if (flVolume >= 0.0) g_flPlayerMusicVolume[client] = flVolume;
 	if (flTargetVolume >= 0.0) g_flPlayerMusicTargetVolume[client] = flTargetVolume;
 	
@@ -4789,6 +4804,8 @@ stock ClientMusicChaseStart(client, iBossIndex)
 	
 	g_iPlayerChaseMusicMaster[client] = iBossIndex;
 	strcopy(g_strPlayerChaseMusic[client], sizeof(g_strPlayerChaseMusic[]), sBuffer);
+	if(MusicActive())//A boss is overriding the music.
+		GetBossMusic(g_strPlayerChaseMusic[client],sizeof(g_strPlayerChaseMusic[]));
 	g_hPlayerChaseMusicTimer[client][iBossIndex] = CreateTimer(0.01, Timer_PlayerFadeInChaseMusic, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	TriggerTimer(g_hPlayerChaseMusicTimer[client][iBossIndex], true);
 	

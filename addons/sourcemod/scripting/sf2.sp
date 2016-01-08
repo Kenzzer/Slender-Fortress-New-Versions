@@ -25,7 +25,7 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v2"
+#define PLUGIN_VERSION "0.2.8-v3"
 #define PLUGIN_VERSION_DISPLAY "0.2.8"
 
 
@@ -4197,7 +4197,8 @@ public Event_RoundStart(Handle:event, const String:name[], bool:dB)
 	g_flPageFoundLastTime = GetGameTime();
 	
 	g_hVoteTimer = INVALID_HANDLE;
-	
+	//Stop the music if needed.
+	NPCStopMusic();
 	// Remove all bosses from the game.
 	NPCRemoveAll();
 	
@@ -4598,6 +4599,12 @@ public Event_PlayerSpawn(Handle:event, const String:name[], bool:dB)
 	
 	if (IsPlayerAlive(client) && IsClientParticipating(client))
 	{
+		if(MusicActive())//A boss is overriding the music.
+		{
+			decl String:sPath[PLATFORM_MAX_PATH];
+			GetBossMusic(sPath,sizeof(sPath));
+			StopSound(client, MUSIC_CHAN, sPath);
+		}
 		TF2_RemoveCondition(client, TFCond:82);
 		if (HandlePlayerTeam(client))
 		{

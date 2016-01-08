@@ -42,6 +42,9 @@ static bool:g_bNPCDeathCamEnabled[MAX_BOSSES] = { false, ... };
 
 static g_iNPCEnemy[MAX_BOSSES] = { INVALID_ENT_REFERENCE, ... };
 
+static Handle:hTimerMusic = INVALID_HANDLE;//Planning to add a bosses array on.
+static String:sCurrentMusicTrack[PLATFORM_MAX_PATH];
+
 #if defined METHODMAPS
 
 const SF2NPC_BaseNPC SF2_INVALID_NPC = SF2NPC_BaseNPC:-1;
@@ -326,7 +329,57 @@ NPCRemove(iNPCIndex)
 	
 	RemoveProfile(iNPCIndex);
 }
-
+NPCStopMusic()
+{
+	//Stop the music timer
+	if(hTimerMusic != INVALID_HANDLE)
+	{
+		CloseHandle(hTimerMusic);
+		hTimerMusic = INVALID_HANDLE;
+	}
+	//Stop the music for all players.
+	for(new i = 1;i<=MaxClients;i++)
+	{
+		if(IsValidClient(i))
+		{
+			StopSound(i, MUSIC_CHAN, sCurrentMusicTrack);
+		}
+	}
+}
+stock bool:MusicActive()
+{
+	if(hTimerMusic!=INVALID_HANDLE)
+		return true;
+	return false;
+}
+stock GetBossMusic(String:buffer[],bufferlen)
+{
+	strcopy(buffer,bufferlen,sCurrentMusicTrack);
+}
+public Action:BossMusic(Handle:timer,any:iBossIndex)
+{
+	if(iBossIndex > -1)
+	{
+		decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+		NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
+		new Float:time = GetProfileFloat(sProfile,"sound_music_loop",0.0);
+		if(time > 0.0)
+		{
+			for(new i = 1;i<=MaxClients;i++)
+			{
+				if(IsValidClient(i))
+				{
+					StopSound(i, MUSIC_CHAN, sCurrentMusicTrack);
+				}
+			}
+			hTimerMusic = CreateTimer(time,BossMusic,iBossIndex);
+			return Plugin_Continue;
+		}
+	}
+	hTimerMusic = INVALID_HANDLE;
+	NPCStopMusic();
+	return Plugin_Continue;
+}
 NPCRemoveAll()
 {
 	for (new i = 0; i < MAX_BOSSES; i++)
@@ -700,7 +753,24 @@ bool:SelectProfile(iBossIndex, const String:sProfile[], iAdditionalBossFlags=0, 
 			GetRandomStringFromProfile(sProfile, "sound_spawn_all", sBuffer, sizeof(sBuffer));
 			if (sBuffer[0]) EmitSoundToAll(sBuffer, _, SNDCHAN_STATIC, SNDLEVEL_HELICOPTER);
 		}
-		
+		if(hTimerMusic==INVALID_HANDLE)
+		{
+			new Float:time = GetProfileFloat(sProfile,"sound_music_loop",0.0);
+			if(time > 0.0)
+			{
+				GetRandomStringFromProfile(sProfile,"sound_music",sCurrentMusicTrack,sizeof(sCurrentMusicTrack));
+				hTimerMusic = CreateTimer(time,BossMusic,iBossIndex);
+				for(new client = 1;client <=MaxClients;client ++)
+				{
+					if(IsValidClient(client) && !g_bPlayerEliminated[client])
+					{
+						StopSound(client, MUSIC_CHAN, sCurrentMusicTrack);
+						ClientMusicStart(client, sCurrentMusicTrack, _, MUSIC_PAGE_VOLUME,true);
+						ClientUpdateMusicSystem(client);
+					}
+				}
+			}
+		}
 		if (bSpawnCompanions)
 		{
 			KvRewind(g_hConfig);
