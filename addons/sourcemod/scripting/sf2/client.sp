@@ -5915,11 +5915,11 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 		
 		// Set custom model, if any.
 		decl String:sBuffer[PLATFORM_MAX_PATH];
-		decl String:sSectionName[64];
+		//decl String:sSectionName[64];
 		
 		TF2_RegeneratePlayer(client);
 		
-		decl String:sClassName[64];
+		/*decl String:sClassName[64];
 		TF2_GetClassName(TF2_GetPlayerClass(client), sClassName, sizeof(sClassName));
 		
 		Format(sSectionName, sizeof(sSectionName), "mod_proxy_%s", sClassName);
@@ -5929,7 +5929,7 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 			SetVariantString(sBuffer);
 			AcceptEntityInput(client, "SetCustomModel");
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
-		}
+		}*/
 		new ent = -1;
 		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
 		{
