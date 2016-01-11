@@ -93,6 +93,9 @@ static Handle:g_hPlayerCampingTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static Float:g_flPlayerCampingLastPosition[MAXPLAYERS + 1][3];
 static bool:g_bPlayerCampingFirstTime[MAXPLAYERS + 1] = { true, ... };
 
+// Frame data
+static g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
+static g_iClientFrame[MAXPLAYERS + 1];
 
 //	==========================================================
 //	GENERAL CLIENT HOOK FUNCTIONS
@@ -562,7 +565,7 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 						else if (damagecustom == TF_CUSTOM_BACKSTAB) // Modify backstab damage.
 						{
 							damage = float(iMaxHealth) * GetProfileFloat(sProfile, "proxies_damage_scale_vs_enemy_backstab", 0.25);
-							if (damagetype & DMG_ACID) damage /= 3.0;
+							if (damagetype & DMG_ACID) damage /= 2.0;
 						}
 					
 						g_iPlayerProxyControl[attacker] += GetProfileNum(sProfile, "proxies_controlgain_hitenemy");
@@ -591,7 +594,45 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 						
 						damage *= GetProfileFloat(sProfile, "proxies_damage_scale_vs_self", 1.0);
 					}
-					
+					if(TF2_IsPlayerInCondition(victim, TFCond:87))
+					{
+						damage=0.0;
+						return Plugin_Changed;
+					}
+					if( damage * ( damagetype & DMG_CRIT ? 3.0 : 1.0 ) >= float(GetClientHealth(victim)) && !TF2_IsPlayerInCondition(victim, TFCond:87))//The proxy is about to die
+					{
+						PrintToChatAll("death");
+						decl String:sClassName[64];
+						decl String:sSectionName[64];
+						decl String:sBuffer[PLATFORM_MAX_PATH];
+						TF2_GetClassName(TF2_GetPlayerClass(victim), sClassName, sizeof(sClassName));
+		
+						Format(sSectionName, sizeof(sSectionName), "proxies_death_anim_%s", sClassName);
+						if ((GetProfileString(sProfile, sSectionName, sBuffer, sizeof(sBuffer)) && sBuffer[0]) ||
+						(GetProfileString(sProfile, "proxies_death_anim_all", sBuffer, sizeof(sBuffer)) && sBuffer[0]))
+						{
+							PrintToChatAll("has a death anim");
+							Format(sSectionName, sizeof(sSectionName), "proxies_death_anim_frames_%s", sClassName);
+							g_iClientMaxFrameDeathAnim[victim]=GetProfileNum(sProfile, sSectionName, 0);
+							if(g_iClientMaxFrameDeathAnim[victim]==0)
+								g_iClientMaxFrameDeathAnim[victim]=GetProfileNum(sProfile, "proxies_death_anim_frames_all", 0);
+							if(g_iClientMaxFrameDeathAnim[victim]>0)
+							{
+								PrintToChatAll("play death anim");
+								// Cancel out any other taunts.
+								if(TF2_IsPlayerInCondition(victim, TFCond_Taunting)) TF2_RemoveCondition(victim, TFCond_Taunting);
+								//The model has a death anim play it.
+								ClientSDK_PlaySpecificSequence(victim,sBuffer);
+								g_iClientFrame[victim]=0;
+								RequestFrame(ProxyDeathAnimation,victim);
+								TF2_AddCondition(victim, TFCond:87, 5.0);
+								//Prevent death, and show the damage to the attacker.
+								TF2_AddCondition(victim, TFCond:70, 0.5);
+								return Plugin_Changed;
+							}
+						}
+						//the player has no death anim leave him die.
+					}
 					return Plugin_Changed;
 				}
 			}
@@ -2483,7 +2524,7 @@ static ClientSprintTimer(client, bool:bRecharge=false)
 ClientStopSprint(client)
 {
 	if (!IsClientSprinting(client)) return;
-	
+	TF2Attrib_SetByName(client, "increased jump height", 0.0);
 	g_bPlayerSprint[client] = false;
 	g_hPlayerSprintTimer[client] = INVALID_HANDLE;
 	ClientSprintTimer(client, true);
@@ -2610,6 +2651,10 @@ public Action:Timer_ClientRechargeSprint(Handle:timer, any:userid)
 		g_iPlayerSprintPoints[client] = 100;
 		g_hPlayerSprintTimer[client] = INVALID_HANDLE;
 		return;
+	}
+	if (g_iPlayerSprintPoints[client] == 7)
+	{
+		TF2Attrib_SetByName(client, "increased jump height", 1.0);
 	}
 	
 	g_iPlayerSprintPoints[client]++;
@@ -2918,7 +2963,21 @@ ClientEnableProxy(client, iBossIndex)
 	Call_PushCell(client);
 	Call_Finish();
 }
-
+//RequestFrame//
+public ProxyDeathAnimation(any:client)
+{
+	if(g_iClientFrame[client]>=g_iClientMaxFrameDeathAnim[client])
+	{
+		g_iClientFrame[client]=-1;
+		KillClient(client);
+	}
+	else
+	{
+		g_iClientFrame[client]+=1;
+		RequestFrame(ProxyDeathAnimation,client);
+	}
+}
+	
 public Action:Timer_ClientProxyControl(Handle:timer, any:userid)
 {
 	new client = GetClientOfUserId(userid);
@@ -5915,11 +5974,11 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 		
 		// Set custom model, if any.
 		decl String:sBuffer[PLATFORM_MAX_PATH];
-		//decl String:sSectionName[64];
+		decl String:sSectionName[64];
 		
 		TF2_RegeneratePlayer(client);
 		
-		/*decl String:sClassName[64];
+		decl String:sClassName[64];
 		TF2_GetClassName(TF2_GetPlayerClass(client), sClassName, sizeof(sClassName));
 		
 		Format(sSectionName, sizeof(sSectionName), "mod_proxy_%s", sClassName);
@@ -5929,7 +5988,7 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 			SetVariantString(sBuffer);
 			AcceptEntityInput(client, "SetCustomModel");
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
-		}*/
+		}
 		new ent = -1;
 		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
 		{

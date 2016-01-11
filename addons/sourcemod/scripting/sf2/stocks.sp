@@ -159,6 +159,29 @@ stock EntitySetAnimation(iEntity, const String:sAnimation[], bool:bDefaultAnimat
 //	CLIENT ENTITY FUNCTIONS
 //	==========================================================
 
+//Credits to Linux_lover for this stock and signature.
+stock ClientSDK_PlaySpecificSequence(client, const String:strSequence[])
+{
+	if(g_hSDKPlaySpecificSequence != INVALID_HANDLE)
+	{
+#if defined DEBUG
+		static bool:once = true;
+		if(once)
+		{
+			PrintToServer("(SDK_PlaySpecificSequence) Calling on player %N \"%s\"..", client, strSequence);
+			once = false;
+		}
+#endif
+		SDKCall(g_hSDKPlaySpecificSequence, client, strSequence);
+	}
+}
+stock KillClient(client)
+{
+	ForcePlayerSuicide(client);
+	SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, Float:{ 0.0, 0.0, 0.0 });
+	SetVariantInt(9001);
+	AcceptEntityInput(client, "RemoveHealth");
+}
 stock bool:IsClientCritBoosted(client)
 {
 	if (TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged) ||
@@ -676,20 +699,21 @@ stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDis
 public bool:TraceRayDontHitEntity(entity, mask, any:data)
 {
 	if (entity == data) return false;
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	return true;
 }
 
 public bool:TraceRayDontHitPlayers(entity, mask, any:data)
 {
 	if (entity > 0 && entity <= MaxClients) return false;
-	
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	return true;
 }
 
 public bool:TraceRayDontHitPlayersOrEntity(entity, mask, any:data)
 {
 	if (entity == data) return false;
-
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (entity > 0 && entity <= MaxClients) return false;
 	
 	return true;

@@ -4,6 +4,7 @@
 #include <clientprefs>
 #include <steamtools>
 #include <tf2items>
+#include <tf2attributes>
 #include <dhooks>
 #include <navmesh>
 #include <nativevotes>
@@ -25,7 +26,7 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v3"
+#define PLUGIN_VERSION "0.2.8-v4"
 #define PLUGIN_VERSION_DISPLAY "0.2.8"
 
 
@@ -105,6 +106,7 @@ new Handle:g_hSlenderEntityThink[MAX_BOSSES];
 new Handle:g_hSlenderFakeTimer[MAX_BOSSES];
 new Float:g_flSlenderLastKill[MAX_BOSSES];
 new g_iSlenderState[MAX_BOSSES];
+new g_iSlenderHitbox[MAX_BOSSES];
 new g_iSlenderTarget[MAX_BOSSES] = { INVALID_ENT_REFERENCE, ... };
 new Float:g_flSlenderAcceleration[MAX_BOSSES];
 new Float:g_flSlenderGoalPos[MAX_BOSSES][3];
@@ -510,8 +512,9 @@ new Handle:g_hSDKWeaponWrench;
 new Handle:g_hSDKGetMaxHealth;
 new Handle:g_hSDKWantsLagCompensationOnEntity;
 new Handle:g_hSDKShouldTransmit;
+new Handle:g_hSDKEquipWearable;
+new Handle:g_hSDKPlaySpecificSequence;
 
-new Handle:g_hSDKEquipWearable = INVALID_HANDLE;
 
 #include "sf2/stocks.sp"
 #include "sf2/logging.sp"
@@ -886,7 +889,15 @@ static SetupHooks()
 	}
 	if( g_hSDKEquipWearable == INVALID_HANDLE )
 	{
-		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SDKHooks gamedata!");
+		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SF2 gamedata!");
+	}
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	g_hSDKPlaySpecificSequence = EndPrepSDKCall();
+	if(g_hSDKPlaySpecificSequence == INVALID_HANDLE)
+	{
+		SetFailState("Failed to retrieve CTFPlayer::PlaySpecificSequence signature from SF2 gamedata!");
 	}
 	
 	new iOffset = GameConfGetOffset(hConfig, "CTFPlayer::WantsLagCompensationOnEntity"); 
@@ -1203,6 +1214,14 @@ public TF2_OnConditionAdded(client, TFCond:cond)
 		{
 			// Stop ghosties from taunting.
 			TF2_RemoveCondition(client, TFCond_Taunting);
+		}
+	}
+	if(cond==TFCond:82)
+	{
+		if (g_bPlayerProxy[client])
+		{
+			//Stop proxies from using kart commands
+			TF2_RemoveCondition(client, TFCond:82);
 		}
 	}
 }
@@ -2551,7 +2570,6 @@ public OnEntityCreated(ent, const String:classname[])
 	
 	PvP_OnEntityCreated(ent, classname);
 }
-
 public OnEntityDestroyed(ent)
 {
 	if (!g_bEnabled) return;
@@ -2857,21 +2875,6 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 			if (!(g_iPlayerLastButtons[client] & button))
 			{
 				ClientOnButtonPress(client, button);
-				if(button==IN_JUMP)
-				{
-					if (IsPlayerAlive(client) && !(GetEntityFlags(client) & FL_FROZEN))
-					{
-						if (!bool:GetEntProp(client, Prop_Send, "m_bDucked") && (GetEntityFlags(client) & FL_ONGROUND) && GetEntProp(client, Prop_Send, "m_nWaterLevel") < 2)
-						{
-							if(ClientGetSprintPoints(client)==0)
-							{
-								g_iPlayerLastButtons[client] = buttons;
-								buttons &= ~IN_JUMP;
-								return Plugin_Changed;
-							}
-						}
-					}
-				}
 			}
 			if(button==IN_ATTACK2)
 			{
@@ -4563,6 +4566,8 @@ public Event_PlayerSpawn(Handle:event, const String:name[], bool:dB)
 	
 	if (!IsClientParticipating(client))
 	{
+		TF2Attrib_SetByName(client, "increased jump height", 1.0);
+		
 		ClientSetGhostModeState(client, false);
 		g_iPlayerPageCount[client] = 0;
 		ClientDisableFakeLagCompensation(client);
@@ -4644,6 +4649,8 @@ public Event_PlayerSpawn(Handle:event, const String:name[], bool:dB)
 			ClientDisableConstantGlow(client);
 			
 			ClientHandleGhostMode(client);
+			
+			TF2Attrib_SetByName(client, "increased jump height", 1.0);
 			
 			if (!g_bPlayerEliminated[client])
 			{

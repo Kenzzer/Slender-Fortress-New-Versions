@@ -995,6 +995,7 @@ SpawnSlender(iBossIndex, const Float:pos[3])
 			AcceptEntityInput(iBoss, "DisableShadow");
 			SetEntPropFloat(iBoss, Prop_Data, "m_flFriction", 0.0);
 			
+			
 			NPCChaserSetStunHealth(iBossIndex, NPCChaserGetStunInitialHealth(iBossIndex));
 			
 			// Reset stats.
@@ -1054,6 +1055,22 @@ SpawnSlender(iBossIndex, const Float:pos[3])
 			SDKHook(iBoss, SDKHook_OnTakeDamage, Hook_SlenderOnTakeDamage);
 			SDKHook(iBoss, SDKHook_OnTakeDamagePost, Hook_SlenderOnTakeDamagePost);
 			DHookEntity(g_hSDKShouldTransmit, true, iBoss);
+			
+			/*g_iSlenderHitbox[iBossIndex] = EntIndexToEntRef(CreateEntityByName("base_boss"));
+			
+			SetEntityModel(g_iSlenderHitbox[iBossIndex], sBuffer);
+			TeleportEntity(g_iSlenderHitbox[iBossIndex], flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
+			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
+			//SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
+			//SetEntityRenderColor(g_iSlenderHitbox[iBossIndex], 0, 0, 0, 1);
+			SetVariantString("!activator");
+			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
+			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "EnableShadow");
+			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "DisableShadow");
+			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"moveparent",iBoss);
+			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_iParentAttachment",iBoss);
+			SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_hOwnerEntity",iBoss);*/
 		}
 		/*
 		default:
@@ -1132,6 +1149,11 @@ RemoveSlender(iBossIndex)
 		
 		AcceptEntityInput(iBoss, "Kill");
 	}
+	iBoss = g_iSlenderHitbox[iBossIndex];
+	g_iSlenderHitbox[iBossIndex] = INVALID_ENT_REFERENCE;
+	
+	if (iBoss && iBoss != INVALID_ENT_REFERENCE && IsValidEntity(iBoss))
+		AcceptEntityInput(iBoss, "Kill");
 }
 
 public Action:Hook_SlenderOnTakeDamage(slender, &attacker, &inflictor, &Float:damage, &damagetype, &weapon, Float:damageForce[3], Float:damagePosition[3], damagecustom)
@@ -2783,6 +2805,7 @@ public bool:TraceRayBossVisibility(entity, mask, any:data)
 	if (entity == data || IsValidClient(entity)) return false;
 	
 	new iBossIndex = NPCGetFromEntIndex(entity);
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (iBossIndex != -1) return false;
 	
 	if (IsValidEdict(entity))
@@ -2801,6 +2824,7 @@ public bool:TraceRayDontHitCharacters(entity, mask, any:data)
 	if (entity > 0 && entity <= MaxClients) return false;
 	
 	new iBossIndex = NPCGetFromEntIndex(entity);
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (iBossIndex != -1) return false;
 	
 	return true;
@@ -2811,8 +2835,8 @@ public bool:TraceRayDontHitCharactersOrEntity(entity, mask, any:data)
 	if (entity == data) return false;
 
 	if (entity > 0 && entity <= MaxClients) return false;
-	
 	new iBossIndex = NPCGetFromEntIndex(entity);
+	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (iBossIndex != -1) return false;
 	
 	return true;
