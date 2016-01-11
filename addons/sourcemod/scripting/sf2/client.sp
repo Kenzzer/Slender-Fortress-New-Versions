@@ -2649,7 +2649,7 @@ public Action:Timer_ClientRechargeSprint(Handle:timer, any:userid)
 		g_hPlayerSprintTimer[client] = INVALID_HANDLE;
 		return;
 	}
-	if (g_iPlayerSprintPoints[client] == 7)
+	if (g_iPlayerSprintPoints[client] > 7)
 	{
 		TF2Attrib_SetByName(client, "increased jump height", 1.0);
 	}
@@ -3260,9 +3260,12 @@ ClientOnJump(client)
 			new iOverride = GetConVarInt(g_cvPlayerInfiniteSprintOverride);
 			if ((!g_bRoundInfiniteSprint && iOverride != 1) || iOverride == 0)
 			{
-				g_iPlayerSprintPoints[client] -= 7;
-				if (g_iPlayerSprintPoints[client] < 0) g_iPlayerSprintPoints[client] = 0;
-				if (g_iPlayerSprintPoints[client] < 7) TF2Attrib_SetByName(client, "increased jump height", 0.0);
+				if(g_iPlayerSprintPoints[client] > 10)
+				{
+					g_iPlayerSprintPoints[client] -= 7;
+					if (g_iPlayerSprintPoints[client] < 0) g_iPlayerSprintPoints[client] = 0;
+					if (g_iPlayerSprintPoints[client] < 7) TF2Attrib_SetByName(client, "increased jump height", 0.0);
+				}
 			}
 			
 			if (!IsClientSprinting(client))
