@@ -601,7 +601,6 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 					}
 					if( damage * ( damagetype & DMG_CRIT ? 3.0 : 1.0 ) >= float(GetClientHealth(victim)) && !TF2_IsPlayerInCondition(victim, TFCond:87))//The proxy is about to die
 					{
-						PrintToChatAll("death");
 						decl String:sClassName[64];
 						decl String:sSectionName[64];
 						decl String:sBuffer[PLATFORM_MAX_PATH];
@@ -611,14 +610,12 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 						if ((GetProfileString(sProfile, sSectionName, sBuffer, sizeof(sBuffer)) && sBuffer[0]) ||
 						(GetProfileString(sProfile, "proxies_death_anim_all", sBuffer, sizeof(sBuffer)) && sBuffer[0]))
 						{
-							PrintToChatAll("has a death anim");
 							Format(sSectionName, sizeof(sSectionName), "proxies_death_anim_frames_%s", sClassName);
 							g_iClientMaxFrameDeathAnim[victim]=GetProfileNum(sProfile, sSectionName, 0);
 							if(g_iClientMaxFrameDeathAnim[victim]==0)
 								g_iClientMaxFrameDeathAnim[victim]=GetProfileNum(sProfile, "proxies_death_anim_frames_all", 0);
 							if(g_iClientMaxFrameDeathAnim[victim]>0)
 							{
-								PrintToChatAll("play death anim");
 								// Cancel out any other taunts.
 								if(TF2_IsPlayerInCondition(victim, TFCond_Taunting)) TF2_RemoveCondition(victim, TFCond_Taunting);
 								//The model has a death anim play it.
