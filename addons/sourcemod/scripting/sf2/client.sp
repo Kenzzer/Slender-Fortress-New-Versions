@@ -2870,7 +2870,7 @@ public Menu_ProxyAsk(Handle:menu, MenuAction:action, param1, param2)
 							}
 							else
 							{
-								PrintToChat(param1,"[SF2]Sorry you took too much time, your spawnpoint is actually visible to a player.");
+								CPrintToChat(param1, "%T", "SF2 Too Much Time", param1);
 							}
 						}
 						else

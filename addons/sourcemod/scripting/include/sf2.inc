@@ -141,6 +141,8 @@ forward SF2_OnBossRemoved(iBossIndex);
 
 forward SF2_OnPagesSpawned();
 
+forward SF2_OnClientCollectPage(pageEnt, client);
+
 forward SF2_OnClientBlinked(client);
 
 forward SF2_OnClientCaughtByBoss(client, iBossIndex);
@@ -180,6 +182,13 @@ forward SF2_OnClientSpawnedAsProxy(client);
  * @return				True if the gamemode is running, false if not.
  */
 native bool:SF2_IsRunning();
+
+/**
+ * Returns the current state of the round.
+ *
+ * @return				Current state or the round.
+ */
+native SF2_GetRoundState();
 
 /**
  * Returns the current difficulty of the round.

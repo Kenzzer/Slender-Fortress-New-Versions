@@ -464,6 +464,7 @@ new Handle:fOnBossSpawn;
 new Handle:fOnBossChangeState;
 new Handle:fOnBossRemoved;
 new Handle:fOnPagesSpawned;
+new Handle:fOnClientCollectPage;
 new Handle:fOnClientBlink;
 new Handle:fOnClientCaughtByBoss;
 new Handle:fOnClientGiveQueuePoints;
@@ -547,6 +548,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	fOnBossChangeState = CreateGlobalForward("SF2_OnBossChangeState", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	fOnBossRemoved = CreateGlobalForward("SF2_OnBossRemoved", ET_Ignore, Param_Cell);
 	fOnPagesSpawned = CreateGlobalForward("SF2_OnPagesSpawned", ET_Ignore);
+	fOnClientCollectPage = CreateGlobalForward("SF2_OnClientCollectPage", ET_Ignore, Param_Cell, Param_Cell);
 	fOnClientBlink = CreateGlobalForward("SF2_OnClientBlink", ET_Ignore, Param_Cell);
 	fOnClientCaughtByBoss = CreateGlobalForward("SF2_OnClientCaughtByBoss", ET_Ignore, Param_Cell, Param_Cell);
 	fOnClientGiveQueuePoints = CreateGlobalForward("SF2_OnClientGiveQueuePoints", ET_Hook, Param_Cell, Param_CellByRef);
@@ -565,6 +567,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	fOnGroupGiveQueuePoints = CreateGlobalForward("SF2_OnGroupGiveQueuePoints", ET_Hook, Param_Cell, Param_CellByRef);
 	
 	CreateNative("SF2_IsRunning", Native_IsRunning);
+	CreateNative("SF2_GetRoundState", Native_GetRoundState);
 	CreateNative("SF2_GetCurrentDifficulty", Native_GetCurrentDifficulty);
 	CreateNative("SF2_GetDifficultyModifier", Native_GetDifficultyModifier);
 	CreateNative("SF2_IsClientEliminated", Native_IsClientEliminated);
@@ -2829,6 +2832,11 @@ static CollectPage(page, activator)
 	g_iPlayerPageCount[activator] += 1;
 	EmitSoundToAll(PAGE_GRABSOUND, activator, SNDCHAN_ITEM, SNDLEVEL_SCREAMING);
 	
+	Call_StartForward(fOnClientCollectPage);
+	Call_PushCell(page);
+	Call_PushCell(activator);
+	Call_Finish();
+
 	// Gives points. Credit to the makers of VSH/FF2.
 	new Handle:hEvent = CreateEvent("player_escort_score", true);
 	SetEventInt(hEvent, "player", activator);
@@ -4421,11 +4429,11 @@ public Event_PlayerTeam(Handle:event, const String:name[], bool:dB)
 				if (g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight])
 				{
 					EmitSoundToClient(client, SF2_PROJECTED_FLASHLIGHT_CONFIRM_SOUND);
-					CPrintToChat(client, "{olive}Your flashlight mode has been set to {lightgreen}Projected{olive}.");
+					CPrintToChat(client, "%T", "SF2 Projected Flashlight", client);
 				}
 				else
 				{
-					CPrintToChat(client, "{olive}Your flashlight mode has been set to {lightgreen}Normal{olive}.");
+					CPrintToChat(client, "%T", "SF2 Normal Flashlight", client);
 				}
 				
 				CreateTimer(5.0, Timer_WelcomeMessage, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
@@ -6156,6 +6164,11 @@ CheckRoundWinConditions()
 public Native_IsRunning(Handle:plugin, numParams)
 {
 	return g_bEnabled;
+}
+
+public Native_GetRoundState(Handle:plugin, numParams)
+{
+	return _:g_iRoundState;
 }
 
 public Native_GetCurrentDifficulty(Handle:plugin, numParams)
