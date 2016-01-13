@@ -600,21 +600,21 @@ public Panel_SettingsMuteMode(Handle:menu, MenuAction:action, param1, param2)
 				g_iPlayerPreferences[param1][PlayerPreference_MuteMode] = MuteMode_Normal;
 				ClientUpdateListeningFlags(param1);
 				ClientSaveCookies(param1);
-				CPrintToChat(param1, "{lightgreen}Mute mode set to normal.");
+				CPrintToChat(param1, "%T", "SF2 Mute Mode Normal", param1);
 			}
 			case 2:
 			{
 				g_iPlayerPreferences[param1][PlayerPreference_MuteMode] = MuteMode_DontHearOtherTeam;
 				ClientUpdateListeningFlags(param1);
 				ClientSaveCookies(param1);
-				CPrintToChat(param1, "{lightgreen}Muted opposing team.");
+				CPrintToChat(param1, "%T", "SF2 Mute Mode Opposing", param1);
 			}
 			case 3:
 			{
 				g_iPlayerPreferences[param1][PlayerPreference_MuteMode] = MuteMode_DontHearOtherTeamIfNotProxy;
 				ClientUpdateListeningFlags(param1);
 				ClientSaveCookies(param1);
-				CPrintToChat(param1, "{lightgreen}Muted opposing team, but settings will be automatically set to normal if you're a proxy.");
+				CPrintToChat(param1, "%T", "SF2 Mute Mode Proxy", param1);
 			}
 		}
 		
