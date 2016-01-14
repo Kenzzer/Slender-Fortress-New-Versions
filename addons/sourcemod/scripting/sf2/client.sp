@@ -2521,7 +2521,6 @@ static ClientSprintTimer(client, bool:bRecharge=false)
 ClientStopSprint(client)
 {
 	if (!IsClientSprinting(client)) return;
-	TF2Attrib_SetByName(client, "increased jump height", 0.0);
 	g_bPlayerSprint[client] = false;
 	g_hPlayerSprintTimer[client] = INVALID_HANDLE;
 	ClientSprintTimer(client, true);
@@ -6060,9 +6059,25 @@ bool:IsWeaponRestricted(TFClassType:iClass, iItemDef)
 	IntToString(iItemDef, sItemDef, sizeof(sItemDef));
 	
 	KvRewind(g_hRestrictedWeaponsConfig);
+	new bool:bProxyBoss = false;
+	for (new i = 0; i < MAX_BOSSES; i++)
+	{
+		if (NPCGetUniqueID(i) == -1) continue;
+		if (NPCGetFlags(i) & SFF_PROXIES)
+		{
+			bProxyBoss = true;
+			break;
+		}
+	}
 	if (KvJumpToKey(g_hRestrictedWeaponsConfig, "all"))
 	{
 		bReturn = bool:KvGetNum(g_hRestrictedWeaponsConfig, sItemDef);
+		if(bProxyBoss)
+		{
+			new bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn);
+			if(bProxyRestricted==2)
+				bReturn=true;
+		}
 	}
 	
 	new bool:bFoundSection = false;
@@ -6092,6 +6107,12 @@ bool:IsWeaponRestricted(TFClassType:iClass, iItemDef)
 	
 	if (bFoundSection)
 	{
+		if(bProxyBoss)
+		{
+			new bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn);
+			if(bProxyRestricted==2)
+				bReturn=true;
+		}
 		bReturn = bool:KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn);
 	}
 	
