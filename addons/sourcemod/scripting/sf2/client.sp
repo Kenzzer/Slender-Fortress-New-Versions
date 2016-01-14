@@ -622,9 +622,9 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 								ClientSDK_PlaySpecificSequence(victim,sBuffer);
 								g_iClientFrame[victim]=0;
 								RequestFrame(ProxyDeathAnimation,victim);
-								TF2_AddCondition(victim, TFCond:87, 5.0);
+								TF2_AddCondition(victim, TFCond:87, 3.0);
 								//Prevent death, and show the damage to the attacker.
-								TF2_AddCondition(victim, TFCond:70, 0.5);
+								TF2_AddCondition(victim, TFCond:70, 0.2);
 								return Plugin_Changed;
 							}
 						}
