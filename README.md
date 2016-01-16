@@ -1,5 +1,7 @@
 Coder/Developer: Benoist3012
+
 Russian translations: x3m77rus
+
 French translations(soon): Benoist3012
 
 # Slender-Fortress-New-Versions
