@@ -26,7 +26,7 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v5"
+#define PLUGIN_VERSION "0.2.8-v6"
 #define PLUGIN_VERSION_DISPLAY "0.2.8"
 
 
@@ -1232,7 +1232,7 @@ public TF2_OnConditionAdded(client, TFCond:cond)
 public OnGameFrame()
 {
 	if (!g_bEnabled) return;
-
+	
 	// Process through boss movement.
 	for (new i = 0; i < MAX_BOSSES; i++)
 	{
@@ -1305,6 +1305,183 @@ public OnGameFrame()
 			{
 				SlenderChaseBossProcessMovement(i);
 			}
+		}
+	}
+	
+		
+	// Check if we can add some proxies.
+	if (!g_bRoundGrace)
+	{
+		if (NavMesh_Exists())
+		{
+			new Handle:hProxyCandidates = CreateArray();
+			
+			decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+			
+			for (new iBossIndex = 0; iBossIndex < MAX_BOSSES; iBossIndex++)
+			{
+				if (NPCGetUniqueID(iBossIndex) == -1) continue;
+				
+				if (!(NPCGetFlags(iBossIndex) & SFF_PROXIES)) continue;
+				
+				if (g_iSlenderCopyMaster[iBossIndex] != -1) continue; // Copies cannot generate proxies.
+				
+				if (GetGameTime() < g_flSlenderTimeUntilNextProxy[iBossIndex]) continue; // Proxy spawning hasn't cooled down yet.
+				
+				new iTeleportTarget = EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
+				if (!iTeleportTarget || iTeleportTarget == INVALID_ENT_REFERENCE) continue; // No teleport target.
+				
+				NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
+				
+				new iMaxProxies = GetProfileNum(sProfile, "proxies_max");
+				new iNumActiveProxies = 0;
+				
+				for (new iClient = 1; iClient <= MaxClients; iClient++)
+				{
+					if (!IsClientInGame(iClient) || !g_bPlayerEliminated[iClient]) continue;
+					if (!g_bPlayerProxy[iClient]) continue;
+					
+					if (NPCGetFromUniqueID(g_iPlayerProxyMaster[iClient]) == iBossIndex)
+					{
+						iNumActiveProxies++;
+					}
+				}
+				if (iNumActiveProxies >= iMaxProxies) 
+				{
+#if defined DEBUG
+					//SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d has too many active proxies!", iBossIndex);
+					PrintToChatAll("[PROXIES] Boss %d has too many active proxies!", iBossIndex);
+#endif
+					continue;
+				}
+				
+				new Float:flSpawnChanceMin = GetProfileFloat(sProfile, "proxies_spawn_chance_min");
+				new Float:flSpawnChanceMax = GetProfileFloat(sProfile, "proxies_spawn_chance_max");
+				new Float:flSpawnChanceThreshold = GetProfileFloat(sProfile, "proxies_spawn_chance_threshold") * NPCGetAnger(iBossIndex);
+				
+				new Float:flChance = GetRandomFloat(flSpawnChanceMin, flSpawnChanceMax);
+				if (flChance > flSpawnChanceThreshold) 
+				{
+#if defined DEBUG
+					SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d's chances weren't in his favor!", iBossIndex);
+					PrintToChatAll("[PROXIES] Boss %d's chances weren't in his favor!", iBossIndex);
+#endif
+					continue;
+				}
+				
+				new iAvailableProxies = iMaxProxies - iNumActiveProxies;
+				
+				new iSpawnNumMin = GetProfileNum(sProfile, "proxies_spawn_num_min");
+				new iSpawnNumMax = GetProfileNum(sProfile, "proxies_spawn_num_max");
+				
+				new iSpawnNum = 0;
+				
+				// Get a list of people we can transform into a good Proxy.
+				ClearArray(hProxyCandidates);
+				
+				for (new iClient = 1; iClient <= MaxClients; iClient++)
+				{
+					if (!IsClientInGame(iClient) || !g_bPlayerEliminated[iClient]) continue;
+					if (g_bPlayerProxy[iClient]) continue;
+					
+					if (!g_iPlayerPreferences[iClient][PlayerPreference_EnableProxySelection])
+					{
+#if defined DEBUG
+						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because of your preferences.", iBossIndex);
+						PrintToChatAll("[PROXIES] You were rejected for being a proxy for boss %d because of your preferences.", iBossIndex);
+#endif
+						continue;
+					}
+					
+					if (!g_bPlayerProxyAvailable[iClient])
+					{
+#if defined DEBUG
+						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because of your cooldown.", iBossIndex);
+#endif
+						continue;
+					}
+					
+					if (g_bPlayerProxyAvailableInForce[iClient])
+					{
+#if defined DEBUG
+						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because you're already being forced into a Proxy.", iBossIndex);
+#endif
+						continue;
+					}
+					
+					if (!IsClientParticipating(iClient))
+					{
+#if defined DEBUG
+						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because you're not participating.", iBossIndex);
+#endif
+						continue;
+					}
+					
+					PushArrayCell(hProxyCandidates, iClient);
+					iSpawnNum++;
+				}
+				
+				if (iSpawnNum >= iSpawnNumMax)
+				{
+					iSpawnNum = GetRandomInt(iSpawnNumMin, iSpawnNumMax);
+				}
+				else if (iSpawnNum >= iSpawnNumMin)
+				{
+					iSpawnNum = GetRandomInt(iSpawnNumMin, iSpawnNum);
+				}
+				
+				if (iSpawnNum <= 0) 
+				{
+#if defined DEBUG
+					SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d had a set spawn number of 0!", iBossIndex);
+#endif
+					continue;
+				}
+				new bool:bCooldown = false;
+				// Randomize the array.
+				SortADTArray(hProxyCandidates, Sort_Random, Sort_Integer);
+				
+				decl Float:flDestinationPos[3];
+				
+				for (new iNum = 0; iNum < iSpawnNum && iNum < iAvailableProxies; iNum++)
+				{
+					new iClient = GetArrayCell(hProxyCandidates, iNum);
+					
+					if(!SpawnProxy(iClient,iBossIndex,flDestinationPos))
+					{
+#if defined DEBUG
+						SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d could not find any areas to place proxies (spawned %d)!", iBossIndex, iNum);
+						PrintToChatAll("[PROXIES] Boss %d could not find any areas to place proxies (spawned %d)!", iBossIndex, iNum);
+#endif
+						break;
+					}
+					bCooldown = true;
+					if (!GetConVarBool(g_cvPlayerProxyAsk))
+					{
+						ClientStartProxyForce(iClient, NPCGetUniqueID(iBossIndex), flDestinationPos);
+					}
+					else
+					{
+						DisplayProxyAskMenu(iClient, NPCGetUniqueID(iBossIndex), flDestinationPos);
+					}
+				}
+				// Set the cooldown time!
+				if(bCooldown)
+				{
+					new Float:flSpawnCooldownMin = GetProfileFloat(sProfile, "proxies_spawn_cooldown_min");
+					new Float:flSpawnCooldownMax = GetProfileFloat(sProfile, "proxies_spawn_cooldown_max");
+				
+					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + GetRandomFloat(flSpawnCooldownMin, flSpawnCooldownMax);
+				}
+				else
+					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + GetRandomFloat(3.0, 4.0);
+				
+#if defined DEBUG
+				PrintToChatAll("[PROXIES] Boss %d finished proxy process!", iBossIndex);
+#endif
+			}
+			
+			CloseHandle(hProxyCandidates);
 		}
 	}
 	
@@ -2257,185 +2434,6 @@ public Action:Timer_BossCountUpdate(Handle:timer)
 			}
 		}
 	}
-	
-	// Check if we can add some proxies.
-	if (!g_bRoundGrace)
-	{
-		if (NavMesh_Exists())
-		{
-			new Handle:hProxyCandidates = CreateArray();
-			
-			decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
-			
-			for (new iBossIndex = 0; iBossIndex < MAX_BOSSES; iBossIndex++)
-			{
-				if (NPCGetUniqueID(iBossIndex) == -1) continue;
-				
-				if (!(NPCGetFlags(iBossIndex) & SFF_PROXIES)) continue;
-				
-				if (g_iSlenderCopyMaster[iBossIndex] != -1) continue; // Copies cannot generate proxies.
-				
-				if (GetGameTime() < g_flSlenderTimeUntilNextProxy[iBossIndex]) continue; // Proxy spawning hasn't cooled down yet.
-				
-				new iTeleportTarget = EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
-				if (!iTeleportTarget || iTeleportTarget == INVALID_ENT_REFERENCE) continue; // No teleport target.
-				
-				NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
-				
-				new iMaxProxies = GetProfileNum(sProfile, "proxies_max");
-				new iNumActiveProxies = 0;
-				
-				for (new iClient = 1; iClient <= MaxClients; iClient++)
-				{
-					if (!IsClientInGame(iClient) || !g_bPlayerEliminated[iClient]) continue;
-					if (!g_bPlayerProxy[iClient]) continue;
-					
-					if (NPCGetFromUniqueID(g_iPlayerProxyMaster[iClient]) == iBossIndex)
-					{
-						iNumActiveProxies++;
-					}
-				}
-				if (iNumActiveProxies >= iMaxProxies) 
-				{
-#if defined DEBUG
-					//SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d has too many active proxies!", iBossIndex);
-					PrintToChatAll("[PROXIES] Boss %d has too many active proxies!", iBossIndex);
-#endif
-					continue;
-				}
-				
-				new Float:flSpawnChanceMin = GetProfileFloat(sProfile, "proxies_spawn_chance_min");
-				new Float:flSpawnChanceMax = GetProfileFloat(sProfile, "proxies_spawn_chance_max");
-				new Float:flSpawnChanceThreshold = GetProfileFloat(sProfile, "proxies_spawn_chance_threshold") * NPCGetAnger(iBossIndex);
-				
-				new Float:flChance = GetRandomFloat(flSpawnChanceMin, flSpawnChanceMax);
-				if (flChance > flSpawnChanceThreshold) 
-				{
-#if defined DEBUG
-					SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d's chances weren't in his favor!", iBossIndex);
-					PrintToChatAll("[PROXIES] Boss %d's chances weren't in his favor!", iBossIndex);
-#endif
-					continue;
-				}
-				
-				new iAvailableProxies = iMaxProxies - iNumActiveProxies;
-				
-				new iSpawnNumMin = GetProfileNum(sProfile, "proxies_spawn_num_min");
-				new iSpawnNumMax = GetProfileNum(sProfile, "proxies_spawn_num_max");
-				
-				new iSpawnNum = 0;
-				
-				// Get a list of people we can transform into a good Proxy.
-				ClearArray(hProxyCandidates);
-				
-				for (new iClient = 1; iClient <= MaxClients; iClient++)
-				{
-					if (!IsClientInGame(iClient) || !g_bPlayerEliminated[iClient]) continue;
-					if (g_bPlayerProxy[iClient]) continue;
-					
-					if (!g_iPlayerPreferences[iClient][PlayerPreference_EnableProxySelection])
-					{
-#if defined DEBUG
-						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because of your preferences.", iBossIndex);
-						PrintToChatAll("[PROXIES] You were rejected for being a proxy for boss %d because of your preferences.", iBossIndex);
-#endif
-						continue;
-					}
-					
-					if (!g_bPlayerProxyAvailable[iClient])
-					{
-#if defined DEBUG
-						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because of your cooldown.", iBossIndex);
-#endif
-						continue;
-					}
-					
-					if (g_bPlayerProxyAvailableInForce[iClient])
-					{
-#if defined DEBUG
-						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because you're already being forced into a Proxy.", iBossIndex);
-#endif
-						continue;
-					}
-					
-					if (!IsClientParticipating(iClient))
-					{
-#if defined DEBUG
-						SendDebugMessageToPlayer(iClient, DEBUG_BOSS_PROXIES, 0, "[PROXIES] You were rejected for being a proxy for boss %d because you're not participating.", iBossIndex);
-#endif
-						continue;
-					}
-					
-					PushArrayCell(hProxyCandidates, iClient);
-					iSpawnNum++;
-				}
-				
-				if (iSpawnNum >= iSpawnNumMax)
-				{
-					iSpawnNum = GetRandomInt(iSpawnNumMin, iSpawnNumMax);
-				}
-				else if (iSpawnNum >= iSpawnNumMin)
-				{
-					iSpawnNum = GetRandomInt(iSpawnNumMin, iSpawnNum);
-				}
-				
-				if (iSpawnNum <= 0) 
-				{
-#if defined DEBUG
-					SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d had a set spawn number of 0!", iBossIndex);
-#endif
-					continue;
-				}
-				new bool:bCooldown = false;
-				// Randomize the array.
-				SortADTArray(hProxyCandidates, Sort_Random, Sort_Integer);
-				
-				decl Float:flDestinationPos[3];
-				
-				for (new iNum = 0; iNum < iSpawnNum && iNum < iAvailableProxies; iNum++)
-				{
-					new iClient = GetArrayCell(hProxyCandidates, iNum);
-					
-					if(!SpawnProxy(iClient,iBossIndex,flDestinationPos))
-					{
-#if defined DEBUG
-						SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d could not find any areas to place proxies (spawned %d)!", iBossIndex, iNum);
-						PrintToChatAll("[PROXIES] Boss %d could not find any areas to place proxies (spawned %d)!", iBossIndex, iNum);
-#endif
-						break;
-					}
-					bCooldown = true;
-					if (!GetConVarBool(g_cvPlayerProxyAsk))
-					{
-						ClientStartProxyForce(iClient, NPCGetUniqueID(iBossIndex), flDestinationPos);
-					}
-					else
-					{
-						DisplayProxyAskMenu(iClient, NPCGetUniqueID(iBossIndex), flDestinationPos);
-					}
-				}
-				// Set the cooldown time!
-				if(bCooldown)
-				{
-					new Float:flSpawnCooldownMin = GetProfileFloat(sProfile, "proxies_spawn_cooldown_min");
-					new Float:flSpawnCooldownMax = GetProfileFloat(sProfile, "proxies_spawn_cooldown_max");
-				
-					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + GetRandomFloat(flSpawnCooldownMin, flSpawnCooldownMax);
-				}
-				else
-				{
-					g_flSlenderTimeUntilNextProxy[iBossIndex] = GetGameTime() + 3.0;//Retry in 3secs.
-				}
-				
-#if defined DEBUG
-				PrintToChatAll("[PROXIES] Boss %d finished proxy process!", iBossIndex);
-#endif
-			}
-			
-			CloseHandle(hProxyCandidates);
-		}
-	}
-	
 	return Plugin_Continue;
 }
 

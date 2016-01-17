@@ -3507,16 +3507,23 @@ public Action:Timer_ClientResetDeathCamEnd(Handle:timer, any:userid)
 			new Float:flValue = NPCGetAttributeValue(iDeathCamBoss, "ignite player on death");
 			if (flValue > 0.0) TF2_IgnitePlayer(client, client);
 		}
+		if (!(NPCGetFlags(iDeathCamBoss) & SFF_FAKE))
+		{
+			SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, Float:{ 0.0, 0.0, 0.0 });
+			ForcePlayerSuicide(client);//Sometimes SDKHooks_TakeDamage doesn't work (probably because of point_viewcontrol), the player still alive and result in a endless round.
+			SetVariantInt(9001);//Maybe it doesn't work like SDKHooks_TakeDamage, maybe not. Tbh I don't want to test this one.
+			AcceptEntityInput(client, "RemoveHealth");
+		}
+		else
+			SlenderMarkAsFake(iDeathCamBoss);	
 	}
-	if (!(NPCGetFlags(iDeathCamBoss) & SFF_FAKE))
+	else//The boss is invalid? But the player got a death cam?
 	{
+		//Then kill him anyways.
 		SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, Float:{ 0.0, 0.0, 0.0 });
-		ForcePlayerSuicide(client);//Sometimes SDKHooks_TakeDamage doesn't work (probably because of point_viewcontrol), the player still alive and result in a endless round.
-		SetVariantInt(9001);//Maybe it doesn't work like SDKHooks_TakeDamage, maybe not. Tbh I don't want to test this one.
-		AcceptEntityInput(client, "RemoveHealth");
+		ForcePlayerSuicide(client);
+		SetVariantInt(9001);
 	}
-	else
-		SlenderMarkAsFake(iDeathCamBoss);	
 	ClientResetDeathCam(client);
 }
 

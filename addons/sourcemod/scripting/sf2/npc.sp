@@ -2921,14 +2921,14 @@ stock bool:SpawnProxy(client,iBossIndex,Float:flTeleportPos[3])
 							flTraceStartPos[2] = flAreaSpawnPoint[2] + (HalfHumanHeight * 2.0);
 						
 							decl Float:flTraceMins[3];
-							flTraceMins[0] = g_flSlenderDetectMins[iBossIndex][0];
-							flTraceMins[1] = g_flSlenderDetectMins[iBossIndex][1];
+							flTraceMins[0] = HULL_TF2PLAYER_MINS[0];
+							flTraceMins[1] = HULL_TF2PLAYER_MINS[1];
 							flTraceMins[2] = 0.0;
 						
 							
 							decl Float:flTraceMaxs[3];
-							flTraceMaxs[0] = g_flSlenderDetectMaxs[iBossIndex][0];
-							flTraceMaxs[1] = g_flSlenderDetectMaxs[iBossIndex][1];
+							flTraceMaxs[0] = HULL_TF2PLAYER_MAXS[0];
+							flTraceMaxs[1] = HULL_TF2PLAYER_MAXS[1];
 							flTraceMaxs[2] = 0.0;
 							
 							new Handle:hTrace = TR_TraceHullFilterEx(flTraceStartPos,
@@ -2944,9 +2944,19 @@ stock bool:SpawnProxy(client,iBossIndex,Float:flTeleportPos[3])
 							flTraceHitPos[2] += 1.0;
 							CloseHandle(hTrace);
 							
+							if (TR_PointOutsideWorld(flTraceHitPos))
+							{
+								continue;
+							}
+							if(IsSpaceOccupiedPlayer(flTraceHitPos, HULL_TF2PLAYER_MINS, HULL_TF2PLAYER_MAXS, client))
+							{
+								flTraceHitPos[2] +=5.0;
+								if(IsSpaceOccupiedPlayer(flTraceHitPos, HULL_TF2PLAYER_MINS, HULL_TF2PLAYER_MAXS, client))
+									continue;
+							}
 							if (IsSpaceOccupiedNPC(flTraceHitPos,
-							HULL_HUMAN_MINS,
-							HULL_HUMAN_MAXS,
+							HULL_TF2PLAYER_MINS,
+							HULL_TF2PLAYER_MAXS,
 							iBoss))
 							{
 								continue;
@@ -3056,7 +3066,6 @@ stock bool:SpawnProxy(client,iBossIndex,Float:flTeleportPos[3])
 		}
 		if(iTeleportAreaIndex == -1)
 		{
-			PrintToChatAll("No area found");
 			return false;
 		}
 	}

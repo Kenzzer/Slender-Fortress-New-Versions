@@ -47,6 +47,9 @@
 new Float:HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }
 new Float:HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
 
+new Float:HULL_TF2PLAYER_MINS[3] = { -24.5, -24.5, 0.0 }
+new Float:HULL_TF2PLAYER_MAXS[3] = { 24.5,  24.5, 83.0 }
+
 //	==========================================================
 //	ENTITY FUNCTIONS
 //	==========================================================
