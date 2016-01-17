@@ -97,6 +97,9 @@ static bool:g_bPlayerCampingFirstTime[MAXPLAYERS + 1] = { true, ... };
 static g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
 static g_iClientFrame[MAXPLAYERS + 1];
 
+//Proxy model
+new String:g_sClientProxyModel[MAXPLAYERS + 1][MAX_NAME_LENGTH];
+
 //	==========================================================
 //	GENERAL CLIENT HOOK FUNCTIONS
 //	==========================================================
@@ -622,9 +625,9 @@ public Action:Hook_ClientOnTakeDamage(victim, &attacker, &inflictor, &Float:dama
 								ClientSDK_PlaySpecificSequence(victim,sBuffer);
 								g_iClientFrame[victim]=0;
 								RequestFrame(ProxyDeathAnimation,victim);
-								TF2_AddCondition(victim, TFCond:87, 3.0);
+								TF2_AddCondition(victim, TFCond:87, 5.0);
 								//Prevent death, and show the damage to the attacker.
-								TF2_AddCondition(victim, TFCond:70, 0.2);
+								TF2_AddCondition(victim, TFCond:70, 0.5);
 								return Plugin_Changed;
 							}
 						}
@@ -2903,6 +2906,8 @@ ClientEnableProxy(client, iBossIndex)
 	if (NPCGetUniqueID(iBossIndex) == -1) return;
 	if (!(NPCGetFlags(iBossIndex) & SFF_PROXIES)) return;
 	if (g_bPlayerProxy[client]) return;
+	
+	TF2_RemoveCondition(client, TFCond:82);
 	
 	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
@@ -5988,6 +5993,9 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 			SetVariantString(sBuffer);
 			AcceptEntityInput(client, "SetCustomModel");
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
+			Format(g_sClientProxyModel[client],sizeof(g_sClientProxyModel[]),sBuffer);
+			//Prevent plugins like Model manager to override proxy model.
+			CreateTimer(0.5,ClientCheckProxyModel,client,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 		}
 		new ent = -1;
 		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
@@ -6048,7 +6056,23 @@ public Action:Timer_ApplyCustomModel(Handle:timer, any:userid)
 		}
 	}
 }
-
+public Action:ClientCheckProxyModel(Handle:timer, any:userid)
+{
+	new client = GetClientOfUserId(userid);
+	if(!IsValidClient(client)) return Plugin_Stop;
+	if(!IsPlayerAlive(client)) return Plugin_Stop;
+	if(!g_bPlayerProxy[client]) return Plugin_Stop;
+	
+	decl String:sModel[PLATFORM_MAX_PATH];
+	GetEntPropString(client, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
+	if (!StrEqual(sModel,g_sClientProxyModel[client]))
+	{
+		SetVariantString(g_sClientProxyModel[client]);
+		AcceptEntityInput(client, "SetCustomModel");
+		SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
+	}
+	return Plugin_Continue;
+}
 bool:IsWeaponRestricted(TFClassType:iClass, iItemDef)
 {
 	if (g_hRestrictedWeaponsConfig == INVALID_HANDLE) return false;

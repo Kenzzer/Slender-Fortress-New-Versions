@@ -1675,7 +1675,6 @@ public Action:Timer_SlenderTeleportThink(Handle:timer, any:iBossIndex)
 			else
 			{
 				new Float:flTeleportMinRange = CalculateTeleportMinRange(iBossIndex, g_flSlenderTeleportMinRange[iBossIndex], g_flSlenderTeleportMaxRange[iBossIndex]);
-				
 				new iTeleportAreaIndex = -1;
 				decl Float:flTeleportPos[3];
 				
@@ -2841,5 +2840,226 @@ public bool:TraceRayDontHitCharactersOrEntity(entity, mask, any:data)
 	
 	return true;
 }
-
+stock bool:SpawnProxy(client,iBossIndex,Float:flTeleportPos[3])
+{
+	if (iBossIndex == -1) return false;
+	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
+	
+	if (!g_bRoundGrace)
+	{	
+		new iTeleportTarget = EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
+		new iTeleportAreaIndex = -1;
+		if (!iTeleportTarget || iTeleportTarget == INVALID_ENT_REFERENCE)
+			return false;
+		else
+		{
+			new Float:flTeleportMinRange = CalculateTeleportMinRange(iBossIndex, GetProfileFloat(sProfile,"proxies_teleport_range_min",500.0), GetProfileFloat(sProfile,"proxies_teleport_range_min",3200.0));
+		
+			// Search surrounding nav areas around target.
+			if (NavMesh_Exists())
+			{
+				decl Float:flTargetPos[3];
+				GetClientAbsOrigin(iTeleportTarget, flTargetPos);
+				
+				new iTargetAreaIndex = NavMesh_GetNearestArea(flTargetPos);
+				if (iTargetAreaIndex != -1)
+				{
+					
+					// Search outwards until travel distance is at maximum range.
+					new Handle:hAreaArray = CreateArray(2);
+					new Handle:hAreas = CreateStack();
+					NavMesh_CollectSurroundingAreas(hAreas, iTargetAreaIndex, g_flSlenderTeleportMaxRange[iBossIndex]);
+					{
+						new iPoppedAreas;
+						
+						while (!IsStackEmpty(hAreas))
+						{
+							new iAreaIndex = -1;
+							PopStackCell(hAreas, iAreaIndex);
+							
+							// Check flags.
+							if (NavMeshArea_GetFlags(iAreaIndex) & NAV_MESH_NO_HOSTAGES)
+							{
+								// Don't spawn/teleport at areas marked with the "NO HOSTAGES" flag.
+								continue;
+							}
+							
+							new iIndex = PushArrayCell(hAreaArray, iAreaIndex);
+							SetArrayCell(hAreaArray, iIndex, float(NavMeshArea_GetCostSoFar(iAreaIndex)), 1);
+							iPoppedAreas++;
+						}
+#if defined DEBUG
+						SendDebugMessageToPlayers(DEBUG_BOSS_TELEPORTATION, 0, "Teleport for boss %d: collected %d areas", iBossIndex, iPoppedAreas);
+#endif
+						
+						CloseHandle(hAreas);
+					}
+					
+					new Handle:hAreaArrayClose = CreateArray(4);
+					new Handle:hAreaArrayAverage = CreateArray(4);
+					new Handle:hAreaArrayFar = CreateArray(4);
+					
+					for (new i = 1; i <= 3; i++)
+					{
+						new Float:flRangeSectionMin = flTeleportMinRange + (GetProfileFloat(sProfile,"proxies_teleport_range_max",3200.0) - flTeleportMinRange) * (float(i - 1) / 3.0);
+						new Float:flRangeSectionMax = flTeleportMinRange + (GetProfileFloat(sProfile,"proxies_teleport_range_max",3200.0) - flTeleportMinRange) * (float(i) / 3.0);
+						
+						for (new i2 = 0, iSize = GetArraySize(hAreaArray); i2 < iSize; i2++)
+						{
+							new iAreaIndex = GetArrayCell(hAreaArray, i2);
+							
+							decl Float:flAreaSpawnPoint[3];
+							NavMeshArea_GetCenter(iAreaIndex, flAreaSpawnPoint);
+							
+							new iBoss = NPCGetEntIndex(iBossIndex);
+						
+							// Check space. First raise to HalfHumanHeight * 2, then trace downwards to get ground level.
+							decl Float:flTraceStartPos[3];
+							flTraceStartPos[0] = flAreaSpawnPoint[0];
+							flTraceStartPos[1] = flAreaSpawnPoint[1];
+							flTraceStartPos[2] = flAreaSpawnPoint[2] + (HalfHumanHeight * 2.0);
+						
+							decl Float:flTraceMins[3];
+							flTraceMins[0] = g_flSlenderDetectMins[iBossIndex][0];
+							flTraceMins[1] = g_flSlenderDetectMins[iBossIndex][1];
+							flTraceMins[2] = 0.0;
+						
+							
+							decl Float:flTraceMaxs[3];
+							flTraceMaxs[0] = g_flSlenderDetectMaxs[iBossIndex][0];
+							flTraceMaxs[1] = g_flSlenderDetectMaxs[iBossIndex][1];
+							flTraceMaxs[2] = 0.0;
+							
+							new Handle:hTrace = TR_TraceHullFilterEx(flTraceStartPos,
+							flAreaSpawnPoint,
+							flTraceMins,
+							flTraceMaxs,
+							MASK_NPCSOLID,
+							TraceRayDontHitEntity,
+							iBoss);
+							
+							decl Float:flTraceHitPos[3];
+							TR_GetEndPosition(flTraceHitPos, hTrace);
+							flTraceHitPos[2] += 1.0;
+							CloseHandle(hTrace);
+							
+							if (IsSpaceOccupiedNPC(flTraceHitPos,
+							HULL_HUMAN_MINS,
+							HULL_HUMAN_MAXS,
+							iBoss))
+							{
+								continue;
+							}
+						
+							flAreaSpawnPoint[0] = flTraceHitPos[0];
+							flAreaSpawnPoint[1] = flTraceHitPos[1];
+							flAreaSpawnPoint[2] = flTraceHitPos[2];
+							// Check visibility.
+							if (IsPointVisibleToAPlayer(flAreaSpawnPoint, false, false)) continue;
+							
+							new bool:bTooNear = false;
+							
+							// Check minimum range with players.
+							for (new iClient = 1; iClient <= MaxClients; iClient++)
+							{
+								if (!IsClientInGame(iClient) ||
+									!IsPlayerAlive(iClient) ||
+									g_bPlayerEliminated[iClient] ||
+									IsClientInGhostMode(iClient) || 
+									DidClientEscape(iClient))
+								{
+									continue;
+								}
+								
+								decl Float:flTempPos[3];
+								GetClientAbsOrigin(iClient, flTempPos);
+								
+								if (GetVectorDistance(flAreaSpawnPoint, flTempPos) <=  GetProfileFloat(sProfile,"proxies_teleport_range_min",500.0))
+								{
+									bTooNear = true;
+									break;
+								}
+							}
+							
+							if (bTooNear) continue;	// This area is not compatible.
+							
+							// Check travel distance and put in the appropriate arrays.
+							new Float:flDist = Float:GetArrayCell(hAreaArray, i2, 1);
+							if (flDist > flRangeSectionMin && flDist < flRangeSectionMax)
+							{
+								new iIndex = -1;
+								new Handle:hTargetAreaArray = INVALID_HANDLE;
+								
+								switch (i)
+								{
+									case 1: 
+									{
+										iIndex = PushArrayCell(hAreaArrayClose, iAreaIndex);
+										hTargetAreaArray = hAreaArrayClose;
+									}
+									case 2: 
+									{
+										iIndex = PushArrayCell(hAreaArrayAverage, iAreaIndex);
+										hTargetAreaArray = hAreaArrayAverage;
+									}
+									case 3: 
+									{
+										iIndex = PushArrayCell(hAreaArrayFar, iAreaIndex);
+										hTargetAreaArray = hAreaArrayFar;
+									}
+								}
+								
+								if (hTargetAreaArray != INVALID_HANDLE && iIndex != -1)
+								{
+									SetArrayCell(hTargetAreaArray, iIndex, flAreaSpawnPoint[0], 1);
+									SetArrayCell(hTargetAreaArray, iIndex, flAreaSpawnPoint[1], 2);
+									SetArrayCell(hTargetAreaArray, iIndex, flAreaSpawnPoint[2], 3);
+								}
+							}
+						}
+					}
+			
+					CloseHandle(hAreaArray);
+				
+					new iArrayIndex = -1;
+				
+					if (GetArraySize(hAreaArrayClose))
+					{
+						iArrayIndex = GetRandomInt(0, GetArraySize(hAreaArrayClose) - 1);
+						iTeleportAreaIndex = GetArrayCell(hAreaArrayClose, iArrayIndex);
+						flTeleportPos[0] = Float:GetArrayCell(hAreaArrayClose, iArrayIndex, 1);
+						flTeleportPos[1] = Float:GetArrayCell(hAreaArrayClose, iArrayIndex, 2);
+						flTeleportPos[2] = Float:GetArrayCell(hAreaArrayClose, iArrayIndex, 3);
+					}
+					else if (GetArraySize(hAreaArrayAverage))
+					{
+						iArrayIndex = GetRandomInt(0, GetArraySize(hAreaArrayAverage) - 1);
+						iTeleportAreaIndex = GetArrayCell(hAreaArrayAverage, iArrayIndex);
+						flTeleportPos[0] = Float:GetArrayCell(hAreaArrayAverage, iArrayIndex, 1);
+						flTeleportPos[1] = Float:GetArrayCell(hAreaArrayAverage, iArrayIndex, 2);
+						flTeleportPos[2] = Float:GetArrayCell(hAreaArrayAverage, iArrayIndex, 3);
+					}
+					else if (GetArraySize(hAreaArrayFar))
+					{
+						iArrayIndex = GetRandomInt(0, GetArraySize(hAreaArrayFar) - 1);
+						iTeleportAreaIndex = GetArrayCell(hAreaArrayFar, iArrayIndex);
+						flTeleportPos[0] = Float:GetArrayCell(hAreaArrayFar, iArrayIndex, 1);
+						flTeleportPos[1] = Float:GetArrayCell(hAreaArrayFar, iArrayIndex, 2);
+						flTeleportPos[2] = Float:GetArrayCell(hAreaArrayFar, iArrayIndex, 3);
+					}
+					CloseHandle(hAreaArrayClose);
+					CloseHandle(hAreaArrayAverage);
+					CloseHandle(hAreaArrayFar);
+				}
+			}
+		}
+		if(iTeleportAreaIndex == -1)
+		{
+			PrintToChatAll("No area found");
+			return false;
+		}
+	}
+	return true;
+}
 #include "sf2/npc/npc_chaser.sp"

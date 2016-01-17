@@ -26,7 +26,7 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v4"
+#define PLUGIN_VERSION "0.2.8-v5"
 #define PLUGIN_VERSION_DISPLAY "0.2.8"
 
 
@@ -1856,7 +1856,7 @@ public Action:Command_ForceProxy(client, args)
 		
 		decl Float:flNewPos[3];
 		
-		if (!SlenderCalculateNewPlace(iBossIndex, flNewPos, true, true, client)) 
+		if (!SpawnProxy(client,iBossIndex,flNewPos)) 
 		{
 			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Player No Place For Proxy", client, sName);
 			continue;
@@ -2396,7 +2396,7 @@ public Action:Timer_BossCountUpdate(Handle:timer)
 				{
 					new iClient = GetArrayCell(hProxyCandidates, iNum);
 					
-					if(!SlenderCalculateNewPlace(iBossIndex,flDestinationPos, true, true, iClient))
+					if(!SpawnProxy(iClient,iBossIndex,flDestinationPos))
 					{
 #if defined DEBUG
 						SendDebugMessageToPlayers(DEBUG_BOSS_PROXIES, 0, "[PROXIES] Boss %d could not find any areas to place proxies (spawned %d)!", iBossIndex, iNum);
