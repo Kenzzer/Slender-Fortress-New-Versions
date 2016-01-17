@@ -2232,7 +2232,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		}
 	}
 	
-	if (bSlenderOnGround && bSlenderShouldJump)
+	if (bSlenderOnGround && bSlenderShouldJump && flMyPos[2]<flGoalPosition[2])
 	{
 		g_flSlenderNextJump[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "jump_cooldown", 2.0);
 		
@@ -2286,7 +2286,6 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		
 		bChangeAngles = true;
 	}
-	
 	TeleportEntity(iBoss, NULL_VECTOR, bChangeAngles ? flMoveAng : NULL_VECTOR, flMoveVelocity);
 }
 
