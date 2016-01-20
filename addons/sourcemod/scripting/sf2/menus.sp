@@ -215,7 +215,6 @@ public Menu_VoteDifficulty(Handle:menu, MenuAction:action, param1, param2)
 		{
 			SetConVarString(g_cvDifficulty, sInfo);
 		}
-		
 		new iDifficulty = GetConVarInt(g_cvDifficulty);
 		switch (iDifficulty)
 		{
