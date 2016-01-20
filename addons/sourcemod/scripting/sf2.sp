@@ -2,12 +2,23 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
-#include <steamworks>
 #include <tf2items>
 #include <tf2attributes>
 #include <dhooks>
 #include <navmesh>
 #include <nativevotes>
+
+#undef REQUIRE_EXTENSIONS
+#tryinclude <steamtools>
+#tryinclude <steamworks>
+#define REQUIRE_EXTENSIONS
+
+#if defined _steamtools_included
+new bool:steamtools=false;
+#endif
+#if defined _SteamWorks_Included
+new bool:steamworks=false;
+#endif
 
 #include <tf2>
 #include <tf2_stocks>
@@ -599,6 +610,12 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	CreateNative("SF2_GetBossProfileVector", Native_GetBossProfileVector);
 	CreateNative("SF2_GetRandomStringFromBossProfile", Native_GetRandomStringFromBossProfile);
 	
+	#if defined _steamtools_included
+	MarkNativeAsOptional("Steam_SetGameDescription");
+	#endif
+	MarkNativeAsOptional("SteamWorks_SetGameDescription");
+	
+	
 	PvP_InitializeAPI();
 	
 	SpecialRoundInitializeAPI();
@@ -827,6 +844,13 @@ public OnPluginStart()
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
 	
+	#if defined _steamtools_included
+	steamtools=LibraryExists("SteamTools");
+	#endif
+	#if defined _SteamWorks_Included
+	steamworks=LibraryExists("SteamWorks");
+	#endif
+	
 #if defined DEBUG
 	InitializeDebug();
 #endif
@@ -841,7 +865,36 @@ public OnPluginEnd()
 {
 	StopPlugin();
 }
-
+public OnLibraryAdded(const String:name[])
+{
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamTools", false))
+	{
+		steamtools=true;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamWorks", false))
+	{
+		steamworks=true;
+	}
+	#endif
+}
+public OnLibraryRemoved(const String:name[])
+{
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamTools", false))
+	{
+		steamtools=false;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamWorks", false))
+	{
+		steamworks=false;
+	}
+	#endif
+}
 static SetupHooks()
 {
 	// Check SDKHooks gamedata.
@@ -1045,7 +1098,21 @@ static StartPlugin()
 	
 	decl String:sBuffer[64];
 	Format(sBuffer, sizeof(sBuffer), "Slender Fortress (%s)", PLUGIN_VERSION_DISPLAY);
-	SteamWorks_SetGameDescription(sBuffer);
+	
+	#if defined _SteamWorks_Included
+	if(steamworks)
+	{
+		SteamWorks_SetGameDescription(sBuffer);
+		steamtools=false;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(steamtools)
+	{
+		Steam_SetGameDescription(sBuffer);
+		steamworks=false;
+	}
+	#endif
 	
 	PrecacheStuff();
 	
