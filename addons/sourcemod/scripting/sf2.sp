@@ -843,14 +843,6 @@ public OnPluginStart()
 	
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
-	
-	#if defined _steamtools_included
-	steamtools=LibraryExists("SteamTools");
-	#endif
-	#if defined _SteamWorks_Included
-	steamworks=LibraryExists("SteamWorks");
-	#endif
-	
 #if defined DEBUG
 	InitializeDebug();
 #endif
@@ -871,12 +863,14 @@ public OnLibraryAdded(const String:name[])
 	if(!strcmp(name, "SteamTools", false))
 	{
 		steamtools=true;
+		LogSF2Message("Steam Tools found!");
 	}
 	#endif
 	#if defined _steamtools_included
 	if(!strcmp(name, "SteamWorks", false))
 	{
 		steamworks=true;
+		LogSF2Message("Steam Works found!");
 	}
 	#endif
 }
@@ -886,12 +880,14 @@ public OnLibraryRemoved(const String:name[])
 	if(!strcmp(name, "SteamTools", false))
 	{
 		steamtools=false;
+		LogSF2Message("Steam Tools unloaded!");
 	}
 	#endif
 	#if defined _steamtools_included
 	if(!strcmp(name, "SteamWorks", false))
 	{
 		steamworks=false;
+		LogSF2Message("Steam Works unloaded!");
 	}
 	#endif
 }
@@ -1074,6 +1070,20 @@ static StartPlugin()
 	InitializeDebugLogging();
 #endif
 	
+	LogSF2Message("Loading optional extensions...");
+	#if defined _steamtools_included
+	steamtools=LibraryExists("SteamTools");
+	if(steamtools)
+		LogSF2Message("Steam Tools found!");
+	#endif
+	#if defined _SteamWorks_Included
+	steamworks=LibraryExists("SteamWorks");
+	if(steamworks)
+		LogSF2Message("Steam Works found!");
+	#endif
+	if(!steamtools && !steamworks)
+		LogSF2Message("Can't find any optional extensions!");
+	
 	// Handle ConVars.
 	new Handle:hCvar = FindConVar("mp_friendlyfire");
 	if (hCvar != INVALID_HANDLE) SetConVarBool(hCvar, true);
@@ -1102,6 +1112,7 @@ static StartPlugin()
 	#if defined _SteamWorks_Included
 	if(steamworks)
 	{
+		LogSF2Message("Setting game description...");
 		SteamWorks_SetGameDescription(sBuffer);
 		steamtools=false;
 	}
@@ -1109,6 +1120,7 @@ static StartPlugin()
 	#if defined _steamtools_included
 	if(steamtools)
 	{
+		LogSF2Message("Setting game description...");
 		Steam_SetGameDescription(sBuffer);
 		steamworks=false;
 	}
