@@ -2,7 +2,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
-#include <steamtools>
+#include <steamworks>
 #include <tf2items>
 #include <tf2attributes>
 #include <dhooks>
@@ -26,8 +26,8 @@
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.8-v6"
-#define PLUGIN_VERSION_DISPLAY "0.2.8"
+#define PLUGIN_VERSION "0.2.9-v1"
+#define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 
 public Plugin:myinfo = 
@@ -1045,7 +1045,7 @@ static StartPlugin()
 	
 	decl String:sBuffer[64];
 	Format(sBuffer, sizeof(sBuffer), "Slender Fortress (%s)", PLUGIN_VERSION_DISPLAY);
-	Steam_SetGameDescription(sBuffer);
+	SteamWorks_SetGameDescription(sBuffer);
 	
 	PrecacheStuff();
 	
@@ -3700,6 +3700,7 @@ public Action:Hook_SlenderObjectSetTransmit(ent, other)
 	{
 		if (!IsValidEdict(GetEntPropEnt(other, Prop_Send, "m_hObserverTarget"))) return Plugin_Handled;
 	}
+	if (IsClientInGhostMode(other)) return Plugin_Handled;
 	
 	return Plugin_Continue;
 }

@@ -22,6 +22,7 @@ static Float:g_flNPCFieldOfView[MAX_BOSSES] = { 0.0, ... };
 static Float:g_flNPCTurnRate[MAX_BOSSES] = { 0.0, ... };
 
 static g_iSlender[MAX_BOSSES] = { INVALID_ENT_REFERENCE, ... };
+static g_iSlenderHitboxOwner[2049] = { INVALID_ENT_REFERENCE, ... };
 
 static Float:g_flNPCSpeed[MAX_BOSSES][Difficulty_Max];
 static Float:g_flNPCMaxSpeed[MAX_BOSSES][Difficulty_Max];
@@ -1053,24 +1054,32 @@ SpawnSlender(iBossIndex, const Float:pos[3])
 			}
 			
 			SDKHook(iBoss, SDKHook_OnTakeDamage, Hook_SlenderOnTakeDamage);
-			SDKHook(iBoss, SDKHook_OnTakeDamagePost, Hook_SlenderOnTakeDamagePost);
 			DHookEntity(g_hSDKShouldTransmit, true, iBoss);
 			
-			/*g_iSlenderHitbox[iBossIndex] = EntIndexToEntRef(CreateEntityByName("base_boss"));
+			g_iSlenderHitbox[iBossIndex] = CreateEntityByName("base_boss");
 			
 			SetEntityModel(g_iSlenderHitbox[iBossIndex], sBuffer);
 			TeleportEntity(g_iSlenderHitbox[iBossIndex], flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"health","999999999999");
 			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
 			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
 			//SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
 			//SetEntityRenderColor(g_iSlenderHitbox[iBossIndex], 0, 0, 0, 1);
 			SetVariantString("!activator");
-			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
+			//AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
 			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "EnableShadow");
 			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "DisableShadow");
 			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"moveparent",iBoss);
 			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_iParentAttachment",iBoss);
-			SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_hOwnerEntity",iBoss);*/
+			SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_hOwnerEntity",iBoss);
+			g_iSlenderHitboxOwner[g_iSlenderHitbox[iBossIndex]]=iBoss;
+			//PrintToChatAll("Slender spawn: %i",g_iSlenderHitbox[iBossIndex]);
+			SDKHook(g_iSlenderHitbox[iBossIndex],  SDKHook_ShouldCollide, Hook_HitBoxShouldCollid);
+			SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamage, Hook_HitboxOnTakeDamage);
+			SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamagePost, Hook_HitboxOnTakeDamagePost);
+			
+			new Float:flModelScale = NPCGetModelScale(iBossIndex);
+			Slender_HitboxScale(g_iSlenderHitbox[iBossIndex],flModelScale);
 		}
 		/*
 		default:
@@ -1122,7 +1131,41 @@ SpawnSlender(iBossIndex, const Float:pos[3])
 	Call_PushCell(iBossIndex);
 	Call_Finish();
 }
+Slender_HitboxScale(iHitbox,Float:flScale)
+{
+	SetEntPropFloat(iHitbox, Prop_Send, "m_flModelScale", flScale);
 
+	new Float:flMins[3];
+	new Float:flMaxs[3];
+	
+	/*GetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMins", flMins);
+	GetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMaxs", flMaxs);
+	
+	ScaleVector(flMins, flScale);
+	ScaleVector(flMaxs, flScale);
+	
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMins", flMins);
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMaxs", flMaxs);
+	
+	GetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMinsPreScaled", flMins);
+	GetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMaxsPreScaled", flMaxs);
+	
+	ScaleVector(flMins, flScale);
+	ScaleVector(flMaxs, flScale);
+	
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMinsPreScaled", flMins);
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMaxsPreScaled", flMaxs);*/
+	
+	GetEntPropVector(iHitbox, Prop_Send, "m_vecMins", flMins);
+	GetEntPropVector(iHitbox, Prop_Send, "m_vecMaxs", flMaxs);
+	
+	ScaleVector(flMins, flScale);
+	ScaleVector(flMaxs, flScale);
+	
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecMins", flMins);
+	SetEntPropVector(iHitbox, Prop_Send, "m_vecMaxs", flMaxs);
+	
+}
 RemoveSlender(iBossIndex)
 {
 	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
@@ -1149,6 +1192,7 @@ RemoveSlender(iBossIndex)
 		
 		AcceptEntityInput(iBoss, "Kill");
 	}
+	
 	iBoss = g_iSlenderHitbox[iBossIndex];
 	g_iSlenderHitbox[iBossIndex] = INVALID_ENT_REFERENCE;
 	
@@ -1159,8 +1203,36 @@ RemoveSlender(iBossIndex)
 public Action:Hook_SlenderOnTakeDamage(slender, &attacker, &inflictor, &Float:damage, &damagetype, &weapon, Float:damageForce[3], Float:damagePosition[3], damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-
+	
 	new iBossIndex = NPCGetFromEntIndex(slender);
+	if (iBossIndex == -1) return Plugin_Continue;
+	SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
+	damage = 0.0;
+	if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
+	{
+		if (damagetype & DMG_ACID)
+		{
+			new Float:flMyEyePos[3];
+			SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
+			new Float:flMyEyePosEx[3];
+			GetEntPropVector(g_iSlenderHitbox[iBossIndex], Prop_Send, "m_vecMaxs", flMyEyePosEx);
+			flMyEyePos[2]+=flMyEyePosEx[2];
+			
+			TE_SetupTFParticleEffect(g_iParticleCriticalHit, flMyEyePos, flMyEyePos);
+			TE_SendToAll();
+			
+			EmitSoundToAll(CRIT_SOUND, slender, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+			if(IsValidClient(attacker))
+				SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
+		}
+	}
+	return Plugin_Changed;
+}
+public Action:Hook_HitboxOnTakeDamage(hitbox, &attacker, &inflictor, &Float:damage, &damagetype, &weapon, Float:damageForce[3], Float:damagePosition[3], damagecustom)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+
+	new iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
 	if (iBossIndex == -1) return Plugin_Continue;
 	
 	if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
@@ -1170,38 +1242,50 @@ public Action:Hook_SlenderOnTakeDamage(slender, &attacker, &inflictor, &Float:da
 		
 		if (NPCChaserIsStunEnabled(iBossIndex))
 		{
-			if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
+			//if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
 			
 			NPCChaserAddStunHealth(iBossIndex, -damage);
 		}
 	}
+	SDKHooks_TakeDamage(g_iSlenderHitboxOwner[hitbox], hitbox, hitbox, damage, damagetype);
 	
-	damage = 0.0;
 	return Plugin_Changed;
 }
-
-public Hook_SlenderOnTakeDamagePost(slender, attacker, inflictor, Float:damage, damagetype, weapon, const Float:damageForce[3], const Float:damagePosition[3])
+public Hook_HitboxOnTakeDamagePost(hitbox, attacker, inflictor, Float:damage, damagetype, weapon, const Float:damageForce[3], const Float:damagePosition[3])
 {
 	if (!g_bEnabled) return;
 
-	new iBossIndex = NPCGetFromEntIndex(slender);
+	new iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
 	if (iBossIndex == -1) return;
 	
 	if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
 	{
 		if (damagetype & DMG_ACID)
 		{
-			decl Float:flMyEyePos[3];
-			SlenderGetEyePosition(iBossIndex, flMyEyePos);
+			new Float:flMyEyePos[3];
+			SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
+			new Float:flMyEyePosEx[3];
+			GetEntPropVector(hitbox, Prop_Send, "m_vecMaxs", flMyEyePosEx);
+			flMyEyePos[2]+=flMyEyePosEx[2];
 			
 			TE_SetupTFParticleEffect(g_iParticleCriticalHit, flMyEyePos, flMyEyePos);
 			TE_SendToAll();
 			
-			EmitSoundToAll(CRIT_SOUND, slender, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+			EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+			if(IsValidClient(attacker))
+				SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
 		}
 	}
 }
-
+public bool:Hook_HitBoxShouldCollid(slender, collisiongroup, contentsmask, bool:originalResult)
+{
+	if ((contentsmask & CONTENTS_MONSTERCLIP))
+	{
+		//PrintToChatAll("npc");
+		return false;
+	}
+	return true;
+}
 public Action:Hook_SlenderModelSetTransmit(entity, other)
 {
 	if (!g_bEnabled) return Plugin_Continue;
@@ -2672,7 +2756,6 @@ stock SpawnSlenderModel(iBossIndex, const Float:pos[3])
 		LogError("Could not spawn boss model: model is invalid!");
 		return -1;
 	}
-	
 	new Float:flModelScale = NPCGetModelScale(iBossIndex);
 	if (flModelScale <= 0.0)
 	{
@@ -2804,7 +2887,7 @@ public bool:TraceRayBossVisibility(entity, mask, any:data)
 	if (entity == data || IsValidClient(entity)) return false;
 	
 	new iBossIndex = NPCGetFromEntIndex(entity);
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
+	if (entity <= MAX_BOSSES) return false;
 	if (iBossIndex != -1) return false;
 	
 	if (IsValidEdict(entity))
@@ -2813,6 +2896,7 @@ public bool:TraceRayBossVisibility(entity, mask, any:data)
 		GetEntityNetClass(entity, sClass, sizeof(sClass));
 		
 		if (StrEqual(sClass, "CTFAmmoPack")) return false;
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
 	}
 	
 	return true;
@@ -2823,8 +2907,13 @@ public bool:TraceRayDontHitCharacters(entity, mask, any:data)
 	if (entity > 0 && entity <= MaxClients) return false;
 	
 	new iBossIndex = NPCGetFromEntIndex(entity);
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (iBossIndex != -1) return false;
+	if (IsValidEdict(entity))
+	{
+		decl String:sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	
 	return true;
 }
@@ -2835,8 +2924,13 @@ public bool:TraceRayDontHitCharactersOrEntity(entity, mask, any:data)
 
 	if (entity > 0 && entity <= MaxClients) return false;
 	new iBossIndex = NPCGetFromEntIndex(entity);
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (iBossIndex != -1) return false;
+	if (IsValidEdict(entity))
+	{
+		decl String:sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	
 	return true;
 }

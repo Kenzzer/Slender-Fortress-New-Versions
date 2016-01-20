@@ -2287,6 +2287,10 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		bChangeAngles = true;
 	}
 	TeleportEntity(iBoss, NULL_VECTOR, bChangeAngles ? flMoveAng : NULL_VECTOR, flMoveVelocity);
+	if(g_iSlenderHitbox[iBossIndex]>MaxClients)
+	{
+		TeleportEntity(g_iSlenderHitbox[iBossIndex], flMyPos, bChangeAngles ? flMoveAng : NULL_VECTOR, NULL_VECTOR);
+	}
 }
 
 // Shortest-path cost function for NavMesh_BuildPath.

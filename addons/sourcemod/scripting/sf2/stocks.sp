@@ -702,22 +702,39 @@ stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDis
 public bool:TraceRayDontHitEntity(entity, mask, any:data)
 {
 	if (entity == data) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
+	//I know we aren't hitting entities but I want to be sure
+	if (IsValidEdict(entity))
+	{
+		decl String:sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	return true;
 }
 
 public bool:TraceRayDontHitPlayers(entity, mask, any:data)
 {
 	if (entity > 0 && entity <= MaxClients) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
+	if (IsValidEdict(entity))
+	{
+		decl String:sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	return true;
 }
 
 public bool:TraceRayDontHitPlayersOrEntity(entity, mask, any:data)
 {
 	if (entity == data) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (entity > 0 && entity <= MaxClients) return false;
+	//I know we aren't hitting entities but I want to be sure
+	if (IsValidEdict(entity))
+	{
+		decl String:sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	
 	return true;
 }
