@@ -1063,8 +1063,8 @@ SpawnSlender(iBossIndex, const Float:pos[3])
 			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"health","999999999999");
 			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
 			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
-			//SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
-			//SetEntityRenderColor(g_iSlenderHitbox[iBossIndex], 0, 0, 0, 1);
+			SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
+			SetEntityRenderColor(g_iSlenderHitbox[iBossIndex], 0, 0, 0, 1);
 			SetVariantString("!activator");
 			//AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
 			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "EnableShadow");
