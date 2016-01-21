@@ -1705,6 +1705,7 @@ stock Float:CalculateTeleportMinRange(iBossIndex, Float:flInitialMinRange, Float
 public Action:Timer_SlenderTeleportThink(Handle:timer, any:iBossIndex)
 {
 	if (iBossIndex == -1) return Plugin_Stop;
+	if (iBossIndex > MAX_BOSSES) return Plugin_Stop;
 	if (timer != g_hSlenderThink[iBossIndex]) return Plugin_Stop;
 	
 	if (NPCGetFlags(iBossIndex) & SFF_NOTELEPORT) return Plugin_Continue;

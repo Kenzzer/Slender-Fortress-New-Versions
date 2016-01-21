@@ -703,7 +703,7 @@ public bool:TraceRayDontHitEntity(entity, mask, any:data)
 {
 	if (entity == data) return false;
 	//I know we aren't hitting entities but I want to be sure
-	if (IsValidEdict(entity))
+	if (entity>MaxClients && entity<=2048 && IsValidEntity(entity))
 	{
 		decl String:sClass[64];
 		GetEntityNetClass(entity, sClass, sizeof(sClass));
@@ -715,7 +715,7 @@ public bool:TraceRayDontHitEntity(entity, mask, any:data)
 public bool:TraceRayDontHitPlayers(entity, mask, any:data)
 {
 	if (entity > 0 && entity <= MaxClients) return false;
-	if (IsValidEdict(entity))
+	if (entity>MaxClients && entity<=2048 && IsValidEntity(entity))
 	{
 		decl String:sClass[64];
 		GetEntityNetClass(entity, sClass, sizeof(sClass));
@@ -729,7 +729,7 @@ public bool:TraceRayDontHitPlayersOrEntity(entity, mask, any:data)
 	if (entity == data) return false;
 	if (entity > 0 && entity <= MaxClients) return false;
 	//I know we aren't hitting entities but I want to be sure
-	if (IsValidEdict(entity))
+	if (entity>MaxClients && entity<=2048 && IsValidEntity(entity))
 	{
 		decl String:sClass[64];
 		GetEntityNetClass(entity, sClass, sizeof(sClass));

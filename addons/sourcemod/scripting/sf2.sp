@@ -1318,7 +1318,7 @@ public OnGameFrame()
 		if (NPCGetUniqueID(i) == -1) continue;
 		
 		new iBoss = NPCGetEntIndex(i);
-		if (!iBoss || iBoss == INVALID_ENT_REFERENCE) continue;
+		if (!iBoss || iBoss == INVALID_ENT_REFERENCE || iBoss<MaxClients) continue;
 		
 		if (NPCGetFlags(i) & SFF_MARKEDASFAKE) continue;
 		
