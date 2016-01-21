@@ -1279,9 +1279,9 @@ public Hook_HitboxOnTakeDamagePost(hitbox, attacker, inflictor, Float:damage, da
 }
 public bool:Hook_HitBoxShouldCollid(slender, collisiongroup, contentsmask, bool:originalResult)
 {
-	if ((contentsmask & CONTENTS_MONSTERCLIP))
+	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))
 	{
-		//PrintToChatAll("npc");
+		//PrintToChatAll("npc or player");
 		return false;
 	}
 	return true;
