@@ -3,22 +3,22 @@
 #endif
 #define _sf2_npc_chaser_included
 
-static Float:g_flNPCStepSize[MAX_BOSSES];
+static float g_flNPCStepSize[MAX_BOSSES];
 
-static Float:g_flNPCWalkSpeed[MAX_BOSSES][Difficulty_Max];
-static Float:g_flNPCAirSpeed[MAX_BOSSES][Difficulty_Max];
+static float g_flNPCWalkSpeed[MAX_BOSSES][Difficulty_Max];
+static float g_flNPCAirSpeed[MAX_BOSSES][Difficulty_Max];
 
-static Float:g_flNPCMaxWalkSpeed[MAX_BOSSES][Difficulty_Max];
-static Float:g_flNPCMaxAirSpeed[MAX_BOSSES][Difficulty_Max];
+static float g_flNPCMaxWalkSpeed[MAX_BOSSES][Difficulty_Max];
+static float g_flNPCMaxAirSpeed[MAX_BOSSES][Difficulty_Max];
 
-static Float:g_flNPCWakeRadius[MAX_BOSSES];
+static float g_flNPCWakeRadius[MAX_BOSSES];
 
-static bool:g_bNPCStunEnabled[MAX_BOSSES];
-static Float:g_flNPCStunDuration[MAX_BOSSES];
-static bool:g_bNPCStunFlashlightEnabled[MAX_BOSSES];
-static Float:g_flNPCStunFlashlightDamage[MAX_BOSSES];
-static Float:g_flNPCStunInitialHealth[MAX_BOSSES];
-static Float:g_flNPCStunHealth[MAX_BOSSES];
+static bool g_bNPCStunEnabled[MAX_BOSSES];
+static float g_flNPCStunDuration[MAX_BOSSES];
+static bool g_bNPCStunFlashlightEnabled[MAX_BOSSES];
+static float g_flNPCStunFlashlightDamage[MAX_BOSSES];
+static float g_flNPCStunInitialHealth[MAX_BOSSES];
+static float g_flNPCStunHealth[MAX_BOSSES];
 
 static g_iNPCState[MAX_BOSSES] = { -1, ... };
 static g_iNPCMovementActivity[MAX_BOSSES] = { -1, ... };
@@ -42,9 +42,8 @@ enum SF2NPCChaser_BaseAttackStructure
 
 static g_NPCBaseAttacks[MAX_BOSSES][SF2_CHASER_BOSS_MAX_ATTACKS][SF2NPCChaser_BaseAttackStructure];
 
-#if defined METHODMAPS
 
-const SF2NPC_Chaser SF2_INVALID_NPC_CHASER = SF2NPC_Chaser:-1;
+const SF2NPC_Chaser SF2_INVALID_NPC_CHASER = view_as<SF2NPC_Chaser>(-1);
 
 
 methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
@@ -153,189 +152,188 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 	}
 }
 
-#endif
 
-public NPCChaserInitialize()
+public void NPCChaserInitialize()
 {
-	for (new iNPCIndex = 0; iNPCIndex < MAX_BOSSES; iNPCIndex++)
+	for (int iNPCIndex = 0; iNPCIndex < MAX_BOSSES; iNPCIndex++)
 	{
 		NPCChaserResetValues(iNPCIndex);
 	}
 }
 
-Float:NPCChaserGetWalkSpeed(iNPCIndex, iDifficulty)
+float NPCChaserGetWalkSpeed(int iNPCIndex,int iDifficulty)
 {
 	return g_flNPCWalkSpeed[iNPCIndex][iDifficulty];
 }
 
-NPCChaserSetWalkSpeed(iNPCIndex, iDifficulty, Float:flAmount)
+void NPCChaserSetWalkSpeed(int iNPCIndex, int iDifficulty, float flAmount)
 {
 	g_flNPCWalkSpeed[iNPCIndex][iDifficulty] = flAmount;
 }
 
-Float:NPCChaserGetAirSpeed(iNPCIndex, iDifficulty)
+float NPCChaserGetAirSpeed(int iNPCIndex,int iDifficulty)
 {
 	return g_flNPCAirSpeed[iNPCIndex][iDifficulty];
 }
 
-NPCChaserSetAirSpeed(iNPCIndex, iDifficulty, Float:flAmount)
+void NPCChaserSetAirSpeed(int iNPCIndex, int iDifficulty, float flAmount)
 {
 	g_flNPCAirSpeed[iNPCIndex][iDifficulty] = flAmount;
 }
 
-Float:NPCChaserGetMaxWalkSpeed(iNPCIndex, iDifficulty)
+float NPCChaserGetMaxWalkSpeed(int iNPCIndex,int iDifficulty)
 {
 	return g_flNPCMaxWalkSpeed[iNPCIndex][iDifficulty];
 }
 
-NPCChaserSetMaxWalkSpeed(iNPCIndex, iDifficulty, Float:flAmount)
+void NPCChaserSetMaxWalkSpeed(int iNPCIndex, int iDifficulty, float flAmount)
 {
 	g_flNPCMaxWalkSpeed[iNPCIndex][iDifficulty] = flAmount;
 }
 
-Float:NPCChaserGetMaxAirSpeed(iNPCIndex, iDifficulty)
+float NPCChaserGetMaxAirSpeed(int iNPCIndex,int iDifficulty)
 {
 	return g_flNPCMaxAirSpeed[iNPCIndex][iDifficulty];
 }
 
-NPCChaserSetMaxAirSpeed(iNPCIndex, iDifficulty, Float:flAmount)
+void NPCChaserSetMaxAirSpeed(int iNPCIndex, int iDifficulty, float flAmount)
 {
 	g_flNPCMaxAirSpeed[iNPCIndex][iDifficulty] = flAmount;
 }
 
-Float:NPCChaserGetWakeRadius(iNPCIndex)
+float NPCChaserGetWakeRadius(int iNPCIndex)
 {
 	return g_flNPCWakeRadius[iNPCIndex];
 }
 
-Float:NPCChaserGetStepSize(iNPCIndex)
+float NPCChaserGetStepSize(int iNPCIndex)
 {
 	return g_flNPCStepSize[iNPCIndex];
 }
 
-NPCChaserGetAttackType(iNPCIndex, iAttackIndex)
+int NPCChaserGetAttackType(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackType];
 }
 
-Float:NPCChaserGetAttackDamage(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackDamage(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDamage];
 }
 
-Float:NPCChaserGetAttackDamageVsProps(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackDamageVsProps(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDamageVsProps];
 }
 
-Float:NPCChaserGetAttackDamageForce(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackDamageForce(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDamageForce];
 }
 
-NPCChaserGetAttackDamageType(iNPCIndex, iAttackIndex)
+int NPCChaserGetAttackDamageType(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDamageType];
 }
 
-Float:NPCChaserGetAttackDamageDelay(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackDamageDelay(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDamageDelay];
 }
 
-Float:NPCChaserGetAttackRange(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackRange(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackRange];
 }
 
-Float:NPCChaserGetAttackDuration(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackDuration(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackDuration];
 }
 
-Float:NPCChaserGetAttackSpread(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackSpread(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackSpread];
 }
 
-Float:NPCChaserGetAttackBeginRange(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackBeginRange(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackBeginRange];
 }
 
-Float:NPCChaserGetAttackBeginFOV(iNPCIndex, iAttackIndex)
+float NPCChaserGetAttackBeginFOV(int iNPCIndex,int iAttackIndex)
 {
 	return g_NPCBaseAttacks[iNPCIndex][iAttackIndex][SF2NPCChaser_BaseAttackBeginFOV];
 }
 
-bool:NPCChaserIsStunEnabled(iNPCIndex)
+bool NPCChaserIsStunEnabled(int iNPCIndex)
 {
 	return g_bNPCStunEnabled[iNPCIndex];
 }
 
-bool:NPCChaserIsStunByFlashlightEnabled(iNPCIndex)
+bool NPCChaserIsStunByFlashlightEnabled(int iNPCIndex)
 {
 	return g_bNPCStunFlashlightEnabled[iNPCIndex];
 }
 
-Float:NPCChaserGetStunFlashlightDamage(iNPCIndex)
+float NPCChaserGetStunFlashlightDamage(int iNPCIndex)
 {
 	return g_flNPCStunFlashlightDamage[iNPCIndex];
 }
 
-Float:NPCChaserGetStunDuration(iNPCIndex)
+float NPCChaserGetStunDuration(int iNPCIndex)
 {
 	return g_flNPCStunDuration[iNPCIndex];
 }
 
-Float:NPCChaserGetStunHealth(iNPCIndex)
+float NPCChaserGetStunHealth(int iNPCIndex)
 {
 	return g_flNPCStunHealth[iNPCIndex];
 }
 
-NPCChaserSetStunHealth(iNPCIndex, Float:flAmount)
+void NPCChaserSetStunHealth(int iNPCIndex, float flAmount)
 {
 	g_flNPCStunHealth[iNPCIndex] = flAmount;
 }
 
-NPCChaserAddStunHealth(iNPCIndex, Float:flAmount)
+void NPCChaserAddStunHealth(int iNPCIndex, float flAmount)
 {
 	NPCChaserSetStunHealth(iNPCIndex, NPCChaserGetStunHealth(iNPCIndex) + flAmount);
 }
 
-Float:NPCChaserGetStunInitialHealth(iNPCIndex)
+float NPCChaserGetStunInitialHealth(int iNPCIndex)
 {
 	return g_flNPCStunInitialHealth[iNPCIndex];
 }
 
-NPCChaserGetState(iNPCIndex)
+int NPCChaserGetState(int iNPCIndex)
 {
 	return g_iNPCState[iNPCIndex];
 }
 
-NPCChaserSetState(iNPCIndex, iState)
+void NPCChaserSetState(int iNPCIndex,int iState)
 {
 	g_iNPCState[iNPCIndex] = iState;
 }
 
-NPCChaserGetMovementActivity(iNPCIndex)
+int NPCChaserGetMovementActivity(int iNPCIndex)
 {
 	return g_iNPCMovementActivity[iNPCIndex];
 }
 
-NPCChaserSetMovementActivity(iNPCIndex, iMovementActivity)
+int NPCChaserSetMovementActivity(int iNPCIndex,int iMovementActivity)
 {
 	g_iNPCMovementActivity[iNPCIndex] = iMovementActivity;
 }
 
-NPCChaserOnSelectProfile(iNPCIndex)
+int NPCChaserOnSelectProfile(int iNPCIndex)
 {
-	new iUniqueProfileIndex = NPCGetUniqueProfileIndex(iNPCIndex);
+	int iUniqueProfileIndex = NPCGetUniqueProfileIndex(iNPCIndex);
 
 	g_flNPCWakeRadius[iNPCIndex] = GetChaserProfileWakeRadius(iUniqueProfileIndex);
 	g_flNPCStepSize[iNPCIndex] = GetChaserProfileStepSize(iUniqueProfileIndex);
 	
-	for (new iDifficulty = 0; iDifficulty < Difficulty_Max; iDifficulty++)
+	for (int iDifficulty = 0; iDifficulty < Difficulty_Max; iDifficulty++)
 	{
 		g_flNPCWalkSpeed[iNPCIndex][iDifficulty] = GetChaserProfileWalkSpeed(iUniqueProfileIndex, iDifficulty);
 		g_flNPCAirSpeed[iNPCIndex][iDifficulty] = GetChaserProfileAirSpeed(iUniqueProfileIndex, iDifficulty);
@@ -345,7 +343,7 @@ NPCChaserOnSelectProfile(iNPCIndex)
 	}
 	
 	// Get attack data.
-	for (new i = 0; i < GetChaserProfileAttackCount(iUniqueProfileIndex); i++)
+	for (int i = 0; i < GetChaserProfileAttackCount(iUniqueProfileIndex); i++)
 	{
 		g_NPCBaseAttacks[iNPCIndex][i][SF2NPCChaser_BaseAttackType] = GetChaserProfileAttackType(iUniqueProfileIndex, i);
 		g_NPCBaseAttacks[iNPCIndex][i][SF2NPCChaser_BaseAttackDamage] = GetChaserProfileAttackDamage(iUniqueProfileIndex, i);
@@ -372,7 +370,7 @@ NPCChaserOnSelectProfile(iNPCIndex)
 	NPCChaserSetStunHealth(iNPCIndex, NPCChaserGetStunInitialHealth(iNPCIndex));
 }
 
-NPCChaserOnRemoveProfile(iNPCIndex)
+void NPCChaserOnRemoveProfile(int iNPCIndex)
 {
 	NPCChaserResetValues(iNPCIndex);
 }
@@ -380,12 +378,12 @@ NPCChaserOnRemoveProfile(iNPCIndex)
 /**
  *	Resets all global variables on a specified NPC. Usually this should be done last upon removing a boss from the game.
  */
-static NPCChaserResetValues(iNPCIndex)
+static void NPCChaserResetValues(int iNPCIndex)
 {
 	g_flNPCWakeRadius[iNPCIndex] = 0.0;
 	g_flNPCStepSize[iNPCIndex] = 0.0;
 	
-	for (new iDifficulty = 0; iDifficulty < Difficulty_Max; iDifficulty++)
+	for (int iDifficulty = 0; iDifficulty < Difficulty_Max; iDifficulty++)
 	{
 		g_flNPCWalkSpeed[iNPCIndex][iDifficulty] = 0.0;
 		g_flNPCAirSpeed[iNPCIndex][iDifficulty] = 0.0;
@@ -395,7 +393,7 @@ static NPCChaserResetValues(iNPCIndex)
 	}
 	
 	// Clear attack data.
-	for (new i = 0; i < SF2_CHASER_BOSS_MAX_ATTACKS; i++)
+	for (int i = 0; i < SF2_CHASER_BOSS_MAX_ATTACKS; i++)
 	{
 		// Base attack data.
 		g_NPCBaseAttacks[iNPCIndex][i][SF2NPCChaser_BaseAttackType] = SF2BossAttackType_Invalid;
@@ -437,7 +435,7 @@ static NPCChaserResetValues(iNPCIndex)
 //			- If I lose sight or I'm unable to traverse safely, find paths around obstacles and follow memorized path.
 //			- If I reach the end of my path and I still don't see him and I still want to pursue him, keep on going in the direction I'm going.
 
-stock bool:IsTargetValidForSlender(iTarget, bool:bIncludeEliminated=false)
+stock bool IsTargetValidForSlender(int iTarget, bool bIncludeEliminated=false)
 {
 	if (!iTarget || !IsValidEntity(iTarget)) return false;
 	
@@ -454,47 +452,47 @@ stock bool:IsTargetValidForSlender(iTarget, bool:bIncludeEliminated=false)
 	return true;
 }
 
-public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
+public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 {
 	if (!g_bEnabled) return Plugin_Stop;
 
-	new slender = EntRefToEntIndex(entref);
+	int slender = EntRefToEntIndex(entref);
 	if (!slender || slender == INVALID_ENT_REFERENCE) return Plugin_Stop;
 	
-	new iBossIndex = NPCGetFromEntIndex(slender);
+	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return Plugin_Stop;
 	
 	if (timer != g_hSlenderEntityThink[iBossIndex]) return Plugin_Stop;
 	
 	if (NPCGetFlags(iBossIndex) & SFF_MARKEDASFAKE) return Plugin_Stop;
 	
-	decl Float:flSlenderVelocity[3], Float:flMyPos[3], Float:flMyEyeAng[3];
-	new Float:flBuffer[3];
+	float flSlenderVelocity[3], flMyPos[3], flMyEyeAng[3];
+	float flBuffer[3];
 	
-	decl String:sSlenderProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	char sSlenderProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sSlenderProfile, sizeof(sSlenderProfile));
 	
 	GetEntPropVector(slender, Prop_Data, "m_vecAbsVelocity", flSlenderVelocity);
 	GetEntPropVector(slender, Prop_Data, "m_vecAbsOrigin", flMyPos);
 	GetEntPropVector(slender, Prop_Data, "m_angAbsRotation", flMyEyeAng);
 	AddVectors(flMyEyeAng, g_flSlenderEyeAngOffset[iBossIndex], flMyEyeAng);
-	for (new i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
+	for (int i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
 	
-	new iDifficulty = GetConVarInt(g_cvDifficulty);
+	int iDifficulty = GetConVarInt(g_cvDifficulty);
 	
-	new Float:flVelocityRatio;
-	new Float:flVelocityRatioWalk;
+	float flVelocityRatio;
+	float flVelocityRatioWalk;
 	
-	new Float:flOriginalSpeed = NPCGetSpeed(iBossIndex, iDifficulty);
-	new Float:flOriginalWalkSpeed = NPCChaserGetWalkSpeed(iBossIndex, iDifficulty);
-	new Float:flMaxSpeed = NPCGetMaxSpeed(iBossIndex, iDifficulty);
-	new Float:flMaxWalkSpeed = NPCChaserGetMaxWalkSpeed(iBossIndex, iDifficulty);
+	float flOriginalSpeed = NPCGetSpeed(iBossIndex, iDifficulty);
+	float flOriginalWalkSpeed = NPCChaserGetWalkSpeed(iBossIndex, iDifficulty);
+	float flMaxSpeed = NPCGetMaxSpeed(iBossIndex, iDifficulty);
+	float flMaxWalkSpeed = NPCChaserGetMaxWalkSpeed(iBossIndex, iDifficulty);
 	
-	new Float:flSpeed = flOriginalSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
+	float flSpeed = flOriginalSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
 	if (flSpeed < flOriginalSpeed) flSpeed = flOriginalSpeed;
 	if (flSpeed > flMaxSpeed) flSpeed = flMaxSpeed;
 	
-	new Float:flWalkSpeed = flOriginalWalkSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
+	float flWalkSpeed = flOriginalWalkSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
 	if (flWalkSpeed < flOriginalWalkSpeed) flWalkSpeed = flOriginalWalkSpeed;
 	if (flWalkSpeed > flMaxWalkSpeed) flWalkSpeed = flMaxWalkSpeed;
 	
@@ -520,33 +518,33 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 	if (flOriginalWalkSpeed <= 0.0) flVelocityRatioWalk = 0.0;
 	else flVelocityRatioWalk = GetVectorLength(flSlenderVelocity) / flOriginalWalkSpeed;
 	
-	new Float:flAttackRange = NPCChaserGetAttackRange(iBossIndex, 0);
-	new Float:flAttackFOV = NPCChaserGetAttackSpread(iBossIndex, 0);
-	new Float:flAttackBeginRange = NPCChaserGetAttackBeginRange(iBossIndex, 0);
-	new Float:flAttackBeginFOV = NPCChaserGetAttackBeginFOV(iBossIndex, 0);
+	float flAttackRange = NPCChaserGetAttackRange(iBossIndex, 0);
+	float flAttackFOV = NPCChaserGetAttackSpread(iBossIndex, 0);
+	float flAttackBeginRange = NPCChaserGetAttackBeginRange(iBossIndex, 0);
+	float flAttackBeginFOV = NPCChaserGetAttackBeginFOV(iBossIndex, 0);
 	
 	
-	new iOldState = g_iSlenderState[iBossIndex];
-	new iOldTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
+	int iOldState = g_iSlenderState[iBossIndex];
+	int iOldTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
 	
-	new iBestNewTarget = INVALID_ENT_REFERENCE;
-	new Float:flSearchRange = NPCGetSearchRadius(iBossIndex);
-	new Float:flBestNewTargetDist = flSearchRange;
-	new iState = iOldState;
+	int iBestNewTarget = INVALID_ENT_REFERENCE;
+	float flSearchRange = NPCGetSearchRadius(iBossIndex);
+	float flBestNewTargetDist = flSearchRange;
+	int iState = iOldState;
 	
-	new bool:bPlayerInFOV[MAXPLAYERS + 1];
-	new bool:bPlayerNear[MAXPLAYERS + 1];
-	new Float:flPlayerDists[MAXPLAYERS + 1];
-	new bool:bPlayerVisible[MAXPLAYERS + 1];
+	bool bPlayerInFOV[MAXPLAYERS + 1];
+	bool bPlayerNear[MAXPLAYERS + 1];
+	float flPlayerDists[MAXPLAYERS + 1];
+	bool bPlayerVisible[MAXPLAYERS + 1];
 	
-	new bool:bAttackEliminated = bool:(NPCGetFlags(iBossIndex) & SFF_ATTACKWAITERS);
-	new bool:bStunEnabled = NPCChaserIsStunEnabled(iBossIndex);
+	bool bAttackEliminated = view_as<bool>(NPCGetFlags(iBossIndex) & SFF_ATTACKWAITERS);
+	bool bStunEnabled = NPCChaserIsStunEnabled(iBossIndex);
 	
-	decl Float:flSlenderMins[3], Float:flSlenderMaxs[3];
+	float flSlenderMins[3], flSlenderMaxs[3];
 	GetEntPropVector(slender, Prop_Send, "m_vecMins", flSlenderMins);
 	GetEntPropVector(slender, Prop_Send, "m_vecMaxs", flSlenderMaxs);
 	
-	decl Float:flTraceMins[3], Float:flTraceMaxs[3];
+	float flTraceMins[3], flTraceMaxs[3];
 	flTraceMins[0] = flSlenderMins[0];
 	flTraceMins[1] = flSlenderMins[1];
 	flTraceMins[2] = 0.0;
@@ -555,15 +553,15 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 	flTraceMaxs[2] = 0.0;
 	
 	// Gather data about the players around me and get the best new target, in case my old target is invalidated.
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsTargetValidForSlender(i, bAttackEliminated)) continue;
 		
-		decl Float:flTraceStartPos[3], Float:flTraceEndPos[3];
+		float flTraceStartPos[3], flTraceEndPos[3];
 		NPCGetEyePosition(iBossIndex, flTraceStartPos);
 		GetClientEyePosition(i, flTraceEndPos);
 		
-		new Handle:hTrace = TR_TraceHullFilterEx(flTraceStartPos,
+		Handle hTrace = TR_TraceHullFilterEx(flTraceStartPos,
 			flTraceEndPos,
 			flTraceMins,
 			flTraceMaxs,
@@ -571,8 +569,8 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			TraceRayBossVisibility,
 			slender);
 		
-		new bool:bIsVisible = !TR_DidHit(hTrace);
-		new iTraceHitEntity = TR_GetEntityIndex(hTrace);
+		bool bIsVisible = !TR_DidHit(hTrace);
+		int iTraceHitEntity = TR_GetEntityIndex(hTrace);
 		CloseHandle(hTrace);
 		
 		if (!bIsVisible && iTraceHitEntity == i) bIsVisible = true;
@@ -595,8 +593,8 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			bPlayerInFOV[i] = true;
 		}
 		
-		new Float:flDist;
-		new Float:flPriorityValue = g_iPageMax > 0 ? (float(g_iPlayerPageCount[i]) / float(g_iPageMax)) : 0.0;
+		float flDist;
+		float flPriorityValue = g_iPageMax > 0 ? (float(g_iPlayerPageCount[i]) / float(g_iPageMax)) : 0.0;
 		
 		if (TF2_GetPlayerClass(i) == TFClass_Medic) flPriorityValue += 0.72;
 		
@@ -605,7 +603,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 		
 		if ((bPlayerNear[i] && iState != STATE_CHASE && iState != STATE_ALERT) || (bIsVisible && bPlayerInFOV[i]))
 		{
-			decl Float:flTargetPos[3];
+			float flTargetPos[3];
 			GetClientAbsOrigin(i, flTargetPos);
 			
 			if (flDist <= flSearchRange)
@@ -628,36 +626,36 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 		}
 	}
 	
-	new bool:bInFlashlight = false;
+	bool bInFlashlight = false;
 	
 	// Check to see if someone is facing at us with flashlight on. Only if I'm facing them too. BLINDNESS!
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsTargetValidForSlender(i, bAttackEliminated)) continue;
 	
 		if (!IsClientUsingFlashlight(i) || !bPlayerInFOV[i]) continue;
 		
-		decl Float:flTraceStartPos[3], Float:flTraceEndPos[3];
+		float flTraceStartPos[3], flTraceEndPos[3];
 		GetClientEyePosition(i, flTraceStartPos);
 		NPCGetEyePosition(iBossIndex, flTraceEndPos);
 		
 		if (GetVectorDistance(flTraceStartPos, flTraceEndPos) <= SF2_FLASHLIGHT_LENGTH)
 		{
-			decl Float:flEyeAng[3], Float:flRequiredAng[3];
+			float flEyeAng[3], flRequiredAng[3];
 			GetClientEyeAngles(i, flEyeAng);
 			SubtractVectors(flTraceEndPos, flTraceStartPos, flRequiredAng);
 			GetVectorAngles(flRequiredAng, flRequiredAng);
 			
 			if ((FloatAbs(AngleDiff(flEyeAng[0], flRequiredAng[0])) + FloatAbs(AngleDiff(flEyeAng[1], flRequiredAng[1]))) <= 45.0)
 			{
-				new Handle:hTrace = TR_TraceRayFilterEx(flTraceStartPos,
+				Handle hTrace = TR_TraceRayFilterEx(flTraceStartPos,
 					flTraceEndPos,
 					MASK_PLAYERSOLID,
 					RayType_EndPoint,
 					TraceRayBossVisibility,
 					slender);
 					
-				new bool:bDidHit = TR_DidHit(hTrace);
+				bool bDidHit = TR_DidHit(hTrace);
 				CloseHandle(hTrace);
 				
 				if (!bDidHit)
@@ -685,7 +683,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 	}
 	
 	// Process the target that we should have.
-	new iTarget = iOldTarget;
+	int iTarget = iOldTarget;
 	
 	/*
 	if (IsValidEdict(iBestNewTarget))
@@ -713,8 +711,8 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 		g_iSlenderTarget[iBossIndex] = INVALID_ENT_REFERENCE;
 	}
 	
-	new iInterruptConditions = g_iSlenderInterruptConditions[iBossIndex];
-	new bool:bQueueForNewPath = false;
+	int iInterruptConditions = g_iSlenderInterruptConditions[iBossIndex];
+	bool bQueueForNewPath = false;
 	
 	// Process which state we should be in.
 	switch (iState)
@@ -759,13 +757,13 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 				// Sound counts will be reset after the boss hears a sound after a certain amount of time.
 				// The purpose of sound counts is to induce boss focusing on sounds suspicious entities are making.
 				
-				new iCount = 0;
+				int iCount = 0;
 				if (iInterruptConditions & COND_HEARDFOOTSTEP) iCount += 1;
 				if (iInterruptConditions & COND_HEARDFOOTSTEPLOUD) iCount += 2;
 				if (iInterruptConditions & COND_HEARDWEAPON) iCount += 5;
 				if (iInterruptConditions & COND_HEARDVOICE) iCount += 10;
 				
-				new bool:bDiscardMasterPos = bool:(GetGameTime() >= g_flSlenderTargetSoundDiscardMasterPosTime[iBossIndex]);
+				bool bDiscardMasterPos = view_as<bool>(GetGameTime() >= g_flSlenderTargetSoundDiscardMasterPosTime[iBossIndex]);
 				
 				if (GetVectorDistance(g_flSlenderTargetSoundTempPos[iBossIndex], g_flSlenderTargetSoundMasterPos[iBossIndex]) <= GetProfileFloat(sSlenderProfile, "search_sound_pos_dist_tolerance", 512.0) ||
 					bDiscardMasterPos)
@@ -802,20 +800,20 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			{
 				if (GetGameTime() >= g_flSlenderTimeUntilChase[iBossIndex] || bPlayerNear[iBestNewTarget])
 				{
-					decl Float:flTraceStartPos[3], Float:flTraceEndPos[3];
+					float flTraceStartPos[3], flTraceEndPos[3];
 					NPCGetEyePosition(iBossIndex, flTraceStartPos);
 					
 					if (IsValidClient(iBestNewTarget)) GetClientEyePosition(iBestNewTarget, flTraceEndPos);
 					else
 					{
-						decl Float:flTargetMins[3], Float:flTargetMaxs[3];
+						float flTargetMins[3], flTargetMaxs[3];
 						GetEntPropVector(iBestNewTarget, Prop_Send, "m_vecMins", flTargetMins);
 						GetEntPropVector(iBestNewTarget, Prop_Send, "m_vecMaxs", flTargetMaxs);
 						GetEntPropVector(iBestNewTarget, Prop_Data, "m_vecAbsOrigin", flTraceEndPos);
-						for (new i = 0; i < 3; i++) flTraceEndPos[i] += ((flTargetMins[i] + flTargetMaxs[i]) / 2.0);
+						for (int i = 0; i < 3; i++) flTraceEndPos[i] += ((flTargetMins[i] + flTargetMaxs[i]) / 2.0);
 					}
 					
-					new Handle:hTrace = TR_TraceHullFilterEx(flTraceStartPos,
+					Handle hTrace = TR_TraceHullFilterEx(flTraceStartPos,
 						flTraceEndPos,
 						flTraceMins,
 						flTraceMaxs,
@@ -823,8 +821,8 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 						TraceRayBossVisibility,
 						slender);
 						
-					new bool:bIsVisible = !TR_DidHit(hTrace);
-					new iTraceHitEntity = TR_GetEntityIndex(hTrace);
+					bool bIsVisible = !TR_DidHit(hTrace);
+					int iTraceHitEntity = TR_GetEntityIndex(hTrace);
 					CloseHandle(hTrace);
 					
 					if (!bIsVisible && iTraceHitEntity == iBestNewTarget) bIsVisible = true;
@@ -853,7 +851,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 				}
 				else if (iInterruptConditions & COND_HEARDSUSPICIOUSSOUND)
 				{
-					new bool:bDiscardMasterPos = bool:(GetGameTime() >= g_flSlenderTargetSoundDiscardMasterPosTime[iBossIndex]);
+					bool bDiscardMasterPos = view_as<bool>(GetGameTime() >= g_flSlenderTargetSoundDiscardMasterPosTime[iBossIndex]);
 					
 					if (GetVectorDistance(g_flSlenderTargetSoundTempPos[iBossIndex], g_flSlenderTargetSoundMasterPos[iBossIndex]) <= GetProfileFloat(sSlenderProfile, "search_sound_pos_dist_tolerance", 512.0) ||
 						bDiscardMasterPos)
@@ -874,11 +872,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					}
 				}
 				
-				new bool:bBlockingProp = false;
+				bool bBlockingProp = false;
 				
 				if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 				{
-					new prop = -1;
+					int prop = -1;
 					while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
 					{
 						if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
@@ -924,7 +922,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			{
 				if (IsValidEdict(iTarget))
 				{
-					decl Float:flTraceStartPos[3], Float:flTraceEndPos[3];
+					float flTraceStartPos[3], flTraceEndPos[3];
 					NPCGetEyePosition(iBossIndex, flTraceStartPos);
 					
 					if (IsValidClient(iTarget))
@@ -933,18 +931,18 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					}
 					else
 					{
-						decl Float:flTargetMins[3], Float:flTargetMaxs[3];
+						float flTargetMins[3], flTargetMaxs[3];
 						GetEntPropVector(iTarget, Prop_Send, "m_vecMins", flTargetMins);
 						GetEntPropVector(iTarget, Prop_Send, "m_vecMaxs", flTargetMaxs);
 						GetEntPropVector(iTarget, Prop_Data, "m_vecAbsOrigin", flTraceEndPos);
-						for (new i = 0; i < 3; i++) flTraceEndPos[i] += ((flTargetMins[i] + flTargetMaxs[i]) / 2.0);
+						for (int i = 0; i < 3; i++) flTraceEndPos[i] += ((flTargetMins[i] + flTargetMaxs[i]) / 2.0);
 					}
 					
-					new bool:bIsDeathPosVisible = false;
+					bool bIsDeathPosVisible = false;
 					
 					if (g_bSlenderChaseDeathPosition[iBossIndex])
 					{
-						new Handle:hTrace = TR_TraceRayFilterEx(flTraceStartPos,
+						Handle hTrace = TR_TraceRayFilterEx(flTraceStartPos,
 							g_flSlenderChaseDeathPosition[iBossIndex],
 							MASK_NPCSOLID,
 							RayType_EndPoint,
@@ -970,11 +968,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 						}
 						else if( iState == STATE_CHASE )
 						{
-							new bool:bBlockingProp = false;
+							bool bBlockingProp = false;
 							
 							if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 							{
-								new prop = -1;
+								int prop = -1;
 								while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
 								{
 									if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
@@ -1025,7 +1023,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					{
 						g_bSlenderChaseDeathPosition[iBossIndex] = false;	// We're not chasing a dead player after all! Reset.
 					
-						decl Float:flAttackDirection[3];
+						float flAttackDirection[3];
 						GetClientAbsOrigin(iTarget, g_flSlenderGoalPos[iBossIndex]);
 						SubtractVectors(g_flSlenderGoalPos[iBossIndex], flMyPos, flAttackDirection);
 						GetVectorAngles(flAttackDirection, flAttackDirection);
@@ -1038,11 +1036,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 						}
 						else
 						{
-							new bool:bBlockingProp = false;
+							bool bBlockingProp = false;
 							
 							if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 							{
-								new prop = -1;
+								int prop = -1;
 								while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
 								{
 									if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
@@ -1136,7 +1134,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			}
 		}
 	}
-	new bool:bDoChasePersistencyInit = false;
+	bool bDoChasePersistencyInit = false;
 	
 	if (iState != STATE_STUN)
 	{
@@ -1158,12 +1156,12 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 	// Finally, set our new state.
 	g_iSlenderState[iBossIndex] = iState;
 	
-	decl String:sAnimation[64];
-	new iModel = EntRefToEntIndex(g_iSlenderModel[iBossIndex]);
+	char sAnimation[64];
+	int iModel = EntRefToEntIndex(g_iSlenderModel[iBossIndex]);
 	
-	new Float:flPlaybackRateWalk = g_flSlenderWalkAnimationPlaybackRate[iBossIndex];
-	new Float:flPlaybackRateRun = g_flSlenderRunAnimationPlaybackRate[iBossIndex];
-	new Float:flPlaybackRateIdle = g_flSlenderIdleAnimationPlaybackRate[iBossIndex];
+	float flPlaybackRateWalk = g_flSlenderWalkAnimationPlaybackRate[iBossIndex];
+	float flPlaybackRateRun = g_flSlenderRunAnimationPlaybackRate[iBossIndex];
+	float flPlaybackRateIdle = g_flSlenderIdleAnimationPlaybackRate[iBossIndex];
 	
 	if (iOldState != iState)
 	{
@@ -1250,7 +1248,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					g_flSlenderTimeUntilAlert[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "search_chase_duration", 10.0);
 					g_flSlenderTimeUntilChase[iBossIndex] = -1.0;
 					
-					new Float:flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init", 5.0);
+					float flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init", 5.0);
 					if (flPersistencyTime >= 0.0)
 					{
 						g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + flPersistencyTime;
@@ -1262,7 +1260,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					g_bSlenderAttacking[iBossIndex] = true;
 					g_hSlenderAttackTimer[iBossIndex] = CreateTimer(NPCChaserGetAttackDamageDelay(iBossIndex, 0), Timer_SlenderChaseBossAttack, EntIndexToEntRef(slender), TIMER_FLAG_NO_MAPCHANGE);
 					
-					new Float:flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_attack", -1.0);
+					float flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_attack", -1.0);
 					if (flPersistencyTime >= 0.0)
 					{
 						g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + flPersistencyTime;
@@ -1288,7 +1286,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					
 					if (!bDoChasePersistencyInit)
 					{
-						new Float:flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_stun", -1.0);
+						float flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_stun", -1.0);
 						if (flPersistencyTime >= 0.0)
 						{
 							g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + flPersistencyTime;
@@ -1303,7 +1301,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					}
 					else
 					{
-						new Float:flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init", 5.0);
+						float flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init", 5.0);
 						if (flPersistencyTime >= 0.0)
 						{
 							g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + flPersistencyTime;
@@ -1380,19 +1378,19 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			{
 				if (GetGameTime() >= g_flSlenderNextWanderPos[iBossIndex])
 				{
-					new Float:flMin = GetProfileFloat(sSlenderProfile, "search_wander_time_min", 4.0);
-					new Float:flMax = GetProfileFloat(sSlenderProfile, "search_wander_time_max", 6.5);
+					float flMin = GetProfileFloat(sSlenderProfile, "search_wander_time_min", 4.0);
+					float flMax = GetProfileFloat(sSlenderProfile, "search_wander_time_max", 6.5);
 					g_flSlenderNextWanderPos[iBossIndex] = GetGameTime() + GetRandomFloat(flMin, flMax);
 					
 					if (NPCGetFlags(iBossIndex) & SFF_WANDERMOVE)
 					{
 						// We're allowed to move in wander mode. Get a new wandering position and create a path to follow.
 						// If the position can't be reached, then just get to the closest area that we can get.
-						new Float:flWanderRangeMin = GetProfileFloat(sSlenderProfile, "search_wander_range_min", 400.0);
-						new Float:flWanderRangeMax = GetProfileFloat(sSlenderProfile, "search_wander_range_max", 1024.0);
-						new Float:flWanderRange = GetRandomFloat(flWanderRangeMin, flWanderRangeMax);
+						float flWanderRangeMin = GetProfileFloat(sSlenderProfile, "search_wander_range_min", 400.0);
+						float flWanderRangeMax = GetProfileFloat(sSlenderProfile, "search_wander_range_max", 1024.0);
+						float flWanderRange = GetRandomFloat(flWanderRangeMin, flWanderRangeMax);
 						
-						decl Float:flWanderPos[3];
+						float flWanderPos[3];
 						flWanderPos[0] = 0.0;
 						flWanderPos[1] = GetRandomFloat(0.0, 360.0);
 						flWanderPos[2] = 0.0;
@@ -1444,7 +1442,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 					if (iOldTarget != iTarget)
 					{
 						// Brand new target! We need a path, and we need to reset our persistency, if needed.
-						new Float:flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_newtarget", -1.0);
+						float flPersistencyTime = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_init_newtarget", -1.0);
 						if (flPersistencyTime >= 0.0)
 						{
 							g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + flPersistencyTime;
@@ -1482,31 +1480,31 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 				{
 					ClearArray(g_hSlenderPath[iBossIndex]);
 					
-					new iCurrentAreaIndex = NavMesh_GetNearestArea(flMyPos);
+					int iCurrentAreaIndex = NavMesh_GetNearestArea(flMyPos);
 					if (iCurrentAreaIndex != -1)
 					{
-						new iGoalAreaIndex = NavMesh_GetNearestArea(g_flSlenderGoalPos[iBossIndex]);
+						int iGoalAreaIndex = NavMesh_GetNearestArea(g_flSlenderGoalPos[iBossIndex]);
 						if (iGoalAreaIndex != -1)
 						{
-							decl Float:flCenter[3], Float:flCenterPortal[3], Float:flClosestPoint[3];
-							new iClosestAreaIndex = 0;
+							float flCenter[3], flCenterPortal[3], flClosestPoint[3];
+							int iClosestAreaIndex = 0;
 							
-							new bool:bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 								iGoalAreaIndex,
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex);
 								
-							new iTempAreaIndex = iClosestAreaIndex;
-							new iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
-							new iNavDirection;
-							new Float:flHalfWidth;
+							int iTempAreaIndex = iClosestAreaIndex;
+							int iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							int iNavDirection;
+							float flHalfWidth;
 							
 							if (bPathSuccess)
 							{
 								// Path successful? Insert the goal position into our list.
-								new iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], g_flSlenderGoalPos[iBossIndex][0]);
+								int iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], g_flSlenderGoalPos[iBossIndex][0]);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][1], 1);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][2], 2);
 							}
@@ -1524,7 +1522,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 								
 								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
 								
-								new iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
+								int iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[1], 1);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[2], 2);
 								
@@ -1535,11 +1533,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 							// Set our goal position to the start node (hopefully there's something in the array).
 							if (GetArraySize(g_hSlenderPath[iBossIndex]) > 0)
 							{
-								new iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
+								int iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
 								
-								g_flSlenderGoalPos[iBossIndex][0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0);
-								g_flSlenderGoalPos[iBossIndex][1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1);
-								g_flSlenderGoalPos[iBossIndex][2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2);
+								g_flSlenderGoalPos[iBossIndex][0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0));
+								g_flSlenderGoalPos[iBossIndex][1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1));
+								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
 						}
 						else
@@ -1569,12 +1567,12 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 				
 					if (bPlayerInFOV[iTarget] && bPlayerVisible[iTarget])
 					{
-						new Float:flDistRatio = flPlayerDists[iTarget] / NPCGetSearchRadius(iBossIndex);
+						float flDistRatio = flPlayerDists[iTarget] / NPCGetSearchRadius(iBossIndex);
 						
-						new Float:flChaseDurationTimeAddMin = GetProfileFloat(sSlenderProfile, "search_chase_duration_add_visible_min", 0.025);
-						new Float:flChaseDurationTimeAddMax = GetProfileFloat(sSlenderProfile, "search_chase_duration_add_visible_max", 0.2);
+						float flChaseDurationTimeAddMin = GetProfileFloat(sSlenderProfile, "search_chase_duration_add_visible_min", 0.025);
+						float flChaseDurationTimeAddMax = GetProfileFloat(sSlenderProfile, "search_chase_duration_add_visible_max", 0.2);
 						
-						new Float:flChaseDurationAdd = flChaseDurationTimeAddMax - ((flChaseDurationTimeAddMax - flChaseDurationTimeAddMin) * flDistRatio);
+						float flChaseDurationAdd = flChaseDurationTimeAddMax - ((flChaseDurationTimeAddMax - flChaseDurationTimeAddMin) * flDistRatio);
 						
 						if (flChaseDurationAdd > 0.0)
 						{
@@ -1585,10 +1583,10 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 							}
 						}
 						
-						new Float:flPersistencyTimeAddMin = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_add_visible_min", 0.05);
-						new Float:flPersistencyTimeAddMax = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_add_visible_max", 0.15);
+						float flPersistencyTimeAddMin = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_add_visible_min", 0.05);
+						float flPersistencyTimeAddMax = GetProfileFloat(sSlenderProfile, "search_chase_persistency_time_add_visible_max", 0.15);
 						
-						new Float:flPersistencyTimeAdd = flPersistencyTimeAddMax - ((flPersistencyTimeAddMax - flPersistencyTimeAddMin) * flDistRatio);
+						float flPersistencyTimeAdd = flPersistencyTimeAddMax - ((flPersistencyTimeAddMax - flPersistencyTimeAddMin) * flDistRatio);
 						
 						if (flPersistencyTimeAdd > 0.0)
 						{
@@ -1607,19 +1605,19 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 			// Process through our path waypoints.
 			if (GetArraySize(g_hSlenderPath[iBossIndex]) > 0)
 			{
-				decl Float:flHitNormal[3];
-				decl Float:flNodePos[3];
+				float flHitNormal[3];
+				float flNodePos[3];
 				
-				new Float:flNodeToleranceDist = g_flSlenderPathNodeTolerance[iBossIndex];
-				new bool:bGotNewPoint = false;
+				float flNodeToleranceDist = g_flSlenderPathNodeTolerance[iBossIndex];
+				bool bGotNewPoint = false;
 				
-				for (new iNodeIndex = 0, iNodeCount = GetArraySize(g_hSlenderPath[iBossIndex]); iNodeIndex < iNodeCount; iNodeIndex++)
+				for (int iNodeIndex = 0, iNodeCount = GetArraySize(g_hSlenderPath[iBossIndex]); iNodeIndex < iNodeCount; iNodeIndex++)
 				{
-					flNodePos[0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 0);
-					flNodePos[1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 1);
-					flNodePos[2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 2);
+					flNodePos[0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 0));
+					flNodePos[1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 1));
+					flNodePos[2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeIndex, 2));
 					
-					new Handle:hTrace = TR_TraceHullFilterEx(flMyPos,
+					Handle hTrace = TR_TraceHullFilterEx(flMyPos,
 						flNodePos, 
 						flSlenderMins, 
 						flSlenderMaxs, 
@@ -1627,39 +1625,39 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 						TraceRayDontHitCharactersOrEntity, 
 						slender);
 						
-					new bool:bDidHit = TR_DidHit(hTrace);
+					bool bDidHit = TR_DidHit(hTrace);
 					TR_GetPlaneNormal(hTrace, flHitNormal);
 					CloseHandle(hTrace);
 					GetVectorAngles(flHitNormal, flHitNormal);
-					for (new i = 0; i < 3; i++) flHitNormal[i] = AngleNormalize(flHitNormal[i]);
+					for (int i = 0; i < 3; i++) flHitNormal[i] = AngleNormalize(flHitNormal[i]);
 					
 					// First check if we can see the point.
 					if (!bDidHit || ((flHitNormal[0] >= 0.0 && flHitNormal[0] > 45.0) || (flHitNormal[0] < 0.0 && flHitNormal[0] < -45.0)))
 					{
-						new bool:bNearNode = false;
+						bool bNearNode = false;
 						
 						// See if we're already near enough.
-						new Float:flDist = GetVectorDistance(flNodePos, flMyPos);
+						float flDist = GetVectorDistance(flNodePos, flMyPos);
 						if (flDist < flNodeToleranceDist) bNearNode = true;
 						
 						if (!bNearNode)
 						{
-							new bool:bOutside = false;
+							bool bOutside = false;
 						
 							// Then, predict if we're going to pass over the point on the next think.
-							decl Float:flTestPos[3];
+							float flTestPos[3];
 							NormalizeVector(flSlenderVelocity, flTestPos);
 							ScaleVector(flTestPos, GetVectorLength(flSlenderVelocity) * BOSS_THINKRATE);
 							AddVectors(flMyPos, flTestPos, flTestPos);
 							
-							decl Float:flP[3], Float:flS[3];
+							float flP[3], flS[3];
 							SubtractVectors(flNodePos, flMyPos, flP);
 							SubtractVectors(flTestPos, flMyPos, flS);
 							
-							new Float:flSP = GetVectorDotProduct(flP, flS);
+							float flSP = GetVectorDotProduct(flP, flS);
 							if (flSP <= 0.0) bOutside = true;
 							
-							new Float:flPP = GetVectorDotProduct(flS, flS);
+							float flPP = GetVectorDotProduct(flS, flS);
 							
 							if (!bOutside)
 							{
@@ -1668,7 +1666,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 							
 							if (!bOutside)
 							{
-								decl Float:flD[3];
+								float flD[3];
 								ScaleVector(flS, (flSP / flPP));
 								SubtractVectors(flP, flS, flD);
 							
@@ -1688,11 +1686,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 							
 							if (GetArraySize(g_hSlenderPath[iBossIndex]) > 0)
 							{
-								new iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
+								int iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
 								
-								g_flSlenderGoalPos[iBossIndex][0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0);
-								g_flSlenderGoalPos[iBossIndex][1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1);
-								g_flSlenderGoalPos[iBossIndex][2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2);
+								g_flSlenderGoalPos[iBossIndex][0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0));
+								g_flSlenderGoalPos[iBossIndex][1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1));
+								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
 							
 							bGotNewPoint = true;
@@ -1705,43 +1703,43 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 				{
 					// Try to see if we can look ahead.
 					
-					decl Float:flMyEyePos[3];
+					float flMyEyePos[3];
 					NPCGetEyePosition(iBossIndex, flMyEyePos);
 					
-					new Float:flNodeLookAheadDist = g_flSlenderPathNodeLookAhead[iBossIndex];
+					float flNodeLookAheadDist = g_flSlenderPathNodeLookAhead[iBossIndex];
 					if (flNodeLookAheadDist > 0.0)
 					{
-						new iNodeCount = GetArraySize(g_hSlenderPath[iBossIndex]);
+						int iNodeCount = GetArraySize(g_hSlenderPath[iBossIndex]);
 						if (iNodeCount)
 						{
-							decl Float:flInitDir[3];
-							flInitDir[0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 0);
-							flInitDir[1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 1);
-							flInitDir[2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 2);
+							float flInitDir[3];
+							flInitDir[0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 0));
+							flInitDir[1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 1));
+							flInitDir[2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iNodeCount - 1, 2));
 							
 							SubtractVectors(flInitDir, flMyPos, flInitDir);
 							NormalizeVector(flInitDir, flInitDir);
 							
-							decl Float:flPrevDir[3];
+							float flPrevDir[3];
 							flPrevDir[0] = flInitDir[0];
 							flPrevDir[1] = flInitDir[1];
 							flPrevDir[2] = flInitDir[2];
 							
 							NormalizeVector(flPrevDir, flPrevDir);
 							
-							decl Float:flPrevNodePos[3];
+							float flPrevNodePos[3];
 							
-							new iStartPointIndex = iNodeCount - 1;
-							new Float:flRangeSoFar = 0.0;
+							int iStartPointIndex = iNodeCount - 1;
+							float flRangeSoFar = 0.0;
 							
-							new iLookAheadPointIndex;
+							int iLookAheadPointIndex;
 							for (iLookAheadPointIndex = iStartPointIndex; iLookAheadPointIndex >= 0; iLookAheadPointIndex--)
 							{
-								flNodePos[0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 0);
-								flNodePos[1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 1);
-								flNodePos[2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 2);
+								flNodePos[0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 0));
+								flNodePos[1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 1));
+								flNodePos[2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex, 2));
 							
-								decl Float:flDir[3];
+								float flDir[3];
 								if (iLookAheadPointIndex == iStartPointIndex)
 								{
 									SubtractVectors(flNodePos, flMyPos, flDir);
@@ -1749,9 +1747,9 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 								}
 								else
 								{
-									flPrevNodePos[0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 0);
-									flPrevNodePos[1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 1);
-									flPrevNodePos[2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 2);
+									flPrevNodePos[0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 0));
+									flPrevNodePos[1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 1));
+									flPrevNodePos[2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iLookAheadPointIndex + 1, 2));
 								
 									SubtractVectors(flNodePos, flPrevNodePos, flDir);
 									NormalizeVector(flDir, flDir);
@@ -1771,7 +1769,7 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 								flPrevDir[1] = flDir[1];
 								flPrevDir[2] = flDir[2];
 								
-								decl Float:flProbe[3];
+								float flProbe[3];
 								flProbe[0] = flNodePos[0];
 								flProbe[1] = flNodePos[1];
 								flProbe[2] = flNodePos[2] + HalfHumanHeight;
@@ -1803,11 +1801,11 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 							
 							if (GetArraySize(g_hSlenderPath[iBossIndex]) > 0)
 							{
-								new iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
+								int iPosIndex = GetArraySize(g_hSlenderPath[iBossIndex]) - 1;
 								
-								g_flSlenderGoalPos[iBossIndex][0] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0);
-								g_flSlenderGoalPos[iBossIndex][1] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1);
-								g_flSlenderGoalPos[iBossIndex][2] = Float:GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2);
+								g_flSlenderGoalPos[iBossIndex][0] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 0));
+								g_flSlenderGoalPos[iBossIndex][1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1));
+								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
 							
 							bGotNewPoint = true;
@@ -1859,33 +1857,33 @@ public Action:Timer_SlenderChaseBossThink(Handle:timer, any:entref)
 	return Plugin_Continue;
 }
 
-SlenderChaseBossProcessMovement(iBossIndex)
+void SlenderChaseBossProcessMovement(int iBossIndex)
 {
-	new iBoss = NPCGetEntIndex(iBossIndex);
-	new iState = g_iSlenderState[iBossIndex];
+	int iBoss = NPCGetEntIndex(iBossIndex);
+	int iState = g_iSlenderState[iBossIndex];
 	
 	// Constantly set the monster_generic's NPC state to idle to prevent
 	// velocity confliction.
 	
 	SetEntProp(iBoss, Prop_Data, "m_NPCState", 0);
 	
-	new Float:flWalkSpeed = g_flSlenderCalculatedWalkSpeed[iBossIndex];
-	new Float:flSpeed = g_flSlenderCalculatedSpeed[iBossIndex];
+	float flWalkSpeed = g_flSlenderCalculatedWalkSpeed[iBossIndex];
+	float flSpeed = g_flSlenderCalculatedSpeed[iBossIndex];
 	
-	new Float:flMyPos[3], Float:flMyEyeAng[3], Float:flMyVelocity[3];
+	float flMyPos[3], flMyEyeAng[3], flMyVelocity[3];
 	
-	decl String:sSlenderProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	char sSlenderProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sSlenderProfile, sizeof(sSlenderProfile));
 	
 	GetEntPropVector(iBoss, Prop_Data, "m_vecAbsOrigin", flMyPos);
 	GetEntPropVector(iBoss, Prop_Data, "m_angAbsRotation", flMyEyeAng);
 	GetEntPropVector(iBoss, Prop_Data, "m_vecAbsVelocity", flMyVelocity);
 	
-	decl Float:flBossMins[3], Float:flBossMaxs[3];
+	float flBossMins[3], flBossMaxs[3];
 	GetEntPropVector(iBoss, Prop_Send, "m_vecMins", flBossMins);
 	GetEntPropVector(iBoss, Prop_Send, "m_vecMaxs", flBossMaxs);
 	
-	decl Float:flTraceMins[3], Float:flTraceMaxs[3];
+	float flTraceMins[3], flTraceMaxs[3];
 	flTraceMins[0] = flBossMins[0];
 	flTraceMins[1] = flBossMins[1];
 	flTraceMins[2] = 0.0;
@@ -1899,62 +1897,62 @@ SlenderChaseBossProcessMovement(iBossIndex)
 	g_bSlenderFeelerReflexAdjustment[iBossIndex] = false;
 	
 	{
-		decl Float:flMoveDir[3];
+		float flMoveDir[3];
 		NormalizeVector(flMyVelocity, flMoveDir);
 		flMoveDir[2] = 0.0;
 		
-		decl Float:flLat[3];
+		float flLat[3];
 		flLat[0] = -flMoveDir[1];
 		flLat[1] = flMoveDir[0];
 		flLat[2] = 0.0;
 	
-		new Float:flFeelerOffset = 25.0;
-		new Float:flFeelerLengthRun = 50.0;
-		new Float:flFeelerLengthWalk = 30.0;
-		new Float:flFeelerHeight = StepHeight + 0.1;
+		float flFeelerOffset = 25.0;
+		float flFeelerLengthRun = 50.0;
+		float flFeelerLengthWalk = 30.0;
+		float flFeelerHeight = StepHeight + 0.1;
 		
-		new Float:flFeelerLength = iState == STATE_CHASE ? flFeelerLengthRun : flFeelerLengthWalk;
+		float flFeelerLength = iState == STATE_CHASE ? flFeelerLengthRun : flFeelerLengthWalk;
 		
 		// Get the ground height and normal.
-		new Handle:hTrace = TR_TraceRayFilterEx(flMyPos, Float:{ 0.0, 0.0, 90.0 }, MASK_NPCSOLID, RayType_Infinite, TraceFilterWalkableEntities);
-		decl Float:flTraceEndPos[3];
-		decl Float:flTraceNormal[3];
+		Handle hTrace = TR_TraceRayFilterEx(flMyPos, view_as<float>({ 0.0, 0.0, 90.0 }), MASK_NPCSOLID, RayType_Infinite, TraceFilterWalkableEntities);
+		float flTraceEndPos[3];
+		float flTraceNormal[3];
 		TR_GetEndPosition(flTraceEndPos, hTrace);
 		TR_GetPlaneNormal(hTrace, flTraceNormal);
-		new bool:bTraceHit = TR_DidHit(hTrace);
+		bool bTraceHit = TR_DidHit(hTrace);
 		CloseHandle(hTrace);
 		
 		if (bTraceHit)
 		{
-			//new Float:flGroundHeight = GetVectorDistance(flMyPos, flTraceEndPos);
+			//float flGroundHeight = GetVectorDistance(flMyPos, flTraceEndPos);
 			NormalizeVector(flTraceNormal, flTraceNormal);
 			GetVectorCrossProduct(flLat, flTraceNormal, flMoveDir);
 			GetVectorCrossProduct(flMoveDir, flTraceNormal, flLat);
 			
-			decl Float:flFeet[3];
+			float flFeet[3];
 			flFeet[0] = flMyPos[0];
 			flFeet[1] = flMyPos[1];
 			flFeet[2] = flMyPos[2] + flFeelerHeight;
 			
-			decl Float:flTo[3];
-			decl Float:flFrom[3];
-			for (new i = 0; i < 3; i++)
+			float flTo[3];
+			float flFrom[3];
+			for (int i = 0; i < 3; i++)
 			{
 				flFrom[i] = flFeet[i] + (flFeelerOffset * flLat[i]);
 				flTo[i] = flFrom[i] + (flFeelerLength * flMoveDir[i]);
 			}
 			
-			new bool:bLeftClear = IsWalkableTraceLineClear(flFrom, flTo, WALK_THRU_DOORS | WALK_THRU_BREAKABLES);
+			bool bLeftClear = IsWalkableTraceLineClear(flFrom, flTo, WALK_THRU_DOORS | WALK_THRU_BREAKABLES);
 			
-			for (new i = 0; i < 3; i++)
+			for (int i = 0; i < 3; i++)
 			{
 				flFrom[i] = flFeet[i] - (flFeelerOffset * flLat[i]);
 				flTo[i] = flFrom[i] + (flFeelerLength * flMoveDir[i]);
 			}
 			
-			new bool:bRightClear = IsWalkableTraceLineClear(flFrom, flTo, WALK_THRU_DOORS | WALK_THRU_BREAKABLES);
+			bool bRightClear = IsWalkableTraceLineClear(flFrom, flTo, WALK_THRU_DOORS | WALK_THRU_BREAKABLES);
 			
-			new Float:flAvoidRange = 300.0;
+			float flAvoidRange = 300.0;
 			
 			if (!bRightClear)
 			{
@@ -1962,7 +1960,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 				{
 					g_bSlenderFeelerReflexAdjustment[iBossIndex] = true;
 					
-					for (new i = 0; i < 3; i++)
+					for (int i = 0; i < 3; i++)
 					{
 						g_flSlenderFeelerReflexAdjustmentPos[iBossIndex][i] = g_flSlenderGoalPos[iBossIndex][i] + (flAvoidRange * flLat[i]);
 					}
@@ -1972,7 +1970,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 			{
 				g_bSlenderFeelerReflexAdjustment[iBossIndex] = true;
 				
-				for (new i = 0; i < 3; i++)
+				for (int i = 0; i < 3; i++)
 				{
 					g_flSlenderFeelerReflexAdjustmentPos[iBossIndex][i] = g_flSlenderGoalPos[iBossIndex][i] - (flAvoidRange * flLat[i]);
 				}
@@ -1980,24 +1978,24 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		}
 	}
 	
-	new Float:flGoalPosition[3];
+	float flGoalPosition[3];
 	if (g_bSlenderFeelerReflexAdjustment[iBossIndex])
 	{
-		for (new i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			flGoalPosition[i] = g_flSlenderFeelerReflexAdjustmentPos[iBossIndex][i];
 		}
 	}
 	else
 	{
-		for (new i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			flGoalPosition[i] = g_flSlenderGoalPos[iBossIndex][i];
 		}
 	}
 	
 	// Process our desired velocity.
-	new Float:flDesiredVelocity[3];
+	float flDesiredVelocity[3];
 	switch (iState)
 	{
 		case STATE_WANDER:
@@ -2027,10 +2025,10 @@ SlenderChaseBossProcessMovement(iBossIndex)
 	}
 	
 	// Check if we're on the ground.
-	new bool:bSlenderOnGround = bool:(GetEntityFlags(iBoss) & FL_ONGROUND);
+	bool bSlenderOnGround = view_as<bool>(GetEntityFlags(iBoss) & FL_ONGROUND);
 	
-	decl Float:flTraceEndPos[3];
-	new Handle:hTrace;
+	float flTraceEndPos[3];
+	Handle hTrace;
 	
 	// Determine speed behavior.
 	if (bSlenderOnGround)
@@ -2044,15 +2042,15 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		ScaleVector(flDesiredVelocity, NPCChaserGetAirSpeed(iBossIndex, GetConVarInt(g_cvDifficulty)));
 	}
 	
-	new bool:bSlenderTeleportedOnStep = false;
-	new Float:flSlenderStepSize = NPCChaserGetStepSize(iBossIndex);
+	bool bSlenderTeleportedOnStep = false;
+	float flSlenderStepSize = NPCChaserGetStepSize(iBossIndex);
 	
 	// Check our stepsize in case we need to elevate ourselves a step.
 	if (bSlenderOnGround && GetVectorLength(flDesiredVelocity) > 0.0)
 	{
 		if (flSlenderStepSize > 0.0)
 		{
-			decl Float:flTraceDirection[3], Float:flObstaclePos[3], Float:flObstacleNormal[3];
+			float flTraceDirection[3], flObstaclePos[3], flObstacleNormal[3];
 			NormalizeVector(flDesiredVelocity, flTraceDirection);
 			AddVectors(flMyPos, flTraceDirection, flTraceEndPos);
 			
@@ -2065,7 +2063,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 				TraceRayDontHitEntity,
 				iBoss);
 				
-			new bool:bSlenderHitObstacle = TR_DidHit(hTrace);
+			bool bSlenderHitObstacle = TR_DidHit(hTrace);
 			TR_GetEndPosition(flObstaclePos, hTrace);
 			TR_GetPlaneNormal(hTrace, flObstacleNormal);
 			CloseHandle(hTrace);
@@ -2073,13 +2071,13 @@ SlenderChaseBossProcessMovement(iBossIndex)
 			if (bSlenderHitObstacle &&
 				FloatAbs(flObstacleNormal[2]) == 0.0)
 			{
-				decl Float:flTraceStartPos[3];
+				float flTraceStartPos[3];
 				flTraceStartPos[0] = flObstaclePos[0];
 				flTraceStartPos[1] = flObstaclePos[1];
 				
-				decl Float:flTraceFreePos[3];
+				float flTraceFreePos[3];
 				
-				new Float:flTraceCheckZ = 0.0;
+				float flTraceCheckZ = 0.0;
 				
 				// This does a crapload of traces along the wall. Very nasty and expensive to do...
 				while (flTraceCheckZ <= flSlenderStepSize)
@@ -2120,13 +2118,13 @@ SlenderChaseBossProcessMovement(iBossIndex)
 			/*
 			else if (!bSlenderHitObstacle)
 			{
-				decl Float:flTraceStartPos[3];
+				float flTraceStartPos[3];
 				flTraceStartPos[0] = flObstaclePos[0];
 				flTraceStartPos[1] = flObstaclePos[1];
 				
-				decl Float:flTraceFreePos[3];
+				float flTraceFreePos[3];
 				
-				new Float:flTraceCheckZ = 0.0;
+				float flTraceCheckZ = 0.0;
 				
 				// This does a crapload of traces along the wall. Very nasty and expensive to do...
 				while (flTraceCheckZ <= flSlenderStepSize)
@@ -2169,32 +2167,32 @@ SlenderChaseBossProcessMovement(iBossIndex)
 	}
 	
 	// Apply acceleration vectors.
-	new Float:flMoveVelocity[3];
-	new Float:flFrameTime = GetTickInterval();
-	decl Float:flAcceleration[3];
+	float flMoveVelocity[3];
+	float flFrameTime = GetTickInterval();
+	float flAcceleration[3];
 	SubtractVectors(flDesiredVelocity, flMyVelocity, flAcceleration);
 	NormalizeVector(flAcceleration, flAcceleration);
 	ScaleVector(flAcceleration, g_flSlenderAcceleration[iBossIndex] * flFrameTime);
 	
 	AddVectors(flMyVelocity, flAcceleration, flMoveVelocity);
 	
-	new Float:flSlenderJumpSpeed = g_flSlenderJumpSpeed[iBossIndex];
-	new bool:bSlenderShouldJump = false;
+	float flSlenderJumpSpeed = g_flSlenderJumpSpeed[iBossIndex];
+	bool bSlenderShouldJump = false;
 	
-	decl Float:angJumpReach[3]; 
+	float angJumpReach[3]; 
 	
 	// Check if we need to jump over a wall or something.
 	if (!bSlenderShouldJump && bSlenderOnGround && !bSlenderTeleportedOnStep && flSlenderJumpSpeed > 0.0 && GetVectorLength(flDesiredVelocity) > 0.0 &&
 		GetGameTime() >= g_flSlenderNextJump[iBossIndex])
 	{
-		new Float:flZDiff = (flGoalPosition[2] - flMyPos[2]);
+		float flZDiff = (flGoalPosition[2] - flMyPos[2]);
 		
 		if (flZDiff > flSlenderStepSize)
 		{
 			// Our path has a jump thingy to it. Calculate the jump height needed to reach it and how far away we should start
 			// checking on when to jump.
 			
-			decl Float:vecDir[3], Float:vecDesiredDir[3];
+			float vecDir[3], vecDesiredDir[3];
 			GetVectorAngles(flMyVelocity, vecDir);
 			SubtractVectors(flGoalPosition, flMyPos, vecDesiredDir);
 			GetVectorAngles(vecDesiredDir, vecDesiredDir);
@@ -2205,7 +2203,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 				// based on 2D distance between our position and the target point, and our current horizontal 
 				// velocity.
 				
-				decl Float:vecMyPos2D[3], Float:vecGoalPos2D[3];
+				float vecMyPos2D[3], vecGoalPos2D[3];
 				vecMyPos2D[0] = flMyPos[0];
 				vecMyPos2D[1] = flMyPos[1];
 				vecMyPos2D[2] = 0.0;
@@ -2213,13 +2211,13 @@ SlenderChaseBossProcessMovement(iBossIndex)
 				vecGoalPos2D[1] = flGoalPosition[1];
 				vecGoalPos2D[2] = 0.0;
 				
-				new Float:fl2DDist = GetVectorDistance(vecMyPos2D, vecGoalPos2D);
+				float fl2DDist = GetVectorDistance(vecMyPos2D, vecGoalPos2D);
 				
-				new Float:flNotImaginary = Pow(flSlenderJumpSpeed, 4.0) - (g_flGravity * (g_flGravity * Pow(fl2DDist, 2.0)) + (2.0 * flZDiff * Pow(flSlenderJumpSpeed, 2.0)));
+				float flNotImaginary = Pow(flSlenderJumpSpeed, 4.0) - (g_flGravity * (g_flGravity * Pow(fl2DDist, 2.0)) + (2.0 * flZDiff * Pow(flSlenderJumpSpeed, 2.0)));
 				if (flNotImaginary >= 0.0)
 				{
 					// We can reach it.
-					new Float:flNotInfinite = g_flGravity * fl2DDist;
+					float flNotInfinite = g_flGravity * fl2DDist;
 					if (flNotInfinite > 0.0)
 					{
 						SubtractVectors(vecGoalPos2D, vecMyPos2D, angJumpReach);
@@ -2236,7 +2234,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 	{
 		g_flSlenderNextJump[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "jump_cooldown", 2.0);
 		
-		decl Float:vecJump[3];
+		float vecJump[3];
 		GetAngleVectors(angJumpReach, vecJump, NULL_VECTOR, NULL_VECTOR);
 		NormalizeVector(vecJump, vecJump);
 		ScaleVector(vecJump, flSlenderJumpSpeed);
@@ -2248,19 +2246,19 @@ SlenderChaseBossProcessMovement(iBossIndex)
 		flMoveVelocity[2] = flMyVelocity[2];
 	}
 	
-	decl Float:flMoveAng[3];
-	new bool:bChangeAngles = false;
+	float flMoveAng[3];
+	bool bChangeAngles = false;
 	
 	// Process angles.
 	if (iState != STATE_ATTACK && iState != STATE_STUN)
 	{
 		if (NPCHasAttribute(iBossIndex, "always look at target"))
 		{
-			new iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
+			int iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
 			
 			if (iTarget && iTarget != INVALID_ENT_REFERENCE)
 			{
-				decl Float:flTargetPos[3];
+				float flTargetPos[3];
 				GetEntPropVector(iTarget, Prop_Data, "m_vecAbsOrigin", flTargetPos);
 				SubtractVectors(flTargetPos, flMyPos, flMoveAng);
 				GetVectorAngles(flMoveAng, flMoveAng);
@@ -2277,7 +2275,7 @@ SlenderChaseBossProcessMovement(iBossIndex)
 			GetVectorAngles(flMoveAng, flMoveAng);
 		}
 		
-		new Float:flTurnRate = NPCGetTurnRate(iBossIndex);
+		float flTurnRate = NPCGetTurnRate(iBossIndex);
 		if (iState == STATE_CHASE) flTurnRate *= 2.0;
 		
 		flMoveAng[0] = 0.0;
@@ -2290,11 +2288,14 @@ SlenderChaseBossProcessMovement(iBossIndex)
 	if(g_iSlenderHitbox[iBossIndex]>MaxClients)
 	{
 		TeleportEntity(g_iSlenderHitbox[iBossIndex], flMyPos, bChangeAngles ? flMoveAng : NULL_VECTOR, NULL_VECTOR);
+		GetEntPropVector(g_iSlenderHitbox[iBossIndex], Prop_Data, "m_vecAbsOrigin", flMyPos);
+		if(bChangeAngles)
+			GetEntPropVector(iBoss, Prop_Data, "m_angAbsRotation", flMoveAng);
 	}
 }
 
 // Shortest-path cost function for NavMesh_BuildPath.
-public SlenderChaseBossShortestPathCost(iAreaIndex, iFromAreaIndex, iLadderIndex, any:iStepSize)
+public int SlenderChaseBossShortestPathCost(int iAreaIndex,int iFromAreaIndex,int iLadderIndex, any iStepSize)
 {
 	if (iFromAreaIndex == -1)
 	{
@@ -2302,8 +2303,8 @@ public SlenderChaseBossShortestPathCost(iAreaIndex, iFromAreaIndex, iLadderIndex
 	}
 	else
 	{
-		new iDist;
-		decl Float:flAreaCenter[3], Float:flFromAreaCenter[3];
+		int iDist;
+		float flAreaCenter[3], flFromAreaCenter[3];
 		NavMeshArea_GetCenter(iAreaIndex, flAreaCenter);
 		NavMeshArea_GetCenter(iFromAreaIndex, flFromAreaCenter);
 		
@@ -2316,9 +2317,9 @@ public SlenderChaseBossShortestPathCost(iAreaIndex, iFromAreaIndex, iLadderIndex
 			iDist = RoundFloat(GetVectorDistance(flAreaCenter, flFromAreaCenter));
 		}
 		
-		new iCost = iDist + NavMeshArea_GetCostSoFar(iFromAreaIndex);
+		int iCost = iDist + NavMeshArea_GetCostSoFar(iFromAreaIndex);
 		
-		new iAreaFlags = NavMeshArea_GetFlags(iAreaIndex);
+		int iAreaFlags = NavMeshArea_GetFlags(iAreaIndex);
 		if (iAreaFlags & NAV_MESH_CROUCH) iCost += 20;
 		if (iAreaFlags & NAV_MESH_JUMP) iCost += (5 * iDist);
 		
@@ -2328,14 +2329,14 @@ public SlenderChaseBossShortestPathCost(iAreaIndex, iFromAreaIndex, iLadderIndex
 	}
 }
 
-public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
+public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 {
 	if (!g_bEnabled) return;
 
-	new slender = EntRefToEntIndex(entref);
+	int slender = EntRefToEntIndex(entref);
 	if (!slender || slender == INVALID_ENT_REFERENCE) return;
 	
-	new iBossIndex = NPCGetFromEntIndex(slender);
+	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return;
 	
 	if (timer != g_hSlenderAttackTimer[iBossIndex]) return;
@@ -2346,45 +2347,45 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 		return;
 	}
 	
-	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	
-	new bool:bAttackEliminated = bool:(NPCGetFlags(iBossIndex) & SFF_ATTACKWAITERS);
+	bool bAttackEliminated = view_as<bool>(NPCGetFlags(iBossIndex) & SFF_ATTACKWAITERS);
 	
-	new Float:flDamage = NPCChaserGetAttackDamage(iBossIndex, 0);
-	new Float:flDamageVsProps = NPCChaserGetAttackDamageVsProps(iBossIndex, 0);
-	new iDamageType = NPCChaserGetAttackDamageType(iBossIndex, 0);
+	float flDamage = NPCChaserGetAttackDamage(iBossIndex, 0);
+	float flDamageVsProps = NPCChaserGetAttackDamageVsProps(iBossIndex, 0);
+	int iDamageType = NPCChaserGetAttackDamageType(iBossIndex, 0);
 	
 	// Damage all players within range.
-	decl Float:flMyEyePos[3], Float:flMyEyeAng[3];
+	float flMyEyePos[3], flMyEyeAng[3];
 	NPCGetEyePosition(iBossIndex, flMyEyePos);
 	GetEntPropVector(slender, Prop_Data, "m_angAbsRotation", flMyEyeAng);
 	AddVectors(g_flSlenderEyePosOffset[iBossIndex], flMyEyeAng, flMyEyeAng);
-	for (new i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
+	for (int i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
 	
-	decl Float:flViewPunch[3];
+	float flViewPunch[3];
 	GetProfileVector(sProfile, "attack_punchvel", flViewPunch);
 	
-	decl Float:flTargetDist;
-	decl Handle:hTrace;
+	float flTargetDist;
+	Handle hTrace;
 	
-	new Float:flAttackRange = NPCChaserGetAttackRange(iBossIndex, 0);
-	new Float:flAttackFOV = NPCChaserGetAttackSpread(iBossIndex, 0);
-	new Float:flAttackDamageForce = NPCChaserGetAttackDamageForce(iBossIndex, 0);
+	float flAttackRange = NPCChaserGetAttackRange(iBossIndex, 0);
+	float flAttackFOV = NPCChaserGetAttackSpread(iBossIndex, 0);
+	float flAttackDamageForce = NPCChaserGetAttackDamageForce(iBossIndex, 0);
 	
-	new bool:bHit = false;
+	bool bHit = false;
 	
 	{
-		new prop = -1;
+		int prop = -1;
 		while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
 		{
 			if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
 			{
 				bHit = true;
 				SDKHooks_TakeDamage(prop, slender, slender, flDamageVsProps, iDamageType, _, _, flMyEyePos);
-				new Float:SpreadVel = 1800.0;
-				new Float:VertVel = 1300.0;
-				new Float:vel[3];
+				float SpreadVel = 1800.0;
+				float VertVel = 1300.0;
+				float vel[3];
 				GetAngleVectors(flMyEyeAng, vel, NULL_VECTOR, NULL_VECTOR);
 				ScaleVector(vel,SpreadVel);
 				vel[2] = ((GetURandomFloat() + 0.1) * VertVel) * ((GetURandomFloat() + 0.1) * 2);
@@ -2406,13 +2407,13 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 		}
 	}
 	
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || !IsPlayerAlive(i) || IsClientInGhostMode(i)) continue;
 		
 		if (!bAttackEliminated && g_bPlayerEliminated[i]) continue;
 		
-		decl Float:flTargetPos[3];
+		float flTargetPos[3];
 		GetClientEyePosition(i, flTargetPos);
 		
 		hTrace = TR_TraceRayFilterEx(flMyEyePos,
@@ -2422,17 +2423,17 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 			TraceRayDontHitEntity,
 			slender);
 		
-		new bool:bTraceDidHit = TR_DidHit(hTrace);
-		new iTraceHitEntity = TR_GetEntityIndex(hTrace);
+		bool bTraceDidHit = TR_DidHit(hTrace);
+		int iTraceHitEntity = TR_GetEntityIndex(hTrace);
 		CloseHandle(hTrace);
 		
 		if (bTraceDidHit && iTraceHitEntity != i)
 		{
-			decl Float:flTargetMins[3], Float:flTargetMaxs[3];
+			float flTargetMins[3], flTargetMaxs[3];
 			GetEntPropVector(i, Prop_Send, "m_vecMins", flTargetMins);
 			GetEntPropVector(i, Prop_Send, "m_vecMaxs", flTargetMaxs);
 			GetClientAbsOrigin(i, flTargetPos);
-			for (new i2 = 0; i2 < 3; i2++) flTargetPos[i2] += ((flTargetMins[i2] + flTargetMaxs[i2]) / 2.0);
+			for (int i2 = 0; i2 < 3; i2++) flTargetPos[i2] += ((flTargetMins[i2] + flTargetMaxs[i2]) / 2.0);
 			
 			hTrace = TR_TraceRayFilterEx(flMyEyePos,
 				flTargetPos,
@@ -2452,7 +2453,7 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 			
 			if (flTargetDist <= flAttackRange)
 			{
-				decl Float:flDirection[3];
+				float flDirection[3];
 				SubtractVectors(flTargetPos, flMyEyePos, flDirection);
 				GetVectorAngles(flDirection, flDirection);
 				
@@ -2476,7 +2477,7 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 					
 					if (NPCHasAttribute(iBossIndex, "bleed player on hit"))
 					{
-						new Float:flDuration = NPCGetAttributeValue(iBossIndex, "bleed player on hit");
+						float flDuration = NPCGetAttributeValue(iBossIndex, "bleed player on hit");
 						if (flDuration > 0.0)
 						{
 							TF2_MakeBleed(i, slender, flDuration);
@@ -2484,7 +2485,7 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 					}
 					
 					// Add stress
-					new Float:flStressScalar = flDamage / 125.0;
+					float flStressScalar = flDamage / 125.0;
 					if (flStressScalar > 1.0) flStressScalar = 1.0;
 					ClientAddStress(i, 0.33 * flStressScalar);
 				}
@@ -2492,12 +2493,12 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 		}
 	}
 	
-	decl String:sSoundPath[PLATFORM_MAX_PATH];
+	char sSoundPath[PLATFORM_MAX_PATH];
 	
 	if (bHit)
 	{
 		// Fling it.
-		new phys = CreateEntityByName("env_physexplosion");
+		int phys = CreateEntityByName("env_physexplosion");
 		if (phys != -1)
 		{
 			TeleportEntity(phys, flMyEyePos, NULL_VECTOR, NULL_VECTOR);
@@ -2522,46 +2523,46 @@ public Action:Timer_SlenderChaseBossAttack(Handle:timer, any:entref)
 	g_hSlenderAttackTimer[iBossIndex] = CreateTimer(GetProfileFloat(sProfile, "attack_endafter"), Timer_SlenderChaseBossAttackEnd, entref, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-static NPCAttackValidateTarget(iBossIndex, iTarget, Float:flAttackRange, Float:flAttackFOV)
+static bool NPCAttackValidateTarget(int iBossIndex,int iTarget, float flAttackRange, float flAttackFOV)
 {
-	new iBoss = NPCGetEntIndex(iBossIndex);
+	int iBoss = NPCGetEntIndex(iBossIndex);
 	
-	decl Float:flMyEyePos[3], Float:flMyEyeAng[3];
+	float flMyEyePos[3], flMyEyeAng[3];
 	NPCGetEyePosition(iBossIndex, flMyEyePos);
 	if(iTarget>64)//We asume it's a prop
 		flMyEyePos[2]+=30.0;
 	GetEntPropVector(iBoss, Prop_Data, "m_angAbsRotation", flMyEyeAng);
 	AddVectors(g_flSlenderEyeAngOffset[iBossIndex], flMyEyeAng, flMyEyeAng);
-	for (new i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
+	for (int i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
 	
-	decl Float:flTargetPos[3], Float:flTargetMins[3], Float:flTargetMaxs[3];
+	float flTargetPos[3], flTargetMins[3], flTargetMaxs[3];
 	GetEntPropVector(iTarget, Prop_Data, "m_vecAbsOrigin", flTargetPos);
 	GetEntPropVector(iTarget, Prop_Send, "m_vecMins", flTargetMins);
 	GetEntPropVector(iTarget, Prop_Send, "m_vecMaxs", flTargetMaxs);
 	
-	for (new i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		flTargetPos[i] += (flTargetMins[i] + flTargetMaxs[i]) / 2.0;
 	}
 	
-	new Float:flTargetDist = GetVectorDistance(flTargetPos, flMyEyePos);
+	float flTargetDist = GetVectorDistance(flTargetPos, flMyEyePos);
 	if (flTargetDist <= flAttackRange)
 	{
-		decl Float:flDirection[3];
+		float flDirection[3];
 		SubtractVectors(g_flSlenderGoalPos[iBossIndex], flMyEyePos, flDirection);
 		GetVectorAngles(flDirection, flDirection);
 		
 		if (FloatAbs(AngleDiff(flDirection[1], flMyEyeAng[1])) <= flAttackFOV / 2.0)
 		{
-			new Handle:hTrace = TR_TraceRayFilterEx(flMyEyePos,
+			Handle hTrace = TR_TraceRayFilterEx(flMyEyePos,
 				flTargetPos,
 				MASK_NPCSOLID,
 				RayType_EndPoint,
 				TraceRayDontHitEntity,
 				iBoss);
 				
-			new bool:bTraceDidHit = TR_DidHit(hTrace);
-			new iTraceHitEntity = TR_GetEntityIndex(hTrace);
+			bool bTraceDidHit = TR_DidHit(hTrace);
+			int iTraceHitEntity = TR_GetEntityIndex(hTrace);
 			CloseHandle(hTrace);
 			
 			if (!bTraceDidHit || iTraceHitEntity == iTarget)
@@ -2573,17 +2574,17 @@ static NPCAttackValidateTarget(iBossIndex, iTarget, Float:flAttackRange, Float:f
 	
 	return false;
 }
-static NPCPropPhysicsAttack(iBossIndex, prop)
+static bool NPCPropPhysicsAttack(int iBossIndex,int prop)
 {
-	decl String:buffer[PLATFORM_MAX_PATH], String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH], String:model[SF2_MAX_PROFILE_NAME_LENGTH], String:key[64];
+	char buffer[PLATFORM_MAX_PATH], sProfile[SF2_MAX_PROFILE_NAME_LENGTH], model[SF2_MAX_PROFILE_NAME_LENGTH], key[64];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	KvRewind(g_hConfig);
 	KvJumpToKey(g_hConfig, sProfile);
 	if(!IsValidEntity(prop))return false;
 	GetEntPropString(prop, Prop_Data, "m_ModelName", model, sizeof(model));
 	if (!KvJumpToKey(g_hConfig, "attack_props_physics_models")) return true;
-	new bool:bFound=false;
-	for(new i=1; ; i++)
+	bool bFound=false;
+	for(int i=1; ; i++)
 	{
 		IntToString(i, key, sizeof(key));
 		KvGetString(g_hConfig, key, buffer, PLATFORM_MAX_PATH);
@@ -2599,14 +2600,14 @@ static NPCPropPhysicsAttack(iBossIndex, prop)
 	}
 	return bFound;
 }
-public Action:Timer_SlenderChaseBossAttackEnd(Handle:timer, any:entref)
+public Action Timer_SlenderChaseBossAttackEnd(Handle timer, any entref)
 {
 	if (!g_bEnabled) return;
 
-	new slender = EntRefToEntIndex(entref);
+	int slender = EntRefToEntIndex(entref);
 	if (!slender || slender == INVALID_ENT_REFERENCE) return;
 	
-	new iBossIndex = NPCGetFromEntIndex(slender);
+	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return;
 	
 	if (timer != g_hSlenderAttackTimer[iBossIndex]) return;

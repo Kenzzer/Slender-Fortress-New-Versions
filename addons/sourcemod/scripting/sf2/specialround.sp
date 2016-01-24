@@ -10,15 +10,15 @@
 
 #define FILE_SPECIALROUNDS "configs/sf2/specialrounds.cfg"
 
-static Handle:g_hSpecialRoundCycleNames = INVALID_HANDLE;
+static Handle g_hSpecialRoundCycleNames = INVALID_HANDLE;
 
-static Handle:g_hSpecialRoundTimer = INVALID_HANDLE;
-static g_iSpecialRoundCycleNum = 0;
-static Float:g_flSpecialRoundCycleEndTime = -1.0;
-static bool:bDoubleRoulette=false;
-static doubleroulettecount=0;
+static Handle g_hSpecialRoundTimer = INVALID_HANDLE;
+static int g_iSpecialRoundCycleNum = 0;
+static float g_flSpecialRoundCycleEndTime = -1.0;
+static bool bDoubleRoulette=false;
+static int doubleroulettecount=0;
 
-ReloadSpecialRounds()
+void ReloadSpecialRounds()
 {
 	g_iSpecialRoundType2 = 0;
 	if (g_hSpecialRoundCycleNames == INVALID_HANDLE)
@@ -34,9 +34,9 @@ ReloadSpecialRounds()
 		g_hSpecialRoundsConfig = INVALID_HANDLE;
 	}
 	
-	decl String:buffer[PLATFORM_MAX_PATH];
+	char buffer[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, buffer, sizeof(buffer), FILE_SPECIALROUNDS);
-	new Handle:kv = CreateKeyValues("root");
+	Handle kv = CreateKeyValues("root");
 	if (!FileToKeyValues(kv, buffer))
 	{
 		CloseHandle(kv);
@@ -48,7 +48,7 @@ ReloadSpecialRounds()
 		LogMessage("Loaded special rounds file!");
 		
 		// Load names for the cycle.
-		decl String:sBuffer[128];
+		char sBuffer[128];
 		SpecialRoundGetDescriptionHud(SPECIALROUND_DOUBLETROUBLE, sBuffer, sizeof(sBuffer));
 		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
 		
@@ -117,14 +117,14 @@ ReloadSpecialRounds()
 	}
 }
 
-stock SpecialRoundGetDescriptionHud(iSpecialRound, String:buffer[], bufferlen)
+stock void SpecialRoundGetDescriptionHud(int iSpecialRound, char[] buffer,int bufferlen)
 {
 	strcopy(buffer, bufferlen, "");
 
 	if (g_hSpecialRoundsConfig == INVALID_HANDLE) return;
 	
 	KvRewind(g_hSpecialRoundsConfig);
-	decl String:sSpecialRound[32];
+	char sSpecialRound[32];
 	IntToString(iSpecialRound, sSpecialRound, sizeof(sSpecialRound));
 	
 	if (!KvJumpToKey(g_hSpecialRoundsConfig, sSpecialRound)) return;
@@ -132,14 +132,14 @@ stock SpecialRoundGetDescriptionHud(iSpecialRound, String:buffer[], bufferlen)
 	KvGetString(g_hSpecialRoundsConfig, "display_text_hud", buffer, bufferlen);
 }
 
-stock SpecialRoundGetDescriptionChat(iSpecialRound, String:buffer[], bufferlen)
+stock void SpecialRoundGetDescriptionChat(int iSpecialRound, char[] buffer,int bufferlen)
 {
 	strcopy(buffer, bufferlen, "");
 
 	if (g_hSpecialRoundsConfig == INVALID_HANDLE) return;
 	
 	KvRewind(g_hSpecialRoundsConfig);
-	decl String:sSpecialRound[32];
+	char sSpecialRound[32];
 	IntToString(iSpecialRound, sSpecialRound, sizeof(sSpecialRound));
 	
 	if (!KvJumpToKey(g_hSpecialRoundsConfig, sSpecialRound)) return;
@@ -147,14 +147,14 @@ stock SpecialRoundGetDescriptionChat(iSpecialRound, String:buffer[], bufferlen)
 	KvGetString(g_hSpecialRoundsConfig, "display_text_chat", buffer, bufferlen);
 }
 
-stock SpecialRoundGetIconHud(iSpecialRound, String:buffer[], bufferlen)
+stock void SpecialRoundGetIconHud(int iSpecialRound, char[] buffer,int bufferlen)
 {
 	strcopy(buffer, bufferlen, "");
 
 	if (g_hSpecialRoundsConfig == INVALID_HANDLE) return;
 	
 	KvRewind(g_hSpecialRoundsConfig);
-	decl String:sSpecialRound[32];
+	char sSpecialRound[32];
 	IntToString(iSpecialRound, sSpecialRound, sizeof(sSpecialRound));
 	
 	if (!KvJumpToKey(g_hSpecialRoundsConfig, sSpecialRound)) return;
@@ -162,20 +162,20 @@ stock SpecialRoundGetIconHud(iSpecialRound, String:buffer[], bufferlen)
 	KvGetString(g_hSpecialRoundsConfig, "display_icon_hud", buffer, bufferlen);
 }
 
-stock bool:SpecialRoundCanBeSelected(iSpecialRound)
+stock bool SpecialRoundCanBeSelected(int iSpecialRound)
 {
 	if (g_hSpecialRoundsConfig == INVALID_HANDLE) return false;
 	
 	KvRewind(g_hSpecialRoundsConfig);
-	decl String:sSpecialRound[32];
+	char sSpecialRound[32];
 	IntToString(iSpecialRound, sSpecialRound, sizeof(sSpecialRound));
 	
 	if (!KvJumpToKey(g_hSpecialRoundsConfig, sSpecialRound)) return false;
 	
-	return bool:KvGetNum(g_hSpecialRoundsConfig, "enabled", 1);
+	return view_as<bool>(KvGetNum(g_hSpecialRoundsConfig, "enabled", 1));
 }
 
-public Action:Timer_SpecialRoundCycle(Handle:timer)
+public Action Timer_SpecialRoundCycle(Handle timer)
 {
 	if (timer != g_hSpecialRoundTimer) return Plugin_Stop;
 	
@@ -185,7 +185,7 @@ public Action:Timer_SpecialRoundCycle(Handle:timer)
 		return Plugin_Stop;
 	}
 	
-	decl String:sBuffer[128];
+	char sBuffer[128];
 	GetArrayString(g_hSpecialRoundCycleNames, g_iSpecialRoundCycleNum, sBuffer, sizeof(sBuffer));
 	
 	GameTextTFMessage(sBuffer);
@@ -199,20 +199,20 @@ public Action:Timer_SpecialRoundCycle(Handle:timer)
 	return Plugin_Continue;
 }
 
-public Action:Timer_SpecialRoundStart(Handle:timer)
+public Action Timer_SpecialRoundStart(Handle timer)
 {
 	if (timer != g_hSpecialRoundTimer) return;
 	if (!g_bSpecialRound) return;
 	
 	SpecialRoundStart();
 }
-public Action:Timer_SpecialRoundFakeBosses(Handle:timer)
+public Action Timer_SpecialRoundFakeBosses(Handle timer)
 {
 	if (!g_bSpecialRound) return Plugin_Stop;
 	if (!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES)) return Plugin_Stop;
-	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
-	new iFakeBossCount=0;
-	for (new i = 0; i < MAX_BOSSES; i++)
+	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	int iFakeBossCount=0;
+	for (int i = 0; i < MAX_BOSSES; i++)
 	{
 		if (NPCGetUniqueID(i) == -1) continue;
 		if (NPCGetFlags(i) & SFF_FAKE)
@@ -220,19 +220,20 @@ public Action:Timer_SpecialRoundFakeBosses(Handle:timer)
 	}
 	//PrintToChatAll("Fake count: %i",iFakeBossCount);
 	if(iFakeBossCount==3) return Plugin_Continue;
-	for (new i = 0; i < MAX_BOSSES; i++)
+	for (int i = 0; i < MAX_BOSSES; i++)
 	{
-		if (NPCGetUniqueID(i) == -1) continue;
-		if (NPCGetFlags(i) & SFF_FAKE)
+		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(i);
+		if (Npc.IsValid()) continue;
+		if (Npc.Flags & SFF_FAKE)
 		{
 			continue;
 		}
 		if(iFakeBossCount==3) break;
-		NPCGetProfile(i, sProfile, sizeof(sProfile));
-		new iBossIndex = AddProfile(sProfile, SFF_FAKE, i);
-		if (iBossIndex == -1)
+		Npc.GetProfile(sProfile, sizeof(sProfile));
+		SF2NPC_BaseNPC NpcFake = AddProfile(sProfile, SFF_FAKE, Npc);
+		if (NpcFake.IsValid())
 		{
-			LogError("Could not add copy for %d: No free slots!", i);
+			LogError("Could not add fake boss for %d: No free slots!", i);
 		}
 		iFakeBossCount+=1;
 	}
@@ -241,12 +242,12 @@ public Action:Timer_SpecialRoundFakeBosses(Handle:timer)
 }
 	
 /*
-public Action:Timer_SpecialRoundAttribute(Handle:timer)
+public Action Timer_SpecialRoundAttribute(Handle timer)
 {
 	if (timer != g_hSpecialRoundTimer) return Plugin_Stop;
 	if (!g_bSpecialRound) return Plugin_Stop;
 	
-	new iCond = -1;
+	int iCond = -1;
 	
 	switch (g_iSpecialRoundType)
 	{
@@ -256,11 +257,11 @@ public Action:Timer_SpecialRoundAttribute(Handle:timer)
 	
 	if (iCond != -1)
 	{
-		for (new i = 1; i <= MaxClients; i++)
+		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_bPlayerEliminated[i] || g_bPlayerGhostMode[i]) continue;
 			
-			TF2_AddCondition(i, TFCond:iCond, 0.8);
+			TF2_AddCondition(i, view_as<TFCond>(iCond), 0.8);
 		}
 	}
 	
@@ -268,7 +269,7 @@ public Action:Timer_SpecialRoundAttribute(Handle:timer)
 }
 */
 
-SpecialRoundCycleStart()
+void SpecialRoundCycleStart()
 {
 	if (!g_bSpecialRound) return;
 	if(bDoubleRoulette)
@@ -287,19 +288,19 @@ SpecialRoundCycleStart()
 	g_hSpecialRoundTimer = CreateTimer(0.12, Timer_SpecialRoundCycle, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
-SpecialRoundCycleFinish()
+void SpecialRoundCycleFinish()
 {
 	EmitSoundToAll(SR_SOUND_SELECT, _, SNDCHAN_AUTO);
 	if(!bDoubleRoulette)
 		g_iSpecialRoundType2 = 0;
-	new iOverride = GetConVarInt(g_cvSpecialRoundOverride);
+	int iOverride = GetConVarInt(g_cvSpecialRoundOverride);
 	if (iOverride >= 1 && iOverride < SPECIALROUND_MAXROUNDS)
 	{
 		g_iSpecialRoundType = iOverride;
 	}
 	else
 	{
-		new Handle:hEnabledRounds = CreateArray();
+		Handle hEnabledRounds = CreateArray();
 		
 		if (GetArraySize(GetSelectableBossProfileList()) > 0)
 		{
@@ -358,13 +359,13 @@ SpecialRoundCycleFinish()
 	
 	SetConVarInt(g_cvSpecialRoundOverride, -1);
 	
-	decl String:sDescHud[64];
+	char sDescHud[64];
 	SpecialRoundGetDescriptionHud(g_iSpecialRoundType, sDescHud, sizeof(sDescHud));
 	
-	decl String:sIconHud[64];
+	char sIconHud[64];
 	SpecialRoundGetIconHud(g_iSpecialRoundType, sIconHud, sizeof(sIconHud));
 	
-	decl String:sDescChat[64];
+	char sDescChat[64];
 	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
 	
 	GameTextTFMessage(sDescHud, sIconHud);
@@ -373,7 +374,7 @@ SpecialRoundCycleFinish()
 	g_hSpecialRoundTimer = CreateTimer(SR_STARTDELAY, Timer_SpecialRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-SpecialRoundStart()
+void SpecialRoundStart()
 {
 	if (!g_bSpecialRound) return;
 	if (g_iSpecialRoundType < 1 || g_iSpecialRoundType >= SPECIALROUND_MAXROUNDS) return;
@@ -398,8 +399,8 @@ SpecialRoundStart()
 	{
 		case SPECIALROUND_DOUBLETROUBLE:
 		{
-			decl String:sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
-			new Handle:hSelectableBosses = GetSelectableBossProfileList();
+			char sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
+			Handle hSelectableBosses = GetSelectableBossProfileList();
 			
 			if (GetArraySize(hSelectableBosses) > 0)
 			{
@@ -409,8 +410,8 @@ SpecialRoundStart()
 		}
 		case SPECIALROUND_DOOMBOX:
 		{
-			decl String:sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
-			new Handle:hSelectableBosses = GetSelectableBossProfileList();
+			char sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
+			Handle hSelectableBosses = GetSelectableBossProfileList();
 			
 			if (GetArraySize(hSelectableBosses) > 0)
 			{
@@ -432,7 +433,7 @@ SpecialRoundStart()
 		}
 		case SPECIALROUND_SINGLEPLAYER:
 		{
-			for (new i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (!IsClientInGame(i)) continue;
 				
@@ -443,8 +444,8 @@ SpecialRoundStart()
 		{
 			ForceInNextPlayersInQueue(GetConVarInt(g_cvMaxPlayers));
 			SetConVarString(g_cvDifficulty, "3"); // Override difficulty to Insane.
-			decl String:sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
-			new Handle:hSelectableBosses = GetSelectableBossProfileList();
+			char sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
+			Handle hSelectableBosses = GetSelectableBossProfileList();
 			if (GetArraySize(hSelectableBosses) > 0)
 			{
 				GetArrayString(hSelectableBosses, GetRandomInt(0, GetArraySize(hSelectableBosses) - 1), sBuffer, sizeof(sBuffer));
@@ -462,7 +463,7 @@ SpecialRoundStart()
 		}
 		case SPECIALROUND_LIGHTSOUT,SPECIALROUND_NIGHTVISION:
 		{
-			for (new i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (!IsClientInGame(i)) continue;
 				
@@ -488,22 +489,22 @@ SpecialRoundStart()
 		SpecialRoundCycleStart();
 }
 
-public Action:Timer_DisplaySpecialRound(Handle:timer)
+public Action Timer_DisplaySpecialRound(Handle timer)
 {
-	decl String:sDescHud[64];
+	char sDescHud[64];
 	SpecialRoundGetDescriptionHud(g_iSpecialRoundType, sDescHud, sizeof(sDescHud));
 	
-	decl String:sIconHud[64];
+	char sIconHud[64];
 	SpecialRoundGetIconHud(g_iSpecialRoundType, sIconHud, sizeof(sIconHud));
 	
-	decl String:sDescChat[64];
+	char sDescChat[64];
 	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
 	
 	GameTextTFMessage(sDescHud, sIconHud);
 	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
 }
 
-SpecialRoundReset()
+void SpecialRoundReset()
 {
 	g_iSpecialRoundType = 0;
 	g_hSpecialRoundTimer = INVALID_HANDLE;
@@ -511,23 +512,23 @@ SpecialRoundReset()
 	g_flSpecialRoundCycleEndTime = -1.0;
 }
 
-bool:IsSpecialRoundRunning()
+bool IsSpecialRoundRunning()
 {
 	return g_bSpecialRound;
 }
 
-public SpecialRoundInitializeAPI()
+public void SpecialRoundInitializeAPI()
 {
 	CreateNative("SF2_IsSpecialRoundRunning", Native_IsSpecialRoundRunning);
 	CreateNative("SF2_GetSpecialRoundType", Native_GetSpecialRoundType);
 }
 
-public Native_IsSpecialRoundRunning(Handle:plugin, numParams)
+public int Native_IsSpecialRoundRunning(Handle plugin,int numParams)
 {
-	return g_bSpecialRound;
+	return view_as<bool>(g_bSpecialRound);
 }
 
-public Native_GetSpecialRoundType(Handle:plugin, numParams)
+public int Native_GetSpecialRoundType(Handle plugin,int numParams)
 {
 	return g_iSpecialRoundType;
 }

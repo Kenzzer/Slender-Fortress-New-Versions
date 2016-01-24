@@ -4,9 +4,9 @@
 
 #define _sf2_pvp_menus
 
-new Handle:g_hMenuSettingsPvP;
+Handle g_hMenuSettingsPvP;
 
-public Menu_SettingsPvP(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_SettingsPvP(Handle menu, MenuAction action,int  param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -14,10 +14,10 @@ public Menu_SettingsPvP(Handle:menu, MenuAction:action, param1, param2)
 		{
 			case 0:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings PvP Spawn Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
@@ -39,7 +39,7 @@ public Menu_SettingsPvP(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Panel_SettingsPvPSpawn(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsPvPSpawn(Handle menu, MenuAction action,int  param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{

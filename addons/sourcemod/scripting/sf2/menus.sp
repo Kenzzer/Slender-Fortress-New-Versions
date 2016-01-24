@@ -4,27 +4,27 @@
 
 #define _sf2_menus
 
-new Handle:g_hMenuMain;
-new Handle:g_hMenuVoteDifficulty;
-new Handle:g_hMenuGhostMode;
-new Handle:g_hMenuHelp;
-new Handle:g_hMenuHelpObjective;
-new Handle:g_hMenuHelpObjective2;
-new Handle:g_hMenuHelpCommands;
-new Handle:g_hMenuHelpGhostMode;
-new Handle:g_hMenuHelpSprinting;
-new Handle:g_hMenuHelpControls;
-new Handle:g_hMenuHelpClassInfo;
-new Handle:g_hMenuSettings;
-new Handle:g_hMenuCredits;
-new Handle:g_hMenuCredits2;
+Handle g_hMenuMain;
+Handle g_hMenuVoteDifficulty;
+Handle g_hMenuGhostMode;
+Handle g_hMenuHelp;
+Handle g_hMenuHelpObjective;
+Handle g_hMenuHelpObjective2;
+Handle g_hMenuHelpCommands;
+Handle g_hMenuHelpGhostMode;
+Handle g_hMenuHelpSprinting;
+Handle g_hMenuHelpControls;
+Handle g_hMenuHelpClassInfo;
+Handle g_hMenuSettings;
+Handle g_hMenuCredits;
+Handle g_hMenuCredits2;
 
 #include "sf2/playergroups/menus.sp"
 #include "sf2/pvp/menus.sp"
 
-SetupMenus()
+void SetupMenus()
 {
-	decl String:buffer[512];
+	char buffer[512];
 	
 	// Create menus.
 	g_hMenuMain = CreateMenu(Menu_Main);
@@ -180,7 +180,7 @@ SetupMenus()
 	PvP_SetupMenus();
 }
 
-public Menu_Main(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_Main(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -196,11 +196,11 @@ public Menu_Main(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_VoteDifficulty(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_VoteDifficulty(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_VoteEnd)
 	{
-		decl String:sInfo[64], String:sDisplay[256], String:sColor[32];
+		char sInfo[64], sDisplay[256], sColor[32];
 		GetMenuItem(menu, param1, sInfo, sizeof(sInfo), _, sDisplay, sizeof(sDisplay));
 		
 		if (IsSpecialRoundRunning() && (g_iSpecialRoundType == SPECIALROUND_INSANEDIFFICULTY || g_iSpecialRoundType == SPECIALROUND_DOUBLEMAXPLAYERS || g_iSpecialRoundType == SPECIALROUND_2DOUBLE))
@@ -216,7 +216,7 @@ public Menu_VoteDifficulty(Handle:menu, MenuAction:action, param1, param2)
 			SetConVarString(g_cvDifficulty, sInfo);
 		}
 		
-		new iDifficulty = GetConVarInt(g_cvDifficulty);
+		int iDifficulty = GetConVarInt(g_cvDifficulty);
 		switch (iDifficulty)
 		{
 			case Difficulty_Easy:
@@ -245,7 +245,7 @@ public Menu_VoteDifficulty(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_GhostMode(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_GhostMode(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -289,7 +289,7 @@ public Menu_GhostMode(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_Help(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_Help(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -312,7 +312,7 @@ public Menu_Help(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_HelpObjective(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_HelpObjective(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -324,7 +324,7 @@ public Menu_HelpObjective(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_HelpObjective2(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_HelpObjective2(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -335,7 +335,7 @@ public Menu_HelpObjective2(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_BackButtonOnly(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_BackButtonOnly(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -346,7 +346,7 @@ public Menu_BackButtonOnly(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_Credits(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_Credits(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -358,7 +358,7 @@ public Menu_Credits(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_ClassInfo(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_ClassInfo(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Cancel)
 	{
@@ -369,12 +369,12 @@ public Menu_ClassInfo(Handle:menu, MenuAction:action, param1, param2)
 	}
 	else if (action == MenuAction_Select)
 	{
-		decl String:sInfo[64];
+		char sInfo[64];
 		GetMenuItem(menu, param2, sInfo, sizeof(sInfo));
 		
-		new Handle:hMenu = CreateMenu(Menu_ClassInfoBackOnly);
+		Handle hMenu = CreateMenu(Menu_ClassInfoBackOnly);
 		
-		decl String:sTitle[64], String:sDescription[64];
+		char sTitle[64], sDescription[64];
 		Format(sTitle, sizeof(sTitle), "SF2 Help %s Class Info Menu Title", sInfo);
 		Format(sDescription, sizeof(sDescription), "SF2 Help %s Class Info Description", sInfo);
 		
@@ -384,7 +384,7 @@ public Menu_ClassInfo(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_ClassInfoBackOnly(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_ClassInfoBackOnly(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_End)
 	{
@@ -396,7 +396,7 @@ public Menu_ClassInfoBackOnly(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_Settings(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -405,10 +405,10 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 			case 0: DisplayMenu(g_hMenuSettingsPvP, param1, 30);
 			case 1:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Hints Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
@@ -421,10 +421,10 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 			}
 			case 2:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Mute Mode Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				DrawPanelItem(hPanel, "Normal");
@@ -436,10 +436,10 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 			}
 			case 3:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Film Grain Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
@@ -452,10 +452,10 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 			}
 			case 4:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Proxy Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
@@ -468,10 +468,10 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 			}
 			case 5:
 			{
-				decl String:sBuffer[512];
+				char sBuffer[512];
 				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Ghost Overlay Menu Title", param1);
 				
-				new Handle:hPanel = CreatePanel();
+				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
 				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
@@ -493,7 +493,7 @@ public Menu_Settings(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Panel_SettingsFilmGrain(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsFilmGrain(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -517,7 +517,7 @@ public Panel_SettingsFilmGrain(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Panel_SettingsHints(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsHints(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -541,7 +541,7 @@ public Panel_SettingsHints(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Panel_SettingsProxy(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsProxy(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -565,7 +565,7 @@ public Panel_SettingsProxy(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Panel_SettingsGhostOverlay(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsGhostOverlay(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -589,7 +589,7 @@ public Panel_SettingsGhostOverlay(Handle:menu, MenuAction:action, param1, param2
 	}
 }
 
-public Panel_SettingsMuteMode(Handle:menu, MenuAction:action, param1, param2)
+public int Panel_SettingsMuteMode(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -622,7 +622,7 @@ public Panel_SettingsMuteMode(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_Credits2(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_Credits2(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
@@ -633,22 +633,23 @@ public Menu_Credits2(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-DisplayQueuePointsMenu(client)
+void DisplayQueuePointsMenu(int client)
 {
-	new Handle:menu = CreateMenu(Menu_QueuePoints);
-	new Handle:hQueueList = GetQueueList();
+	Handle menu = CreateMenu(Menu_QueuePoints);
+	Handle hQueueList = GetQueueList();
 	
-	decl String:sBuffer[256];
+	char sBuffer[256];
 	
 	if (GetArraySize(hQueueList))
 	{
 		Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Reset Queue Points Option", client, g_iPlayerQueuePoints[client]);
 		AddMenuItem(menu, "ponyponypony", sBuffer);
 		
-		decl iIndex, String:sGroupName[SF2_MAX_PLAYER_GROUP_NAME_LENGTH];
-		decl String:sInfo[256];
+		int iIndex;
+		char sGroupName[SF2_MAX_PLAYER_GROUP_NAME_LENGTH];
+		char sInfo[256];
 		
-		for (new i = 0, iSize = GetArraySize(hQueueList); i < iSize; i++)
+		for (int i = 0, iSize = GetArraySize(hQueueList); i < iSize; i++)
 		{
 			if (!GetArrayCell(hQueueList, i, 2))
 			{
@@ -671,7 +672,7 @@ DisplayQueuePointsMenu(client)
 				}
 				else
 				{
-					for (new iClient = 1; iClient <= MaxClients; iClient++)
+					for (int iClient = 1; iClient <= MaxClients; iClient++)
 					{
 						if (!IsValidClient(iClient)) continue;
 						if (ClientGetPlayerGroup(iClient) == iIndex)
@@ -694,7 +695,7 @@ DisplayQueuePointsMenu(client)
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-DisplayViewGroupMembersQueueMenu(client, iGroupIndex)
+void DisplayViewGroupMembersQueueMenu(int client,int iGroupIndex)
 {
 	if (!IsPlayerGroupActive(iGroupIndex))
 	{
@@ -704,32 +705,32 @@ DisplayViewGroupMembersQueueMenu(client, iGroupIndex)
 		return;
 	}
 	
-	new Handle:hPlayers = CreateArray();
-	for (new i = 1; i <= MaxClients; i++)
+	Handle hPlayers = CreateArray();
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsValidClient(i)) continue;
 		
-		new iTempGroup = ClientGetPlayerGroup(i);
+		int iTempGroup = ClientGetPlayerGroup(i);
 		if (!IsPlayerGroupActive(iTempGroup) || iTempGroup != iGroupIndex) continue;
 		
 		PushArrayCell(hPlayers, i);
 	}
 	
-	new iPlayerCount = GetArraySize(hPlayers);
+	int iPlayerCount = GetArraySize(hPlayers);
 	if (iPlayerCount)
 	{
-		decl String:sGroupName[SF2_MAX_PLAYER_GROUP_NAME_LENGTH];
+		char sGroupName[SF2_MAX_PLAYER_GROUP_NAME_LENGTH];
 		GetPlayerGroupName(iGroupIndex, sGroupName, sizeof(sGroupName));
 		
-		new Handle:hMenu = CreateMenu(Menu_ViewGroupMembersQueue);
+		Handle hMenu = CreateMenu(Menu_ViewGroupMembersQueue);
 		SetMenuTitle(hMenu, "%t%T (%s)\n \n", "SF2 Prefix", "SF2 View Group Members Menu Title", client, sGroupName);
 		
-		decl String:sUserId[32];
-		decl String:sName[MAX_NAME_LENGTH * 2];
+		char sUserId[32];
+		char sName[MAX_NAME_LENGTH * 2];
 		
-		for (new i = 0; i < iPlayerCount; i++)
+		for (int i = 0; i < iPlayerCount; i++)
 		{
-			new iClient = GetArrayCell(hPlayers, i);
+			int iClient = GetArrayCell(hPlayers, i);
 			IntToString(GetClientUserId(iClient), sUserId, sizeof(sUserId));
 			GetClientName(iClient, sName, sizeof(sName));
 			if (GetPlayerGroupLeader(iGroupIndex) == iClient) StrCat(sName, sizeof(sName), " (LEADER)");
@@ -749,7 +750,7 @@ DisplayViewGroupMembersQueueMenu(client, iGroupIndex)
 	CloseHandle(hPlayers);
 }
 
-public Menu_ViewGroupMembersQueue(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_ViewGroupMembersQueue(Handle menu, MenuAction action,int param1,int param2)
 {
 	switch (action)
 	{
@@ -762,11 +763,11 @@ public Menu_ViewGroupMembersQueue(Handle:menu, MenuAction:action, param1, param2
 	}
 }
 
-DisplayResetQueuePointsMenu(client)
+void DisplayResetQueuePointsMenu(int client)
 {
-	decl String:buffer[256];
+	char buffer[256];
 
-	new Handle:menu = CreateMenu(Menu_ResetQueuePoints);
+	Handle menu = CreateMenu(Menu_ResetQueuePoints);
 	Format(buffer, sizeof(buffer), "%T", "Yes", client);
 	AddMenuItem(menu, "0", buffer);
 	Format(buffer, sizeof(buffer), "%T", "No", client);
@@ -775,13 +776,13 @@ DisplayResetQueuePointsMenu(client)
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-public Menu_QueuePoints(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_QueuePoints(Handle menu, MenuAction action,int param1,int param2)
 {
 	switch (action)
 	{
 		case MenuAction_Select:
 		{
-			new String:sInfo[64];
+			char sInfo[64];
 			GetMenuItem(menu, param2, sInfo, sizeof(sInfo));
 			
 			if (StrEqual(sInfo, "ponyponypony")) DisplayResetQueuePointsMenu(param1);
@@ -790,7 +791,7 @@ public Menu_QueuePoints(Handle:menu, MenuAction:action, param1, param2)
 			}
 			else if (!StrContains(sInfo, "group_"))
 			{
-				decl String:sIndex[64];
+				char sIndex[64];
 				strcopy(sIndex, sizeof(sIndex), sInfo);
 				ReplaceString(sIndex, sizeof(sIndex), "group_", "");
 				DisplayViewGroupMembersQueueMenu(param1, StringToInt(sIndex));
@@ -807,7 +808,7 @@ public Menu_QueuePoints(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public Menu_ResetQueuePoints(Handle:menu, MenuAction:action, param1, param2)
+public int Menu_ResetQueuePoints(Handle menu, MenuAction action,int param1,int param2)
 {
 	switch (action)
 	{
@@ -826,12 +827,12 @@ public Menu_ResetQueuePoints(Handle:menu, MenuAction:action, param1, param2)
 						SetClientPlaySpecialRoundState(param1, true);
 					}
 					
-					// new boss round
+					/*// new boss round
 					if (IsNewBossRoundRunning()) 
 					{
 						// If the player resets the queue points ignore them when checking for players that haven't played the new boss yet, if applicable.
 						SetClientPlayNewBossRoundState(param1, true);
-					}
+					}*/
 				}
 			}
 			
