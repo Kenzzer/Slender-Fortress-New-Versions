@@ -412,9 +412,9 @@ Handle g_cvSpecialRoundBehavior;
 Handle g_cvSpecialRoundForce;
 Handle g_cvSpecialRoundOverride;
 Handle g_cvSpecialRoundInterval;
-Handle g_cvintBossRoundBehavior;
-Handle g_cvintBossRoundInterval;
-Handle g_cvintBossRoundForce;
+Handle g_cvNewBossRoundBehavior;
+Handle g_cvNewBossRoundInterval;
+Handle g_cvNewBossRoundForce;
 Handle g_cvPlayerVoiceDistance;
 Handle g_cvPlayerVoiceWallScale;
 Handle g_cvUltravisionEnabled;
@@ -717,9 +717,9 @@ public void OnPluginStart()
 	g_cvSpecialRoundOverride = CreateConVar("sf2_specialround_forcetype", "-1", "Sets the type of Special Round that will be chosen on the next Special Round. Set to -1 to let the game choose.", _, true, -1.0);
 	g_cvSpecialRoundInterval = CreateConVar("sf2_specialround_interval", "5", "If this many rounds are completed, the next round will be a Special Round.", _, true, 0.0);
 	
-	g_cvintBossRoundBehavior = CreateConVar("sf2_intbossround_mode", "0", "0 = boss selection will return to normal after the boss round, 1 = the int boss will continue being the boss until all players in the server have played against it (not counting spectators, recently joined players, and those who reset their queue points during the round).", _, true, 0.0, true, 1.0);
-	g_cvintBossRoundInterval = CreateConVar("sf2_intbossround_interval", "3", "If this many rounds are completed, the next round's boss will be randomly chosen, but will not be the main boss.", _, true, 0.0);
-	g_cvintBossRoundForce = CreateConVar("sf2_intbossround_forceenable", "-1", "Sets whether a int boss will be chosen on the next round or not. Set to -1 to let the game choose.", _, true, -1.0, true, 1.0);
+	g_cvNewBossRoundBehavior = CreateConVar("sf2_newbossround_mode", "0", "0 = boss selection will return to normal after the boss round, 1 = the int boss will continue being the boss until all players in the server have played against it (not counting spectators, recently joined players, and those who reset their queue points during the round).", _, true, 0.0, true, 1.0);
+	g_cvNewBossRoundInterval = CreateConVar("sf2_newbossround_interval", "3", "If this many rounds are completed, the next round's boss will be randomly chosen, but will not be the main boss.", _, true, 0.0);
+	g_cvNewBossRoundForce = CreateConVar("sf2_newbossround_forceenable", "-1", "Sets whether a int boss will be chosen on the next round or not. Set to -1 to let the game choose.", _, true, -1.0, true, 1.0);
 	
 	g_cvTimeLimit = CreateConVar("sf2_timelimit_default", "300", "The time limit of the round. Maps can change the time limit.", _, true, 0.0);
 	g_cvTimeLimitEscape = CreateConVar("sf2_timelimit_escape_default", "90", "The time limit to escape. Maps can change the time limit.", _, true, 0.0);
@@ -2478,7 +2478,7 @@ public Action Timer_RoundMessages(Handle timer)
 	
 	switch (g_iRoundMessagesNum)
 	{
-		case 0: CPrintToChatAll("{olive}== {lightgreen}Slender Fortress{olive} coded by {lightgreen}Kit o' Rifty{olive}==\n== int versions by {lightgreen}Benoist3012{olive}, current version {lightgreen}%s{olive}==", PLUGIN_VERSION_DISPLAY);
+		case 0: CPrintToChatAll("{olive}== {lightgreen}Slender Fortress{olive} coded by {lightgreen}Kit o' Rifty{olive}==\n== New versions by {lightgreen}Benoist3012{olive}, current version {lightgreen}%s{olive}==", PLUGIN_VERSION_DISPLAY);
 		case 1: CPrintToChatAll("%t", "SF2 Ad Message 1");
 		case 2: CPrintToChatAll("%t", "SF2 Ad Message 2");
 	}
@@ -5633,7 +5633,7 @@ static void HandleintBossRoundState()
 	// Don't force a int special round while a continuous round is going on.
 	if (!g_bintBossRoundContinuous)
 	{
-		int iRoundInterval = GetConVarInt(g_cvintBossRoundInterval);
+		int iRoundInterval = GetConVarInt(g_cvNewBossRoundInterval);
 		
 		if (/*iRoundInterval > 0 &&*/ iRoundInterval <= 0 || g_iintBossRoundCount >= iRoundInterval)
 		{
@@ -5643,10 +5643,10 @@ static void HandleintBossRoundState()
 	}
 	
 	// Do boss round force override and reset it.
-	if (GetConVarInt(g_cvintBossRoundForce) >= 0)
+	if (GetConVarInt(g_cvNewBossRoundForce) >= 0)
 	{
-		g_bintBossRound = GetConVarBool(g_cvintBossRoundForce);
-		SetConVarInt(g_cvintBossRoundForce, -1);
+		g_bintBossRound = GetConVarBool(g_cvNewBossRoundForce);
+		SetConVarInt(g_cvNewBossRoundForce, -1);
 	}
 	
 	// Check if we have enough bosses.
@@ -5671,7 +5671,7 @@ static void HandleintBossRoundState()
 		
 		if (g_bintBossRoundint)
 		{
-			if (GetConVarInt(g_cvintBossRoundBehavior) == 1)
+			if (GetConVarInt(g_cvNewBossRoundBehavior) == 1)
 			{
 				g_bintBossRoundContinuous = true;
 			}

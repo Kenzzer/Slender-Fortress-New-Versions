@@ -183,6 +183,7 @@ public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 			{
 				SDKHook(ent, SDKHook_Spawn, Hook_PvPProjectileSpawn);
 				SDKHook(ent, SDKHook_SpawnPost, Hook_PvPProjectileSpawnPost);
+				SDKHook(ent, SDKHook_Touch, Hook_PvPProjectile_OnTouch);
 				break;
 			}
 		}
@@ -201,7 +202,17 @@ public void PvP_OnEntityDestroyed(int ent, const char[] sClassname)
 		}
 	}
 }
+public Action Hook_PvPProjectile_OnTouch(int iProjectile, int iClient)
+{
+	// Check if the projectile hit a player outside of pvp area
+	// Without cannon balls can bounce players which should not happen because they are outside of pvp.
+	if(IsValidClient(iClient) && !IsClientInPvP(iClient))
+	{
+		return Plugin_Handled;
+	}
 
+	return Plugin_Continue;
+}
 public Action Hook_PvPProjectileSpawn(int ent)
 {
 	char sClass[64];

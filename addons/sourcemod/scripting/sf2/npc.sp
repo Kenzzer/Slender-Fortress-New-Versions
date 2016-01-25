@@ -1079,7 +1079,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			
 			SetEntityModel(g_iSlenderHitbox[iBossIndex], sBuffer);
 			TeleportEntity(g_iSlenderHitbox[iBossIndex], flTruePos, NULL_VECTOR, NULL_VECTOR);
-			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"health","999999999999");
+			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"health","30000");
 			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
 			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
 			SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
@@ -1250,7 +1250,8 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 			NPCChaserAddStunHealth(iBossIndex, -damage);
 		}
 	}
-	SDKHooks_TakeDamage(g_iSlenderHitboxOwner[hitbox], hitbox, hitbox, damage, damagetype);
+	SetVariantInt(30000);
+	AcceptEntityInput(hitbox,"SetHealth");
 	
 	return Plugin_Changed;
 }
@@ -1275,16 +1276,14 @@ public Action Hook_HitboxOnTakeDamagePost(int hitbox,int &attacker,int &inflicto
 			TE_SendToAll();
 			
 			EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
-			if(IsValidClient(attacker))
-				SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
 		}
 	}
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
-	if ((contentsmask & CONTENTS_MONSTERCLIP))
+	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))
 	{
-		//PrintToChatAll("npc");
+		//PrintToChatAll("npc or player");
 		return false;
 	}
 	return true;
