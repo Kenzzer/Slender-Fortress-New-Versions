@@ -19,6 +19,18 @@
 #tryinclude <store/store-tf2footprints>
 #define REQUIRE_PLUGIN
 
+#undef REQUIRE_EXTENSIONS
+#tryinclude <steamtools>
+#tryinclude <steamworks>
+#define REQUIRE_EXTENSIONS
+
+#if defined _steamtools_included
+bool steamtools=false;
+#endif
+#if defined _SteamWorks_Included
+bool steamworks=false;
+#endif
+
 //#define DEBUG
 
 
@@ -610,6 +622,20 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error,int err_max)
 	
 	SpecialRoundInitializeAPI();
 	
+	#if defined _steamtools_included
+	steamtools=LibraryExists("SteamTools");
+	#endif
+	#if defined _SteamWorks_Included
+	steamworks=LibraryExists("SteamWorks");
+	#endif
+	
+	#if defined _steamtools_included
+	MarkNativeAsOptional("Steam_SetGameDescription");
+	#endif
+	#if defined _SteamWorks_Included
+	MarkNativeAsOptional("SteamWorks_SetGameDescription");
+	#endif
+	
 	return APLRes_Success;
 }
 
@@ -848,7 +874,36 @@ public void OnPluginEnd()
 {
 	StopPlugin();
 }
-
+public void OnLibraryAdded(const char[] name)
+{
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamTools", false))
+	{
+		steamtools=true;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamWorks", false))
+	{
+		steamworks=true;
+	}
+	#endif
+}
+public void OnLibraryRemoved(const char[] name)
+{
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamTools", false))
+	{
+		steamtools=false;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(!strcmp(name, "SteamWorks", false))
+	{
+		steamworks=false;
+	}
+	#endif
+}
 static void SetupHooks()
 {
 	// Check SDKHooks gamedata.
@@ -1052,7 +1107,20 @@ static void StartPlugin()
 	
 	char sBuffer[64];
 	Format(sBuffer, sizeof(sBuffer), "Slender Fortress (%s)", PLUGIN_VERSION_DISPLAY);
-	SteamWorks_SetGameDescription(sBuffer);
+	#if defined _SteamWorks_Included
+	if(steamworks)
+	{
+		SteamWorks_SetGameDescription(sBuffer);
+		steamtools=false;
+	}
+	#endif
+	#if defined _steamtools_included
+	if(steamtools)
+	{
+		Steam_SetGameDescription(sBuffer);
+		steamworks=false;
+	}
+	#endif
 	
 	PrecacheStuff();
 	
