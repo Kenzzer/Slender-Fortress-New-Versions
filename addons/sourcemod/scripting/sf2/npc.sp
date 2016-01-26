@@ -1080,6 +1080,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			SetEntityModel(g_iSlenderHitbox[iBossIndex], sBuffer);
 			TeleportEntity(g_iSlenderHitbox[iBossIndex], flTruePos, NULL_VECTOR, NULL_VECTOR);
 			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"health","30000");
+			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"TeamNum","1");
 			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
 			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
 			SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
@@ -1097,7 +1098,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			//PrintToChatAll("Slender spawn: %i",g_iSlenderHitbox[iBossIndex]);
 			SDKHook(g_iSlenderHitbox[iBossIndex],  SDKHook_ShouldCollide, Hook_HitBoxShouldCollid);
 			SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamage, Hook_HitboxOnTakeDamage);
-			SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamagePost, Hook_HitboxOnTakeDamagePost);
+			//SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamagePost, Hook_HitboxOnTakeDamagePost);
 			
 			float flModelScale = NPCGetModelScale(iBossIndex);
 			Slender_HitboxScale(g_iSlenderHitbox[iBossIndex],flModelScale);
@@ -1177,14 +1178,14 @@ void Slender_HitboxScale(int iHitbox,float flScale)
 	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMinsPreScaled", flMins);
 	SetEntPropVector(iHitbox, Prop_Send, "m_vecSpecifiedSurroundingMaxsPreScaled", flMaxs);*/
 	
-	GetEntPropVector(iHitbox, Prop_Send, "m_vecMins", flMins);
-	GetEntPropVector(iHitbox, Prop_Send, "m_vecMaxs", flMaxs);
+	GetEntPropVector(iHitbox, Prop_Data, "m_vecMins", flMins);
+	GetEntPropVector(iHitbox, Prop_Data, "m_vecMaxs", flMaxs);
 	
 	ScaleVector(flMins, flScale);
 	ScaleVector(flMaxs, flScale);
 	
-	SetEntPropVector(iHitbox, Prop_Send, "m_vecMins", flMins);
-	SetEntPropVector(iHitbox, Prop_Send, "m_vecMaxs", flMaxs);
+	SetEntPropVector(iHitbox, Prop_Data, "m_vecMins", flMins);
+	SetEntPropVector(iHitbox, Prop_Data, "m_vecMaxs", flMaxs);
 	
 }
 void RemoveSlender(int iBossIndex)
@@ -1249,22 +1250,7 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 			
 			NPCChaserAddStunHealth(iBossIndex, -damage);
 		}
-	}
-	SetVariantInt(30000);
-	AcceptEntityInput(hitbox,"SetHealth");
-	
-	return Plugin_Changed;
-}
-public Action Hook_HitboxOnTakeDamagePost(int hitbox,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3],float damagePosition[3],int damagecustom)
-{
-	if (!g_bEnabled) return;
-
-	int iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
-	if (iBossIndex == -1) return;
-	
-	if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
-	{
-		if (damagetype & DMG_ACID)
+		if ((damagetype & DMG_CRIT))
 		{
 			float flMyEyePos[3];
 			SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
@@ -1278,6 +1264,10 @@ public Action Hook_HitboxOnTakeDamagePost(int hitbox,int &attacker,int &inflicto
 			EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
 		}
 	}
+	SetVariantInt(30000);
+	AcceptEntityInput(hitbox,"SetHealth");
+	
+	return Plugin_Continue;
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
