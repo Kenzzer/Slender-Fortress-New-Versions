@@ -1238,8 +1238,9 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 
 	int iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
 	if (iBossIndex == -1) return Plugin_Continue;
-	
-	if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
+	if(IsValidClient(attacker) && g_bPlayerProxy[attacker])
+		damage = 0.0;
+	if (NPCGetType(iBossIndex) == SF2BossType_Chaser && damage != 0.0)
 	{
 		char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 		NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
@@ -1258,7 +1259,7 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 			GetEntPropVector(hitbox, Prop_Send, "m_vecMaxs", flMyEyePosEx);
 			flMyEyePos[2]+=flMyEyePosEx[2];
 			
-			TE_SetupTFParticleEffect(g_iParticleCriticalHit, flMyEyePos, flMyEyePos);
+			TE_SetupTFParticleEffect(g_iParticle[CriticalHit], flMyEyePos, flMyEyePos);
 			TE_SendToAll();
 			
 			EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
@@ -1267,7 +1268,7 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 	SetVariantInt(30000);
 	AcceptEntityInput(hitbox,"SetHealth");
 	
-	return Plugin_Continue;
+	return Plugin_Changed;
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {

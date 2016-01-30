@@ -40,7 +40,7 @@ bool steamworks=false;
 
 #pragma newdecls required
 
-#define PLUGIN_VERSION "0.2.9-v2"
+#define PLUGIN_VERSION "0.2.9-v5"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
@@ -64,6 +64,8 @@ public Plugin myinfo =
 
 #define CRIT_SOUND "player/crit_hit.wav"
 #define CRIT_PARTICLENAME "crit_text"
+#define ZAP_SOUND "weapons/barret_arm_zap.wav"
+#define ZAP_PARTICLENAME "dxhr_arm_muzzleflash"
 
 #define PAGE_MODEL "models/slender/sheet.mdl"
 #define PAGE_MODELSCALE 1.1
@@ -102,8 +104,6 @@ int g_offsPlayerPunchAngle = -1;
 int g_offsPlayerPunchAngleVel = -1;
 int g_offsFogCtrlEnable = -1;
 int g_offsFogCtrlEnd = -1;
-
-int g_iParticleCriticalHit = -1;
 
 bool g_bEnabled;
 
@@ -268,6 +268,16 @@ enum PlayerPreferences
 
 bool g_bPlayerHints[MAXPLAYERS + 1][PlayerHint_MaxNum];
 int g_iPlayerPreferences[MAXPLAYERS + 1][PlayerPreferences];
+
+//Particle data.
+enum
+{
+	CriticalHit = 0,
+	ZapParticle,
+	MaxParticle,
+};
+
+int g_iParticle[MaxParticle] = -1;
 
 // Player data.
 int g_iPlayerLastButtons[MAXPLAYERS + 1];
@@ -833,7 +843,7 @@ public void OnPluginStart()
 	// Hook entities.
 	HookEntityOutput("info_npc_spawn_destination", "OnUser1", NPCSpawn);
 	HookEntityOutput("trigger_multiple", "OnStartTouch", Hook_TriggerOnStartTouch);
-	HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
+	//HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
 	
 	// Hook usermessages.
 	HookUserMessage(GetUserMessageId("VoiceSubtitle"), Hook_BlockUserMessage, true);
@@ -1175,9 +1185,11 @@ static void StartPlugin()
 static void PrecacheStuff()
 {
 	// Initialize particles.
-	g_iParticleCriticalHit = PrecacheParticleSystem(CRIT_PARTICLENAME);
+	g_iParticle[CriticalHit] = PrecacheParticleSystem(CRIT_PARTICLENAME);
+	g_iParticle[ZapParticle] = PrecacheParticleSystem(ZAP_PARTICLENAME);
 	
 	PrecacheSound2(CRIT_SOUND);
+	PrecacheSound2(ZAP_SOUND);
 	
 	// simple_bot;
 	PrecacheModel("models/humans/group01/female_01.mdl", true);
@@ -2503,7 +2515,7 @@ public Action Timer_BossCountUpdate(Handle timer)
 					continue;
 				}
 				SF2NPC_BaseNPC NpcCopy = AddProfile(sProfile, _, Npc);
-				if (NpcCopy.IsValid())
+				if (!NpcCopy.IsValid())
 				{
 					LogError("Could not add copy for %d: No free slots!", i);
 				}
@@ -2877,12 +2889,12 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 	PvP_OnTriggerStartTouch(caller, activator);
 }
 
-public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator, float flDelay)
+/*public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator, float flDelay)
 {
 	if (!g_bEnabled) return;
 	
 	PvP_OnTriggerEndTouch(caller, activator);
-}
+}*/
 
 public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3], float damagePosition[3],int damagecustom)
 {
@@ -4328,6 +4340,7 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 		InitializeintGame();
 	}
 	
+	PvP_OnRoundStart();
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_RoundStart");
 #endif

@@ -876,37 +876,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				
 				if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 				{
-					int prop = -1;
-					while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
-					{
-						if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-						{
-							if(NPCPropPhysicsAttack(iBossIndex, prop))
-							{
-								bBlockingProp = true;
-								break;
-							}
-						}
-					}
-					
-					if (!bBlockingProp)
-					{
-						prop = -1;
-						while ((prop = FindEntityByClassname(prop, "prop_dynamic")) != -1)
-						{
-							if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
-							{
-								if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-								{
-									if(NPCPropPhysicsAttack(iBossIndex, prop))
-									{
-										bBlockingProp = true;
-										break;
-									}
-								}
-							}
-						}
-					}
+					bBlockingProp = NPC_CanAttackProps(iBossIndex,flAttackRange,flAttackFOV);
 				}
 				
 				if (bBlockingProp)
@@ -972,37 +942,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							
 							if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 							{
-								int prop = -1;
-								while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
-								{
-									if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-									{
-										if(NPCPropPhysicsAttack(iBossIndex, prop))
-										{
-											bBlockingProp = true;
-											break;
-										}
-									}
-								}
-								
-								if (!bBlockingProp)
-								{
-									prop = -1;
-									while ((prop = FindEntityByClassname(prop, "prop_dynamic")) != -1)
-									{
-										if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
-										{
-											if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-											{
-												if(NPCPropPhysicsAttack(iBossIndex, prop))
-												{
-													bBlockingProp = true;
-													break;
-												}
-											}
-										}
-									}
-								}
+								bBlockingProp = NPC_CanAttackProps(iBossIndex,flAttackRange,flAttackFOV);
 							}
 							
 							if (bBlockingProp)
@@ -1040,37 +980,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							
 							if (NPCGetFlags(iBossIndex) & SFF_ATTACKPROPS)
 							{
-								int prop = -1;
-								while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
-								{
-									if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-									{
-										if(NPCPropPhysicsAttack(iBossIndex, prop))
-										{
-											bBlockingProp = true;
-											break;
-										}
-									}
-								}
-								
-								if (!bBlockingProp)
-								{
-									prop = -1;
-									while ((prop = FindEntityByClassname(prop, "prop_dynamic")) != -1)
-									{
-										if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
-										{
-											if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
-											{
-												if(NPCPropPhysicsAttack(iBossIndex, prop))
-												{
-													bBlockingProp = true;
-													break;
-												}
-											}
-										}
-									}
-								}
+								bBlockingProp = NPC_CanAttackProps(iBossIndex,flAttackRange,flAttackFOV);
 							}
 							
 							if (bBlockingProp)
@@ -2377,7 +2287,7 @@ public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 	
 	{
 		int prop = -1;
-		while ((prop = FindEntityByClassname(prop, "prop_physics")) != -1)
+		while ((prop = FindEntityByClassname(prop, "prop_physics")) > MaxClients)
 		{
 			if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
 			{
@@ -2394,7 +2304,43 @@ public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 		}
 		
 		prop = -1;
-		while ((prop = FindEntityByClassname(prop, "prop_dynamic")) != -1)
+		while ((prop = FindEntityByClassname(prop, "prop_dynamic")) > MaxClients)
+		{
+			if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
+			{
+				if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+				{
+					bHit = true;
+					SDKHooks_TakeDamage(prop, slender, slender, flDamageVsProps, iDamageType, _, _, flMyEyePos);
+				}
+			}
+		}
+		prop = -1;
+		while ((prop = FindEntityByClassname(prop, "obj_sentrygun")) > MaxClients)
+		{
+			if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
+			{
+				if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+				{
+					bHit = true;
+					SDKHooks_TakeDamage(prop, slender, slender, flDamageVsProps, iDamageType, _, _, flMyEyePos);
+				}
+			}
+		}
+		prop = -1;
+		while ((prop = FindEntityByClassname(prop, "obj_teleporter")) > MaxClients)
+		{
+			if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
+			{
+				if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+				{
+					bHit = true;
+					SDKHooks_TakeDamage(prop, slender, slender, flDamageVsProps, iDamageType, _, _, flMyEyePos);
+				}
+			}
+		}
+		prop = -1;
+		while ((prop = FindEntityByClassname(prop, "obj_dispenser")) > MaxClients)
 		{
 			if (GetEntProp(prop, Prop_Data, "m_iHealth") > 0)
 			{
@@ -2599,6 +2545,86 @@ static bool NPCPropPhysicsAttack(int iBossIndex,int prop)
 		}
 	}
 	return bFound;
+}
+stock bool NPC_CanAttackProps(int iBossIndex,float flAttackRange,float flAttackFOV)
+{
+	int prop = -1;
+	bool bBlockingProp = false;
+	while ((prop = FindEntityByClassname(prop, "prop_physics")) > MaxClients)
+	{
+		if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+		{
+			if(NPCPropPhysicsAttack(iBossIndex, prop))
+			{
+				bBlockingProp = true;
+				break;
+			}
+		}
+	}
+	if (!bBlockingProp)
+	{
+		prop = -1;
+		while ((prop = FindEntityByClassname(prop, "prop_dynamic")) > MaxClients)
+		{
+			if(GetEntProp(prop,Prop_Data,"m_iHealth") > 0)
+			{
+				if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+				{
+					if(NPCPropPhysicsAttack(iBossIndex, prop))
+					{
+						bBlockingProp = true;
+						break;
+					}
+				}
+			}
+		}
+		if (!bBlockingProp)
+		{
+			prop = -1;
+			while ((prop = FindEntityByClassname(prop, "obj_dispenser")) > MaxClients)
+			{
+				if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+				{
+					if(NPCPropPhysicsAttack(iBossIndex, prop))
+					{
+						bBlockingProp = true;
+						break;
+					}
+				}
+			}
+			if (!bBlockingProp)
+			{
+				prop = -1;
+				while ((prop = FindEntityByClassname(prop, "obj_sentrygun")) > MaxClients)
+				{
+					if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+					{
+						if(NPCPropPhysicsAttack(iBossIndex, prop))
+						{
+							bBlockingProp = true;
+							break;
+						}
+					}
+				}
+				if (!bBlockingProp)
+				{
+					prop = -1;
+					while ((prop = FindEntityByClassname(prop, "obj_teleporter")) > MaxClients)
+					{
+						if (NPCAttackValidateTarget(iBossIndex, prop, flAttackRange, flAttackFOV))
+						{
+							if(NPCPropPhysicsAttack(iBossIndex, prop))
+							{
+								bBlockingProp = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return bBlockingProp;
 }
 public Action Timer_SlenderChaseBossAttackEnd(Handle timer, any entref)
 {

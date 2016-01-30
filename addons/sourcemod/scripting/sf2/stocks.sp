@@ -168,7 +168,7 @@ stock void ClientSDK_PlaySpecificSequence(int client, const char[] strSequence)
 	if(g_hSDKPlaySpecificSequence != INVALID_HANDLE)
 	{
 #if defined DEBUG
-		static bool:once = true;
+		static bool once = true;
 		if(once)
 		{
 			PrintToServer("(SDK_PlaySpecificSequence) Calling on player %N \"%s\"..", client, strSequence);
