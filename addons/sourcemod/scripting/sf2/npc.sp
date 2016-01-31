@@ -1235,38 +1235,40 @@ public Action Hook_SlenderOnTakeDamage(int slender,int &attacker,int &inflictor,
 public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3],float damagePosition[3],int damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-
-	int iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
-	if (iBossIndex == -1) return Plugin_Continue;
-	if(IsValidClient(attacker) && g_bPlayerProxy[attacker])
-		damage = 0.0;
-	if (NPCGetType(iBossIndex) == SF2BossType_Chaser && damage != 0.0)
+	if(damage > 0.0)
 	{
-		char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
-		NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
-		
-		if (NPCChaserIsStunEnabled(iBossIndex))
+		int iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
+		if (iBossIndex == -1) return Plugin_Continue;
+		if(IsValidClient(attacker) && g_bPlayerProxy[attacker])
+			damage = 0.0;
+		if (NPCGetType(iBossIndex) == SF2BossType_Chaser && damage > 0.0)
 		{
-			//if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
+			char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+			NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 			
-			NPCChaserAddStunHealth(iBossIndex, -damage);
+			if (NPCChaserIsStunEnabled(iBossIndex))
+			{
+				//if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
+				
+				NPCChaserAddStunHealth(iBossIndex, -damage);
+			}
+			if ((damagetype & DMG_CRIT))
+			{
+				float flMyEyePos[3];
+				SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
+				float flMyEyePosEx[3];
+				GetEntPropVector(hitbox, Prop_Send, "m_vecMaxs", flMyEyePosEx);
+				flMyEyePos[2]+=flMyEyePosEx[2];
+				
+				TE_SetupTFParticleEffect(g_iParticle[CriticalHit], flMyEyePos, flMyEyePos);
+				TE_SendToAll();
+				
+				EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+			}
 		}
-		if ((damagetype & DMG_CRIT))
-		{
-			float flMyEyePos[3];
-			SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
-			float flMyEyePosEx[3];
-			GetEntPropVector(hitbox, Prop_Send, "m_vecMaxs", flMyEyePosEx);
-			flMyEyePos[2]+=flMyEyePosEx[2];
-			
-			TE_SetupTFParticleEffect(g_iParticle[CriticalHit], flMyEyePos, flMyEyePos);
-			TE_SendToAll();
-			
-			EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
-		}
+		SetVariantInt(30000);
+		AcceptEntityInput(hitbox,"SetHealth");
 	}
-	SetVariantInt(30000);
-	AcceptEntityInput(hitbox,"SetHealth");
 	
 	return Plugin_Changed;
 }
