@@ -3,15 +3,13 @@
 #endif
 #define _sf2_debug_included
 
-#if !defined DEBUG
- #endinput
-#endif
 
 #define DEBUG_BOSS_TELEPORTATION (1 << 0)
 #define DEBUG_BOSS_CHASE (1 << 1)
 #define DEBUG_PLAYER_STRESS (1 << 2)
 #define DEBUG_PLAYER_ACTION_SLOT (1 << 3)
 #define DEBUG_BOSS_PROXIES (1 << 4)
+#define DEBUG_BOSS_HITBOX (1 << 5)
 
 int g_iPlayerDebugFlags[MAXPLAYERS + 1] = { 0, ... };
 
@@ -29,6 +27,7 @@ void InitializeDebug()
 	RegAdminCmd("sm_sf2_debug_boss_chase", Command_DebugBossChase, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_player_stress", Command_DebugPlayerStress, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_boss_proxies", Command_DebugBossProxies, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_hitbox", Command_DebugHitbox, ADMFLAG_CHEATS);
 }
 
 void InitializeDebugLogging()
@@ -154,6 +153,22 @@ public Action Command_DebugBossProxies(int client, int args)
 	else
 	{
 		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_PROXIES;
+		PrintToChat(client, "Disabled debugging boss proxies.");
+	}
+	
+	return Plugin_Handled;
+}
+public Action Command_DebugHitbox(int client, int args)
+{
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_HITBOX);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_HITBOX;
+		PrintToChat(client, "Enabled debugging boss proxies.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_HITBOX;
 		PrintToChat(client, "Disabled debugging boss proxies.");
 	}
 	

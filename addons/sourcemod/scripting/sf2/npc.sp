@@ -1274,6 +1274,7 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
+	SendDebugMessageToPlayers(DEBUG_BOSS_HITBOX,0,"Hitbox: %i wants to collide with entity contentsmask: %i",slender,contentsmask);
 	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP) || (contentsmask & CONTENTS_MOVEABLE))
 	{
 		//PrintToChatAll("npc or player or door");

@@ -545,10 +545,9 @@ Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
 
-
+#include "sf2/debug.sp"
 #include "sf2/stocks.sp"
 #include "sf2/logging.sp"
-#include "sf2/debug.sp"
 #include "sf2/profiles.sp"
 #include "sf2/nav.sp"
 #include "sf2/effects.sp"
