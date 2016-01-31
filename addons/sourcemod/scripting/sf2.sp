@@ -633,13 +633,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error,int err_max)
 	SpecialRoundInitializeAPI();
 	
 	#if defined _steamtools_included
-	steamtools=LibraryExists("SteamTools");
-	#endif
-	#if defined _SteamWorks_Included
-	steamworks=LibraryExists("SteamWorks");
-	#endif
-	
-	#if defined _steamtools_included
 	MarkNativeAsOptional("Steam_SetGameDescription");
 	#endif
 	#if defined _SteamWorks_Included
@@ -852,6 +845,13 @@ public void OnPluginStart()
 	AddNormalSoundHook(view_as<NormalSHook>(Hook_NormalSound));
 	
 	AddTempEntHook("Fire Bullets", Hook_TEFireBullets);
+	
+	#if defined _steamtools_included
+	steamtools=LibraryExists("SteamTools");
+	#endif
+	#if defined _SteamWorks_Included
+	steamworks=LibraryExists("SteamWorks");
+	#endif
 	
 	InitializeBossProfiles();
 	

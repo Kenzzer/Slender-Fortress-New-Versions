@@ -1272,9 +1272,9 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
-	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))
+	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP) || (contentsmask & CONTENTS_MOVEABLE))
 	{
-		//PrintToChatAll("npc or player");
+		//PrintToChatAll("npc or player or door");
 		return false;
 	}
 	return true;
