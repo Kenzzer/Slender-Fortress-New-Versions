@@ -18,21 +18,21 @@ enum EffectType
 	EffectType_DynamicLight
 };
 
-SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
+void SlenderSpawnEffects(int iBossIndex, EffectEvent iEvent)
 {
 	if (iBossIndex < 0 || iBossIndex >= MAX_BOSSES) return;
 	
-	new iBossID = NPCGetUniqueID(iBossIndex);
+	int  iBossID = NPCGetUniqueID(iBossIndex);
 	if (iBossID == -1) return;
 	
-	decl String:sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	
 	KvRewind(g_hConfig);
 	if (!KvJumpToKey(g_hConfig, sProfile) || !KvJumpToKey(g_hConfig, "effects") || !KvGotoFirstSubKey(g_hConfig)) return;
 	
-	new Handle:hArray = CreateArray(64);
-	decl String:sSectionName[64];
+	Handle hArray = CreateArray(64);
+	char sSectionName[64];
 	
 	do
 	{
@@ -47,7 +47,7 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 		return;
 	}
 	
-	decl String:sEvent[64];
+	char sEvent[64];
 	GetEffectEventString(iEvent, sEvent, sizeof(sEvent));
 	if (!sEvent[0]) 
 	{
@@ -56,36 +56,36 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 		return;
 	}
 	
-	new iSlender = NPCGetEntIndex(iBossIndex);
-	decl Float:flBasePos[3], Float:flBaseAng[3];
+	int  iSlender = NPCGetEntIndex(iBossIndex);
+	float flBasePos[3], flBaseAng[3];
 	
 	KvRewind(g_hConfig);
 	KvJumpToKey(g_hConfig, sProfile);
 	KvJumpToKey(g_hConfig, "effects");
 	
-	for (new i = 0, iSize = GetArraySize(hArray); i < iSize; i++)
+	for (int  i = 0, iSize = GetArraySize(hArray); i < iSize; i++)
 	{
 		GetArrayString(hArray, i, sSectionName, sizeof(sSectionName));
 		KvJumpToKey(g_hConfig, sSectionName);
 		
 		// Validate effect event. Check to see if it matches with ours.
-		decl String:sEffectEvent[64];
+		char sEffectEvent[64];
 		KvGetString(g_hConfig, "event", sEffectEvent, sizeof(sEffectEvent));
 		if (StrEqual(sEffectEvent, sEvent, false)) 
 		{
 			// Validate effect type.
-			decl String:sEffectType[64];
+			char sEffectType[64];
 			KvGetString(g_hConfig, "type", sEffectType, sizeof(sEffectType));
-			new EffectType:iEffectType = GetEffectTypeFromString(sEffectType);
+			EffectType iEffectType = GetEffectTypeFromString(sEffectType);
 			
 			if (iEffectType != EffectType_Invalid)
 			{
 				// Check base position behavior.
-				decl String:sBasePosCustom[64];
+				char sBasePosCustom[64];
 				KvGetString(g_hConfig, "origin_custom", sBasePosCustom, sizeof(sBasePosCustom));
 				if (StrEqual(sBasePosCustom, "&CURRENTTARGET&", false))
 				{
-					new iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
+					int  iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
 					if (!iTarget || iTarget == INVALID_ENT_REFERENCE)
 					{
 						LogError("Could not spawn effect %s for boss %d: unable to read position of target due to no target!");
@@ -107,11 +107,11 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 					GetEntPropVector(iSlender, Prop_Data, "m_vecAbsOrigin", flBasePos);
 				}
 				
-				decl String:sBaseAngCustom[64];
+				char sBaseAngCustom[64];
 				KvGetString(g_hConfig, "angles_custom", sBaseAngCustom, sizeof(sBaseAngCustom));
 				if (StrEqual(sBaseAngCustom, "&CURRENTTARGET&", false))
 				{
-					new iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
+					int  iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
 					if (!iTarget || iTarget == INVALID_ENT_REFERENCE)
 					{
 						LogError("Could not spawn effect %s for boss %d: unable to read angles of target due to no target!");
@@ -133,7 +133,7 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 					GetEntPropVector(iSlender, Prop_Data, "m_angAbsRotation", flBaseAng);
 				}
 				
-				new iEnt = -1;
+				int  iEnt = -1;
 				
 				switch (iEffectType)
 				{
@@ -143,7 +143,7 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 				
 				if (iEnt != -1)
 				{
-					decl String:sValue[PLATFORM_MAX_PATH];
+					char sValue[PLATFORM_MAX_PATH];
 					KvGetString(g_hConfig, "renderamt", sValue, sizeof(sValue), "255");
 					DispatchKeyValue(iEnt, "renderamt", sValue);
 					KvGetString(g_hConfig, "rendermode", sValue, sizeof(sValue));
@@ -153,7 +153,7 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 					KvGetString(g_hConfig, "spawnflags", sValue, sizeof(sValue));
 					DispatchKeyValue(iEnt, "spawnflags", sValue);
 					
-					switch  (iEffectType)
+					switch (iEffectType)
 					{
 						case EffectType_Steam:
 						{
@@ -189,13 +189,13 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 							DispatchSpawn(iEnt);
 							ActivateEntity(iEnt);
 							
-							new r, g, b, a;
+							int  r, g, b, a;
 							KvGetColor(g_hConfig, "rendercolor", r, g, b, a);
 							SetEntityRenderColor(iEnt, r, g, b, a);
 						}
 					}
 					
-					decl Float:flEffectPos[3], Float:flEffectAng[3];
+					float flEffectPos[3], flEffectAng[3];
 					
 					KvGetVector(g_hConfig, "origin", flEffectPos);
 					KvGetVector(g_hConfig, "angles", flEffectAng);
@@ -203,14 +203,14 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 					AddVectors(flEffectAng, flBaseAng, flEffectAng);
 					TeleportEntity(iEnt, flEffectPos, flEffectAng, NULL_VECTOR);
 					
-					new Float:flLifeTime = KvGetFloat(g_hConfig, "lifetime");
+					float flLifeTime = KvGetFloat(g_hConfig, "lifetime");
 					if (flLifeTime > 0.0) CreateTimer(flLifeTime, Timer_KillEntity, EntIndexToEntRef(iEnt), TIMER_FLAG_NO_MAPCHANGE);
 					
-					decl String:sParentCustom[64];
+					char sParentCustom[64];
 					KvGetString(g_hConfig, "parent_custom", sParentCustom, sizeof(sParentCustom));
 					if (StrEqual(sParentCustom, "&CURRENTTARGET&", false))
 					{
-						new iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
+						int  iTarget = EntRefToEntIndex(g_iSlenderTarget[iBossIndex]);
 						if (!iTarget || iTarget == INVALID_ENT_REFERENCE)
 						{
 							LogError("Could not parent effect %s of boss %d to current target: target does not exist!", sSectionName, iBossIndex);
@@ -256,7 +256,7 @@ SlenderSpawnEffects(iBossIndex, EffectEvent:iEvent)
 	CloseHandle(hArray);
 }
 
-stock GetEffectEventString(EffectEvent:iEvent, String:sBuffer[], iBufferLen)
+stock void GetEffectEventString(EffectEvent iEvent, char[] sBuffer,int iBufferLen)
 {
 	switch (iEvent)
 	{
@@ -267,7 +267,7 @@ stock GetEffectEventString(EffectEvent:iEvent, String:sBuffer[], iBufferLen)
 	}
 }
 
-stock EffectType:GetEffectTypeFromString(const String:sType[])
+stock EffectType GetEffectTypeFromString(const char[] sType)
 {
 	if (StrEqual(sType, "steam", false)) return EffectType_Steam;
 	if (StrEqual(sType, "dynamiclight", false)) return EffectType_DynamicLight;

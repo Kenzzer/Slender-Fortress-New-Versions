@@ -131,49 +131,49 @@ enum SF2RoundState
 #define COND_SAWENEMY (1 << 5)
 
 
-forward SF2_OnBossAdded(iBossIndex);
+forward void SF2_OnBossAdded(int iBossIndex);
 
-forward SF2_OnBossSpawn(iBossIndex);
+forward void SF2_OnBossSpawn(int iBossIndex);
 
-forward SF2_OnBossChangeState(iBossIndex, iOldState, iNewState);
+forward void SF2_OnBossChangeState(int iBossIndex,int iOldState,int iNewState);
 
-forward SF2_OnBossRemoved(iBossIndex);
+forward void SF2_OnBossRemoved(int iBossIndex);
 
-forward SF2_OnPagesSpawned();
+forward void SF2_OnPagesSpawned();
 
-forward SF2_OnClientCollectPage(pageEnt, client);
+forward void SF2_OnClientCollectPage(int pageEnt,int client);
 
-forward SF2_OnClientBlinked(client);
+forward void SF2_OnClientBlinked(int client);
 
-forward SF2_OnClientCaughtByBoss(client, iBossIndex);
+forward void SF2_OnClientCaughtByBoss(int client,int iBossIndex);
 
-forward Action:SF2_OnClientGiveQueuePoints(client, &iAddAmount);
+forward Action SF2_OnClientGiveQueuePoints(int client,int &iAddAmount);
 
-forward SF2_OnClientActivateFlashlight(client);
+forward void SF2_OnClientActivateFlashlight(int client);
 
-forward SF2_OnClientDeactivateFlashlight(client);
+forward void SF2_OnClientDeactivateFlashlight(int client);
 
-forward SF2_OnClientBreakFlashlight(client);
+forward void SF2_OnClientBreakFlashlight(int client);
 
-forward SF2_OnClientEscape(client);
+forward void SF2_OnClientEscape(int client);
 
-forward SF2_OnClientLooksAtBoss(client, iBossIndex);
+forward void SF2_OnClientLooksAtBoss(int client,int iBossIndex);
 
-forward SF2_OnClientLooksAwayFromBoss(client, iBossIndex);
+forward void SF2_OnClientLooksAwayFromBoss(int client,int iBossIndex);
 
-forward SF2_OnClientStartDeathCam(client, iBossIndex);
+forward void SF2_OnClientStartDeathCam(int client,int iBossIndex);
 
-forward SF2_OnClientEndDeathCam(client, iBossIndex);
+forward void SF2_OnClientEndDeathCam(int client,int iBossIndex);
 
-forward Action:SF2_OnClientGetDefaultWalkSpeed(client, &Float:flDefault);
+forward Action SF2_OnClientGetDefaultWalkSpeed(int client, float &flDefault);
 
-forward Action:SF2_OnClientGetDefaultSprintSpeed(client, &Float:flDefault);
+forward Action SF2_OnClientGetDefaultSprintSpeed(int client, float &flDefault);
 
-forward Action:SF2_OnGroupGiveQueuePoints(iGroupIndex, &iAddAmount);
+forward Action SF2_OnGroupGiveQueuePoints(int iGroupIndex, int &iAddAmount);
 
-forward SF2_OnClientDamagedByBoss(client, iBossIndex, inflictor, Float:flDamage, iDamageType);
+forward void SF2_OnClientDamagedByBoss(int client,int iBossIndex,int inflictor, float flDamage,int iDamageType);
 
-forward SF2_OnClientSpawnedAsProxy(client);
+forward void SF2_OnClientSpawnedAsProxy(int client);
 
 
 /**
@@ -181,21 +181,21 @@ forward SF2_OnClientSpawnedAsProxy(client);
  *
  * @return				True if the gamemode is running, false if not.
  */
-native bool:SF2_IsRunning();
+native bool SF2_IsRunning();
 
 /**
  * Returns the current state of the round.
  *
  * @return				Current state or the round.
  */
-native SF2_GetRoundState();
+native int SF2_GetRoundState();
 
 /**
  * Returns the current difficulty of the round.
  *
  * @return				Integer of the difficulty.
  */
-native SF2_GetCurrentDifficulty();
+native int SF2_GetCurrentDifficulty();
 
 /**
  * Returns the current difficulty of the round.
@@ -203,21 +203,21 @@ native SF2_GetCurrentDifficulty();
  * @param iDifficulty	Difficulty number.
  * @return				Modifier float value of the indicated difficulty number.
  */
-native Float:SF2_GetDifficultyModifier(iDifficulty);
+native float SF2_GetDifficultyModifier(int iDifficulty);
 
 /**
  * Returns a bool indicating whether or not a special round is currently running.
  *
  * @return				True if a special round is running, false if not.
  */
-native bool:SF2_IsSpecialRoundRunning();
+native bool SF2_IsSpecialRoundRunning();
 
 /**
  * Returns the type of special round that is running.
  *
  * @return				Special round type.
  */
-native SF2_GetSpecialRoundType();
+native int SF2_GetSpecialRoundType();
 
 /**
  * Returns a bool about the client's elimination state.
@@ -225,7 +225,7 @@ native SF2_GetSpecialRoundType();
  * @param client		Client index.
  * @return				True if the player is eliminated, false if not.
  */
-native bool:SF2_IsClientEliminated(client);
+native bool SF2_IsClientEliminated(int client);
 
 /**
  * Returns a bool about the client's ghost mode state.
@@ -233,7 +233,7 @@ native bool:SF2_IsClientEliminated(client);
  * @param client		Client index.
  * @return				True if the player is in Ghost Mode, false if not.
  */
-native bool:SF2_IsClientInGhostMode(client);
+native bool SF2_IsClientInGhostMode(int client);
 
 /**
  * Returns a bool if the client is in a Player vs. Player zone or not.
@@ -241,7 +241,7 @@ native bool:SF2_IsClientInGhostMode(client);
  * @param client		Client index.
  * @return				True if the player is in a PvP zone, false if not.
  */
-native bool:SF2_IsClientInPvP(client);
+native bool SF2_IsClientInPvP(int client);
 
 /**
  * Tells whether if the client is a Proxy or not.
@@ -249,7 +249,7 @@ native bool:SF2_IsClientInPvP(client);
  * @param client		Client index.
  * @return				True if the player is a Proxy, false if not.
  */
-native bool:SF2_IsClientProxy(client);
+native bool SF2_IsClientProxy(int client);
 
 /**
  * Tells whether or not the client is looking at the boss.
@@ -258,7 +258,7 @@ native bool:SF2_IsClientProxy(client);
  * @param iBossIndex	Boss index.
  * @return				True if the player is a Proxy, false if not.
  */
-native bool:SF2_IsClientLookingAtBoss(client, iBossIndex);
+native bool SF2_IsClientLookingAtBoss(int client,int iBossIndex);
 
 /**
  * Gives the amount of times the client has blinked in one life. This count will reset upon spawn.
@@ -266,7 +266,7 @@ native bool:SF2_IsClientLookingAtBoss(client, iBossIndex);
  * @param client		Client index.
  * @return				Number of times the client has blinked in one life.
  */
-native SF2_GetClientBlinkCount(client);
+native int SF2_GetClientBlinkCount(int client);
 
 /**
  * If the client is a Proxy, then this returns the boss index that the client is associated with.
@@ -274,7 +274,7 @@ native SF2_GetClientBlinkCount(client);
  * @param client		Client index.
  * @return				If the client is a proxy, then this will return a boss index, -1 if not.
  */
-native SF2_GetClientProxyMaster(client);
+native int SF2_GetClientProxyMaster(int client);
 
 /**
  * If the client is a Proxy, then this returns the amount of Control points the client has left.
@@ -282,7 +282,7 @@ native SF2_GetClientProxyMaster(client);
  * @param client		Client index.
  * @return				If the client is a proxy, then this will return the amount of Control Points out of 100, else 0.
  */
-native SF2_GetClientProxyControlAmount(client);
+native int SF2_GetClientProxyControlAmount(int client);
 
 /**
  * If the client is a Proxy, then this returns the rate which each Control point will drain for the client.
@@ -290,49 +290,49 @@ native SF2_GetClientProxyControlAmount(client);
  * @param client		Client index.
  * @return				If the client is a proxy, then this will return a boss index, -1 if not.
  */
-native Float:SF2_GetClientProxyControlRate(client);
+native float SF2_GetClientProxyControlRate(int client);
 
-native SF2_SetClientProxyMaster(client, iBossIndex);
+native void SF2_SetClientProxyMaster(int client,int iBossIndex);
 
-native SF2_SetClientProxyControlAmount(client, iAmount);
+native void SF2_SetClientProxyControlAmount(int client,int iAmount);
 
-native SF2_SetClientProxyControlRate(client, Float:flAmount);
+native void SF2_SetClientProxyControlRate(int client, float flAmount);
 
-native SF2_CollectAsPage(pageEnt, client);
+native void SF2_CollectAsPage(int pageEnt,int client);
 
-native SF2_GetMaxBossCount();
+native int SF2_GetMaxBossCount();
 
-native SF2_EntIndexToBossIndex(iEntIndex);
+native int SF2_EntIndexToBossIndex(int iEntIndex);
 
-native SF2_BossIndexToEntIndex(iBossIndex);
+native int SF2_BossIndexToEntIndex(int iBossIndex);
 
-native SF2_BossIDToBossIndex(iBossID);
+native int SF2_BossIDToBossIndex(int iBossID);
 
-native SF2_BossIndexToBossID(iBossID);
+native int SF2_BossIndexToBossID(int iBossID);
 
-native SF2_GetBossName(iBossIndex, String:sBuffer[], iBufferLen);
+native void SF2_GetBossName(int iBossIndex, char[] sBuffer,int iBufferLen);
 
-native SF2_GetBossModelEntity(iBossIndex);
+native int SF2_GetBossModelEntity(int iBossIndex);
 
-native SF2_GetBossTarget(iBossIndex);
+native int SF2_GetBossTarget(int iBossIndex);
 
-native SF2_GetBossMaster(iBossIndex);
+native int SF2_GetBossMaster(int iBossIndex);
 
-native SF2_GetBossState(iBossIndex);
+native int SF2_GetBossState(int iBossIndex);
 
-native bool:SF2_IsBossProfileValid(const String:sProfile[]);
+native bool SF2_IsBossProfileValid(const char[] sProfile);
 
-native SF2_GetBossProfileNum(const String:sProfile[], const String:sKey[], iDefaultValue=0);
+native int SF2_GetBossProfileNum(const char[] sProfile, const char[] sKey , int iDefaultValue=0);
 
-native Float:SF2_GetBossProfileFloat(const String:sProfile[], const String:sKey[], Float:flDefaultValue=0.0);
+native float SF2_GetBossProfileFloat(const char[] sProfile, const char[] sKey , float flDefaultValue=0.0);
 
-native bool:SF2_GetBossProfileString(const String:sProfile[], const String:sKey[], String:sBuffer[], iBufferLen, const String:sDefaultValue[]="");
+native bool SF2_GetBossProfileString(const char[] sProfile, const char[] sKey , char[] sBuffer,int iBufferLen, const char sDefaultValue[]="");
 
-native bool:SF2_GetBossProfileVector(const String:sProfile[], const String:sKey[], Float:flBuffer[3], const Float:flDefaultValue[3]=NULL_VECTOR);
+native bool SF2_GetBossProfileVector(const char[] sProfile, const char[] sKey , float flBuffer[3], const float flDefaultValue[3]=NULL_VECTOR);
 
-native bool:SF2_GetRandomStringFromBossProfile(const String:sProfile, const String:sKey[], String:sBuffer[], iBufferLen, iIndex=-1);
+native bool SF2_GetRandomStringFromBossProfile(const char[] sProfile, const char[] sKey , char[] sBuffer,int iBufferLen,int iIndex=-1);
 
-public SharedPlugin:__pl_sf2 = 
+public SharedPlugin __pl_sf2 = 
 {
 	name = "sf2",
 	file = "sf2.smx",

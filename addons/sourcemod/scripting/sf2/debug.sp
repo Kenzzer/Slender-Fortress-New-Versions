@@ -13,14 +13,14 @@
 #define DEBUG_PLAYER_ACTION_SLOT (1 << 3)
 #define DEBUG_BOSS_PROXIES (1 << 4)
 
-new g_iPlayerDebugFlags[MAXPLAYERS + 1] = { 0, ... };
+int g_iPlayerDebugFlags[MAXPLAYERS + 1] = { 0, ... };
 
-static String:g_strDebugLogFilePath[512] = "";
+static char g_strDebugLogFilePath[512] = "";
 
-new Handle:g_cvDebugDetail = INVALID_HANDLE;
-new Handle:g_cvDebugBosses = INVALID_HANDLE;
+Handle g_cvDebugDetail = INVALID_HANDLE;
+Handle g_cvDebugBosses = INVALID_HANDLE;
 
-InitializeDebug()
+void InitializeDebug()
 {
 	g_cvDebugDetail = CreateConVar("sf2_debug_detail", "0", "0 = off, 1 = debug only large, expensive functions, 2 = debug more events, 3 = debug client functions");
 	g_cvDebugBosses = CreateConVar("sf2_debug_bosses", "0");
@@ -31,33 +31,33 @@ InitializeDebug()
 	RegAdminCmd("sm_sf2_debug_boss_proxies", Command_DebugBossProxies, ADMFLAG_CHEATS);
 }
 
-InitializeDebugLogging()
+void InitializeDebugLogging()
 {
-	decl String:sDateSuffix[256];
+	char sDateSuffix[256];
 	FormatTime(sDateSuffix, sizeof(sDateSuffix), "sf2-debug-%Y-%m-%d.log", GetTime());
 	
 	BuildPath(Path_SM, g_strDebugLogFilePath, sizeof(g_strDebugLogFilePath), "logs/%s", sDateSuffix);
 	
-	decl String:sMap[64];
+	char sMap[64];
 	GetCurrentMap(sMap, sizeof(sMap));
 	
 	DebugMessage("-------- Mapchange to %s -------", sMap);
 }
 
-stock DebugMessage(const String:sMessage[], any:...)
+stock void DebugMessage(const char[] sMessage, any ...)
 {
-	decl String:sDebugMessage[1024], String:sTemp[1024];
+	char sDebugMessage[1024], sTemp[1024];
 	VFormat(sTemp, sizeof(sTemp), sMessage, 2);
 	Format(sDebugMessage, sizeof(sDebugMessage), "%s", sTemp);
 	//LogMessage(sDebugMessage);
 	LogToFile(g_strDebugLogFilePath, sDebugMessage);
 }
 
-stock SendDebugMessageToPlayer(client, iDebugFlags, iType, const String:sMessage[], any:...)
+stock void SendDebugMessageToPlayer(int client,int iDebugFlags,int iType, const char[] sMessage, any ...)
 {
 	if (!IsClientInGame(client) || IsFakeClient(client)) return;
 
-	decl String:sMsg[1024];
+	char sMsg[1024];
 	VFormat(sMsg, sizeof(sMsg), sMessage, 5);
 	
 	if (g_iPlayerDebugFlags[client] & iDebugFlags)
@@ -71,12 +71,12 @@ stock SendDebugMessageToPlayer(client, iDebugFlags, iType, const String:sMessage
 	}
 }
 
-stock SendDebugMessageToPlayers(iDebugFlags, iType, const String:sMessage[], any:...)
+stock void SendDebugMessageToPlayers(int iDebugFlags,int iType, const char[] sMessage, any ...)
 {
-	decl String:sMsg[1024];
+	char sMsg[1024];
 	VFormat(sMsg, sizeof(sMsg), sMessage, 4);
 
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i)) continue;
 		
@@ -92,9 +92,9 @@ stock SendDebugMessageToPlayers(iDebugFlags, iType, const String:sMessage[], any
 	}
 }
 
-public Action:Command_DebugBossTeleport(client, args)
+public Action Command_DebugBossTeleport(int client,int args)
 {
-	new bool:bInMode = bool:(g_iPlayerDebugFlags[client] & DEBUG_BOSS_TELEPORTATION);
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_TELEPORTATION);
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_TELEPORTATION;
@@ -109,9 +109,9 @@ public Action:Command_DebugBossTeleport(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_DebugBossChase(client, args)
+public Action Command_DebugBossChase(int client,int args)
 {
-	new bool:bInMode = bool:(g_iPlayerDebugFlags[client] & DEBUG_BOSS_CHASE);
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_CHASE);
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_CHASE;
@@ -126,9 +126,9 @@ public Action:Command_DebugBossChase(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_DebugPlayerStress(client, args)
+public Action Command_DebugPlayerStress(int client, int args)
 {
-	new bool:bInMode = bool:(g_iPlayerDebugFlags[client] & DEBUG_PLAYER_STRESS);
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_PLAYER_STRESS);
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_PLAYER_STRESS;
@@ -143,9 +143,9 @@ public Action:Command_DebugPlayerStress(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_DebugBossProxies(client, args)
+public Action Command_DebugBossProxies(int client, int args)
 {
-	new bool:bInMode = bool:(g_iPlayerDebugFlags[client] & DEBUG_BOSS_PROXIES);
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_PROXIES);
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_PROXIES;

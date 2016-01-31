@@ -6,8 +6,8 @@
 
 #define SF2_CHASER_BOSS_MAX_ATTACKS 8
 
-new Handle:g_hChaserProfileNames;
-new Handle:g_hChaserProfileData;
+Handle g_hChaserProfileNames;
+Handle g_hChaserProfileData;
 
 enum
 {
@@ -102,7 +102,7 @@ enum
 	ChaserAnimationType_Max
 };
 
-InitializeChaserProfiles()
+void InitializeChaserProfiles()
 {
 	g_hChaserProfileNames = CreateTrie();
 	g_hChaserProfileData = CreateArray(ChaserProfileData_MaxStats);
@@ -111,17 +111,17 @@ InitializeChaserProfiles()
 /**
  *	Clears all data and memory currently in use by chaser profiles.
  */
-ClearChaserProfiles()
+void ClearChaserProfiles()
 {
-	for (new i = 0, iSize = GetArraySize(g_hChaserProfileData); i < iSize; i++)
+	for (int i = 0, iSize = GetArraySize(g_hChaserProfileData); i < iSize; i++)
 	{
-		new Handle:hHandle = Handle:GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Attacks);
+		Handle hHandle = view_as<Handle>(GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Attacks));
 		if (hHandle != INVALID_HANDLE)
 		{
 			CloseHandle(hHandle);
 		}
 		
-		hHandle = Handle:GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Animations);
+		hHandle = view_as<Handle>(GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Animations));
 		if (hHandle != INVALID_HANDLE)
 		{
 			CloseHandle(hHandle);
@@ -136,49 +136,49 @@ ClearChaserProfiles()
  *	Parses and stores the unique values of a chaser profile from the current position in the profiles config.
  *	Returns true if loading was successful, false if not.
  */
-bool:LoadChaserBossProfile(Handle:kv, const String:sProfile[], &iUniqueProfileIndex, String:sLoadFailReasonBuffer[], iLoadFailReasonBufferLen)
+bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileIndex, char[] sLoadFailReasonBuffer,int iLoadFailReasonBufferLen)
 {
 	strcopy(sLoadFailReasonBuffer, iLoadFailReasonBufferLen, "");
 	
 	iUniqueProfileIndex = PushArrayCell(g_hChaserProfileData, -1);
 	SetTrieValue(g_hChaserProfileNames, sProfile, iUniqueProfileIndex);
 	
-	new Float:flBossStepSize = KvGetFloat(kv, "stepsize", 16.0);
+	float flBossStepSize = KvGetFloat(kv, "stepsize", 16.0);
 	
-	new Float:flBossDefaultWalkSpeed = KvGetFloat(kv, "walkspeed", 30.0);
-	new Float:flBossWalkSpeedEasy = KvGetFloat(kv, "walkspeed_easy", flBossDefaultWalkSpeed);
-	new Float:flBossWalkSpeedHard = KvGetFloat(kv, "walkspeed_hard", flBossDefaultWalkSpeed);
-	new Float:flBossWalkSpeedInsane = KvGetFloat(kv, "walkspeed_insane", flBossDefaultWalkSpeed);
+	float flBossDefaultWalkSpeed = KvGetFloat(kv, "walkspeed", 30.0);
+	float flBossWalkSpeedEasy = KvGetFloat(kv, "walkspeed_easy", flBossDefaultWalkSpeed);
+	float flBossWalkSpeedHard = KvGetFloat(kv, "walkspeed_hard", flBossDefaultWalkSpeed);
+	float flBossWalkSpeedInsane = KvGetFloat(kv, "walkspeed_insane", flBossDefaultWalkSpeed);
 	
-	new Float:flBossDefaultAirSpeed = KvGetFloat(kv, "airspeed", 50.0);
-	new Float:flBossAirSpeedEasy = KvGetFloat(kv, "airspeed_easy", flBossDefaultAirSpeed);
-	new Float:flBossAirSpeedHard = KvGetFloat(kv, "airspeed_hard", flBossDefaultAirSpeed);
-	new Float:flBossAirSpeedInsane = KvGetFloat(kv, "airspeed_insane", flBossDefaultAirSpeed);
+	float flBossDefaultAirSpeed = KvGetFloat(kv, "airspeed", 50.0);
+	float flBossAirSpeedEasy = KvGetFloat(kv, "airspeed_easy", flBossDefaultAirSpeed);
+	float flBossAirSpeedHard = KvGetFloat(kv, "airspeed_hard", flBossDefaultAirSpeed);
+	float flBossAirSpeedInsane = KvGetFloat(kv, "airspeed_insane", flBossDefaultAirSpeed);
 	
-	new Float:flBossDefaultMaxWalkSpeed = KvGetFloat(kv, "walkspeed_max", 30.0);
-	new Float:flBossMaxWalkSpeedEasy = KvGetFloat(kv, "walkspeed_max_easy", flBossDefaultMaxWalkSpeed);
-	new Float:flBossMaxWalkSpeedHard = KvGetFloat(kv, "walkspeed_max_hard", flBossDefaultMaxWalkSpeed);
-	new Float:flBossMaxWalkSpeedInsane = KvGetFloat(kv, "walkspeed_max_insane", flBossDefaultMaxWalkSpeed);
+	float flBossDefaultMaxWalkSpeed = KvGetFloat(kv, "walkspeed_max", 30.0);
+	float flBossMaxWalkSpeedEasy = KvGetFloat(kv, "walkspeed_max_easy", flBossDefaultMaxWalkSpeed);
+	float flBossMaxWalkSpeedHard = KvGetFloat(kv, "walkspeed_max_hard", flBossDefaultMaxWalkSpeed);
+	float flBossMaxWalkSpeedInsane = KvGetFloat(kv, "walkspeed_max_insane", flBossDefaultMaxWalkSpeed);
 	
-	new Float:flBossDefaultMaxAirSpeed = KvGetFloat(kv, "airspeed_max", 50.0);
-	new Float:flBossMaxAirSpeedEasy = KvGetFloat(kv, "airspeed_max_easy", flBossDefaultMaxAirSpeed);
-	new Float:flBossMaxAirSpeedHard = KvGetFloat(kv, "airspeed_max_hard", flBossDefaultMaxAirSpeed);
-	new Float:flBossMaxAirSpeedInsane = KvGetFloat(kv, "airspeed_max_insane", flBossDefaultMaxAirSpeed);
+	float flBossDefaultMaxAirSpeed = KvGetFloat(kv, "airspeed_max", 50.0);
+	float flBossMaxAirSpeedEasy = KvGetFloat(kv, "airspeed_max_easy", flBossDefaultMaxAirSpeed);
+	float flBossMaxAirSpeedHard = KvGetFloat(kv, "airspeed_max_hard", flBossDefaultMaxAirSpeed);
+	float flBossMaxAirSpeedInsane = KvGetFloat(kv, "airspeed_max_insane", flBossDefaultMaxAirSpeed);
 	
-	new Float:flWakeRange = KvGetFloat(kv, "wake_radius");
+	float flWakeRange = KvGetFloat(kv, "wake_radius");
 	if (flWakeRange < 0.0) flWakeRange = 0.0;
 	
-	new bool:bCanBeStunned = bool:KvGetNum(kv, "stun_enabled");
+	bool bCanBeStunned = view_as<bool>(KvGetNum(kv, "stun_enabled"));
 	
-	new Float:flStunDuration = KvGetFloat(kv, "stun_duration");
+	float flStunDuration = KvGetFloat(kv, "stun_duration");
 	if (flStunDuration < 0.0) flStunDuration = 0.0;
 	
-	new Float:flStunHealth = KvGetFloat(kv, "stun_health");
+	float flStunHealth = KvGetFloat(kv, "stun_health");
 	if (flStunHealth < 0.0) flStunHealth = 0.0;
 	
-	new bool:bStunTakeDamageFromFlashlight = bool:KvGetNum(kv, "stun_damage_flashlight_enabled");
+	bool bStunTakeDamageFromFlashlight = view_as<bool>(KvGetNum(kv, "stun_damage_flashlight_enabled"));
 	
-	new Float:flStunFlashlightDamage = KvGetFloat(kv, "stun_damage_flashlight");
+	float flStunFlashlightDamage = KvGetFloat(kv, "stun_damage_flashlight");
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flBossStepSize, ChaserProfileData_StepSize);
 	
@@ -212,13 +212,13 @@ bool:LoadChaserBossProfile(Handle:kv, const String:sProfile[], &iUniqueProfileIn
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "memory_lifetime", 10.0), ChaserProfileData_MemoryLifeTime);
 	
-	new Float:flDefaultAwarenessIncreaseRate = KvGetFloat(kv, "awareness_rate_increase", 75.0);
+	float flDefaultAwarenessIncreaseRate = KvGetFloat(kv, "awareness_rate_increase", 75.0);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "awareness_rate_increase_easy", flDefaultAwarenessIncreaseRate), ChaserProfileData_AwarenessIncreaseRateEasy);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flDefaultAwarenessIncreaseRate, ChaserProfileData_AwarenessIncreaseRateNormal);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "awareness_rate_increase_hard", flDefaultAwarenessIncreaseRate), ChaserProfileData_AwarenessIncreaseRateHard);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "awareness_rate_increase_insane", flDefaultAwarenessIncreaseRate), ChaserProfileData_AwarenessIncreaseRateInsane);
 	
-	new Float:flDefaultAwarenessDecreaseRate = KvGetFloat(kv, "awareness_rate_decrease", 150.0);
+	float flDefaultAwarenessDecreaseRate = KvGetFloat(kv, "awareness_rate_decrease", 150.0);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "awareness_rate_decrease_easy", flDefaultAwarenessDecreaseRate), ChaserProfileData_AwarenessDecreaseRateEasy);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flDefaultAwarenessDecreaseRate, ChaserProfileData_AwarenessDecreaseRateNormal);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "awareness_rate_decrease_hard", flDefaultAwarenessDecreaseRate), ChaserProfileData_AwarenessDecreaseRateHard);
@@ -231,51 +231,51 @@ bool:LoadChaserBossProfile(Handle:kv, const String:sProfile[], &iUniqueProfileIn
 	return true;
 }
 
-static ParseChaserProfileAttacks(Handle:kv, iUniqueProfileIndex)
+static void ParseChaserProfileAttacks(Handle kv,int iUniqueProfileIndex)
 {
 	
 	// Create the array.
-	new Handle:hAttacks = CreateArray(ChaserProfileAttackData_MaxStats);
+	Handle hAttacks = CreateArray(ChaserProfileAttackData_MaxStats);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, hAttacks, ChaserProfileData_Attacks);
 	
-	//new iAttackType = KvGetNum(kv, "attack_type");
-	new iAttackType = SF2BossAttackType_Melee;
+	//int iAttackType = KvGetNum(kv, "attack_type");
+	int iAttackType = SF2BossAttackType_Melee;
 	
-	new Float:flAttackRange = KvGetFloat(kv, "attack_range");
+	float flAttackRange = KvGetFloat(kv, "attack_range");
 	if (flAttackRange < 0.0) flAttackRange = 0.0;
 	
-	new Float:flAttackDamage = KvGetFloat(kv, "attack_damage");
-	new Float:flAttackDamageVsProps = KvGetFloat(kv, "attack_damage_vs_props", flAttackDamage);
-	new Float:flAttackDamageForce = KvGetFloat(kv, "attack_damageforce");
+	float flAttackDamage = KvGetFloat(kv, "attack_damage");
+	float flAttackDamageVsProps = KvGetFloat(kv, "attack_damage_vs_props", flAttackDamage);
+	float flAttackDamageForce = KvGetFloat(kv, "attack_damageforce");
 	
-	new iAttackDamageType = KvGetNum(kv, "attack_damagetype");
+	int iAttackDamageType = KvGetNum(kv, "attack_damagetype");
 	if (iAttackDamageType < 0) iAttackDamageType = 0;
 	
-	new Float:flAttackDamageDelay = KvGetFloat(kv, "attack_delay");
+	float flAttackDamageDelay = KvGetFloat(kv, "attack_delay");
 	if (flAttackDamageDelay < 0.0) flAttackDamageDelay = 0.0;
 	
-	new Float:flAttackDuration = KvGetFloat(kv, "attack_duration");
+	float flAttackDuration = KvGetFloat(kv, "attack_duration");
 	if (flAttackDuration < 0.0) flAttackDuration = 0.0;
 	
-	new bool:bAttackProps = bool:KvGetNum(kv, "attack_props");
+	bool bAttackProps = view_as<bool>(KvGetNum(kv, "attack_props"));
 	
-	new Float:flAttackSpreadOld = KvGetFloat(kv, "attack_fov", 45.0);
-	new Float:flAttackSpread = KvGetFloat(kv, "attack_spread", flAttackSpreadOld);
+	float flAttackSpreadOld = KvGetFloat(kv, "attack_fov", 45.0);
+	float flAttackSpread = KvGetFloat(kv, "attack_spread", flAttackSpreadOld);
 	
 	if (flAttackSpread < 0.0) flAttackSpread = 0.0;
 	else if (flAttackSpread > 360.0) flAttackSpread = 360.0;
 	
-	new Float:flAttackBeginRange = KvGetFloat(kv, "attack_begin_range", flAttackRange);
+	float flAttackBeginRange = KvGetFloat(kv, "attack_begin_range", flAttackRange);
 	if (flAttackBeginRange < 0.0) flAttackBeginRange = 0.0;
 	
-	new Float:flAttackBeginFOV = KvGetFloat(kv, "attack_begin_fov", flAttackSpread);
+	float flAttackBeginFOV = KvGetFloat(kv, "attack_begin_fov", flAttackSpread);
 	if (flAttackBeginFOV < 0.0) flAttackBeginFOV = 0.0;
 	else if (flAttackBeginFOV > 360.0) flAttackBeginFOV = 360.0;
 	
-	new Float:flAttackCooldown = KvGetFloat(kv, "attack_cooldown");
+	float flAttackCooldown = KvGetFloat(kv, "attack_cooldown");
 	if (flAttackCooldown < 0.0) flAttackCooldown = 0.0;
 	
-	new iAttackIndex = PushArrayCell(hAttacks, -1);
+	int iAttackIndex = PushArrayCell(hAttacks, -1);
 	
 	SetArrayCell(hAttacks, iAttackIndex, iAttackType, ChaserProfileAttackData_Type);
 	SetArrayCell(hAttacks, iAttackIndex, bAttackProps, ChaserProfileAttackData_CanUseAgainstProps);
@@ -295,10 +295,10 @@ static ParseChaserProfileAttacks(Handle:kv, iUniqueProfileIndex)
 /**
  *	Parses and stores the default animations of a chaser boss profile.
  */
-static ParseChaserProfileAnimations(Handle:kv, iUniqueProfileIndex)
+static void ParseChaserProfileAnimations(Handle kv,int iUniqueProfileIndex)
 {
-	new Handle:hAnimations = CreateArray(64);
-	for (new i = 0; i < ChaserAnimationType_Max / 2; i++)
+	Handle hAnimations = CreateArray(64);
+	for (int i = 0; i < ChaserAnimationType_Max / 2; i++)
 	{
 		PushArrayString(hAnimations, "");
 		PushArrayCell(hAnimations, 1.0);
@@ -306,9 +306,9 @@ static ParseChaserProfileAnimations(Handle:kv, iUniqueProfileIndex)
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, hAnimations, ChaserProfileData_Animations);
 	
-	decl String:sAnimation[64];
-	decl Float:flAnimationPlaybackRate;
-	new animationCount = 0;
+	char sAnimation[64];
+	float flAnimationPlaybackRate;
+	int animationCount = 0;
 	
 	KvGetString(kv, "animation_idle", sAnimation, sizeof(sAnimation));
 	flAnimationPlaybackRate = KvGetFloat(kv, "animation_idle_playbackrate", 1.0);
@@ -371,200 +371,200 @@ static ParseChaserProfileAnimations(Handle:kv, iUniqueProfileIndex)
 	}
 }
 
-Float:GetChaserProfileStepSize(iChaserProfileIndex)
+float GetChaserProfileStepSize(int iChaserProfileIndex)
 {
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StepSize);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StepSize));
 }
 
-Float:GetChaserProfileWalkSpeed(iChaserProfileIndex, iDifficulty)
+float GetChaserProfileWalkSpeed(int iChaserProfileIndex,int iDifficulty)
 {
 	switch (iDifficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WalkSpeedNormal));
 }
 
-Float:GetChaserProfileAirSpeed(iChaserProfileIndex, iDifficulty)
+float GetChaserProfileAirSpeed(int iChaserProfileIndex,int iDifficulty)
 {
 	switch (iDifficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AirSpeedNormal));
 }
 
-Float:GetChaserProfileMaxWalkSpeed(iChaserProfileIndex, iDifficulty)
+float GetChaserProfileMaxWalkSpeed(int iChaserProfileIndex,int iDifficulty)
 {
 	switch (iDifficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxWalkSpeedNormal));
 }
 
-Float:GetChaserProfileMaxAirSpeed(iChaserProfileIndex, iDifficulty)
+float GetChaserProfileMaxAirSpeed(int iChaserProfileIndex,int iDifficulty)
 {
 	switch (iDifficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedNormal));
 }
 
-Float:GetChaserProfileWakeRadius(iChaserProfileIndex)
+float GetChaserProfileWakeRadius(int iChaserProfileIndex)
 {
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WakeRadius);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_WakeRadius));
 }
 
-GetChaserProfileAttackCount(iChaserProfileIndex)
+int GetChaserProfileAttackCount(int iChaserProfileIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 	
 	return GetArraySize(hAttacks);
 }
 
-GetChaserProfileAttackType(iChaserProfileIndex, iAttackIndex)
+int GetChaserProfileAttackType(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 	
 	return GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Type);
 }
 
-Float:GetChaserProfileAttackDamage(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackDamage(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 	
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Damage);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Damage));
 }
 
-Float:GetChaserProfileAttackDamageVsProps(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackDamageVsProps(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageVsProps);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageVsProps));
 }
 
-Float:GetChaserProfileAttackDamageForce(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackDamageForce(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageForce);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageForce));
 }
 
-GetChaserProfileAttackDamageType(iChaserProfileIndex, iAttackIndex)
+int GetChaserProfileAttackDamageType(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
 	return GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageType);
 }
 
-Float:GetChaserProfileAttackDamageDelay(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackDamageDelay(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageDelay);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_DamageDelay));
 }
 
-Float:GetChaserProfileAttackRange(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackRange(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Range);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Range));
 }
 
-Float:GetChaserProfileAttackDuration(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackDuration(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Duration);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Duration));
 }
 
-Float:GetChaserProfileAttackSpread(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackSpread(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Spread);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Spread));
 }
 
-Float:GetChaserProfileAttackBeginRange(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackBeginRange(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_BeginRange);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_BeginRange));
 }
 
-Float:GetChaserProfileAttackBeginFOV(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackBeginFOV(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_BeginFOV);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_BeginFOV));
 }
 
-Float:GetChaserProfileAttackCooldown(iChaserProfileIndex, iAttackIndex)
+float GetChaserProfileAttackCooldown(int iChaserProfileIndex,int  iAttackIndex)
 {
-	new Handle:hAttacks = Handle:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks);
+	Handle hAttacks = view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Attacks));
 	
-	return Float:GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Cooldown);
+	return view_as<float>(GetArrayCell(hAttacks, iAttackIndex, ChaserProfileAttackData_Cooldown));
 }
 
-bool:GetChaserProfileStunState(iChaserProfileIndex)
+bool GetChaserProfileStunState(int iChaserProfileIndex)
 {
-	return bool:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_CanBeStunned);
+	return view_as<bool>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_CanBeStunned));
 }
 
-Float:GetChaserProfileStunDuration(iChaserProfileIndex)
+float GetChaserProfileStunDuration(int iChaserProfileIndex)
 {
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunDuration);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunDuration));
 }
 
-bool:GetChaserProfileStunFlashlightState(iChaserProfileIndex)
+bool GetChaserProfileStunFlashlightState(int iChaserProfileIndex)
 {
-	return bool:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_CanBeStunnedByFlashlight);
+	return view_as<bool>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_CanBeStunnedByFlashlight));
 }
 
-Float:GetChaserProfileStunFlashlightDamage(iChaserProfileIndex)
+float GetChaserProfileStunFlashlightDamage(int iChaserProfileIndex)
 {
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunFlashlightDamage);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunFlashlightDamage));
 }
 
-Float:GetChaserProfileStunHealth(iChaserProfileIndex)
+float GetChaserProfileStunHealth(int iChaserProfileIndex)
 {
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunHealth);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunHealth));
 }
 
-stock Float:GetChaserProfileAwarenessIncreaseRate(iChaserProfileIndex, difficulty)
+stock float GetChaserProfileAwarenessIncreaseRate(int iChaserProfileIndex,int difficulty)
 {
 	switch (difficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessIncreaseRateNormal));
 }
 
-stock Float:GetChaserProfileAwarenessDecreaseRate(iChaserProfileIndex, difficulty)
+stock float GetChaserProfileAwarenessDecreaseRate(int iChaserProfileIndex,int difficulty)
 {
 	switch (difficulty)
 	{
-		case Difficulty_Easy: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateEasy);
-		case Difficulty_Hard: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateHard);
-		case Difficulty_Insane: return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateInsane);
+		case Difficulty_Easy: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateEasy));
+		case Difficulty_Hard: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateHard));
+		case Difficulty_Insane: return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateInsane));
 	}
 	
-	return Float:GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateNormal);
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateNormal));
 }

@@ -44,29 +44,32 @@
 #define vec3_origin { 0.0, 0.0, 0.0 }
 
 // hull defines, mostly used for space checking.
-new Float:HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }
-new Float:HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
+float HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }
+float HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
+
+float HULL_TF2PLAYER_MINS[3] = { -24.5, -24.5, 0.0 }
+float HULL_TF2PLAYER_MAXS[3] = { 24.5,  24.5, 83.0 }
 
 //	==========================================================
 //	ENTITY FUNCTIONS
 //	==========================================================
 
-stock bool:IsEntityClassname(iEnt, const String:classname[], bool:bCaseSensitive=true)
+stock bool IsEntityClassname(int iEnt, const char[] classname, bool bCaseSensitive=true)
 {
 	if (!IsValidEntity(iEnt)) return false;
 	
-	decl String:sBuffer[256];
+	char sBuffer[256];
 	GetEntityClassname(iEnt, sBuffer, sizeof(sBuffer));
 	
 	return StrEqual(sBuffer, classname, bCaseSensitive);
 }
 
-stock FindEntityByTargetname(const String:targetName[], const String:className[], bool:caseSensitive=true)
+stock int FindEntityByTargetname(const char[] targetName, const char[] className, bool caseSensitive=true)
 {
-	new ent = -1;
+	int ent = -1;
 	while ((ent = FindEntityByClassname(ent, className)) != -1)
 	{
-		decl String:sName[64];
+		char sName[64];
 		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
 		if (StrEqual(sName, targetName, caseSensitive))
 		{
@@ -77,19 +80,19 @@ stock FindEntityByTargetname(const String:targetName[], const String:className[]
 	return INVALID_ENT_REFERENCE;
 }
 
-stock Float:EntityDistanceFromEntity(ent1, ent2, bool:bSquared=false)
+stock float EntityDistanceFromEntity(int ent1,int ent2, bool bSquared=false)
 {
 	if (!IsValidEntity(ent1) || !IsValidEntity(ent2)) return -1.0;
 	
-	decl Float:flMyPos[3], Float:flHisPos[3];
+	float flMyPos[3],flHisPos[3];
 	GetEntPropVector(ent1, Prop_Data, "m_vecAbsOrigin", flMyPos);
 	GetEntPropVector(ent2, Prop_Data, "m_vecAbsOrigin", flHisPos);
 	return GetVectorDistance(flMyPos, flHisPos, bSquared);
 }
 
-stock GetEntityOBBCenterPosition(ent, Float:flBuffer)
+stock void GetEntityOBBCenterPosition(int ent, float flBuffer)
 {
-	decl Float:flPos[3], Float:flMins[3], Float:flMaxs[3];
+	float flPos[3], flMins[3], flMaxs[3];
 	GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", flPos);
 	GetEntPropVector(ent, Prop_Send, "m_vecMins", flMins);
 	GetEntPropVector(ent, Prop_Send, "m_vecMaxs", flMaxs);
@@ -97,43 +100,43 @@ stock GetEntityOBBCenterPosition(ent, Float:flBuffer)
 	for (new i = 0; i < 3; i++) flBuffer[i] = flPos[i] + ((flMins[i] + flMaxs[i]) / 2.0);
 }
 
-stock bool:IsSpaceOccupied(const Float:pos[3], const Float:mins[3], const Float:maxs[3], entity=-1, &ref=-1)
+stock bool IsSpaceOccupied(const float pos[3], const float mins[3], const float maxs[3],int entity=-1,int &ref=-1)
 {
-	new Handle:hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_VISIBLE, TraceRayDontHitEntity, entity);
-	new bool:bHit = TR_DidHit(hTrace);
+	Handle hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_VISIBLE, TraceRayDontHitEntity, entity);
+	bool bHit = TR_DidHit(hTrace);
 	ref = TR_GetEntityIndex(hTrace);
 	CloseHandle(hTrace);
 	return bHit;
 }
 
-stock bool:IsSpaceOccupiedIgnorePlayers(const Float:pos[3], const Float:mins[3], const Float:maxs[3], entity=-1, &ref=-1)
+stock bool IsSpaceOccupiedIgnorePlayers(const float pos[3], const float mins[3], const float maxs[3],int entity=-1,int &ref=-1)
 {
-	new Handle:hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_VISIBLE, TraceRayDontHitPlayersOrEntity, entity);
-	new bool:bHit = TR_DidHit(hTrace);
+	Handle hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_VISIBLE, TraceRayDontHitPlayersOrEntity, entity);
+	bool bHit = TR_DidHit(hTrace);
 	ref = TR_GetEntityIndex(hTrace);
 	CloseHandle(hTrace);
 	return bHit;
 }
 
-stock bool:IsSpaceOccupiedPlayer(const Float:pos[3], const Float:mins[3], const Float:maxs[3], entity=-1, &ref=-1)
+stock bool IsSpaceOccupiedPlayer(const float pos[3], const float mins[3], const float maxs[3],int entity=-1,int &ref=-1)
 {
-	new Handle:hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_PLAYERSOLID, TraceRayDontHitEntity, entity);
-	new bool:bHit = TR_DidHit(hTrace);
+	Handle hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_PLAYERSOLID, TraceRayDontHitEntity, entity);
+	bool bHit = TR_DidHit(hTrace);
 	ref = TR_GetEntityIndex(hTrace);
 	CloseHandle(hTrace);
 	return bHit;
 }
 
-stock bool:IsSpaceOccupiedNPC(const Float:pos[3], const Float:mins[3], const Float:maxs[3], entity=-1, &ref=-1)
+stock bool IsSpaceOccupiedNPC(const float pos[3], const float mins[3], const float maxs[3],int entity=-1,int &ref=-1)
 {
-	new Handle:hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_NPCSOLID, TraceRayDontHitEntity, entity);
-	new bool:bHit = TR_DidHit(hTrace);
+	Handle hTrace = TR_TraceHullFilterEx(pos, pos, mins, maxs, MASK_NPCSOLID, TraceRayDontHitEntity, entity);
+	bool bHit = TR_DidHit(hTrace);
 	ref = TR_GetEntityIndex(hTrace);
 	CloseHandle(hTrace);
 	return bHit;
 }
 
-stock EntitySetAnimation(iEntity, const String:sAnimation[], bool:bDefaultAnimation=true, Float:flPlaybackRate=1.0)
+stock void EntitySetAnimation(int iEntity, const char[] sAnimation, bool bDefaultAnimation=true, float flPlaybackRate=1.0)
 {
 	// Set m_nSequence to 0 to fix an animation glitch with HL2/GMod models.
 	SetEntProp(iEntity, Prop_Send, "m_nSequence", 0);
@@ -160,12 +163,12 @@ stock EntitySetAnimation(iEntity, const String:sAnimation[], bool:bDefaultAnimat
 //	==========================================================
 
 //Credits to Linux_lover for this stock and signature.
-stock ClientSDK_PlaySpecificSequence(client, const String:strSequence[])
+stock void ClientSDK_PlaySpecificSequence(int client, const char[] strSequence)
 {
 	if(g_hSDKPlaySpecificSequence != INVALID_HANDLE)
 	{
 #if defined DEBUG
-		static bool:once = true;
+		static bool once = true;
 		if(once)
 		{
 			PrintToServer("(SDK_PlaySpecificSequence) Calling on player %N \"%s\"..", client, strSequence);
@@ -175,14 +178,14 @@ stock ClientSDK_PlaySpecificSequence(client, const String:strSequence[])
 		SDKCall(g_hSDKPlaySpecificSequence, client, strSequence);
 	}
 }
-stock KillClient(client)
+stock void KillClient(int client)
 {
 	ForcePlayerSuicide(client);
-	SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, Float:{ 0.0, 0.0, 0.0 });
+	SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
 	SetVariantInt(9001);
 	AcceptEntityInput(client, "RemoveHealth");
 }
-stock bool:IsClientCritBoosted(client)
+stock bool IsClientCritBoosted(int client)
 {
 	if (TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged) ||
 		TF2_IsPlayerInCondition(client, TFCond_HalloweenCritCandy) ||
@@ -197,17 +200,17 @@ stock bool:IsClientCritBoosted(client)
 		return true;
 	}
 	
-	new iActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	int iActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	if (IsValidEdict(iActiveWeapon))
 	{
-		decl String:sNetClass[64];
+		char sNetClass[64];
 		GetEntityNetClass(iActiveWeapon, sNetClass, sizeof(sNetClass));
 		
 		if (StrEqual(sNetClass, "CTFFlameThrower"))
 		{
 			if (GetEntProp(iActiveWeapon, Prop_Send, "m_bCritFire")) return true;
 		
-			new iItemDef = GetEntProp(iActiveWeapon, Prop_Send, "m_iItemDefinitionIndex");
+			int iItemDef = GetEntProp(iActiveWeapon, Prop_Send, "m_iItemDefinitionIndex");
 			if (iItemDef == 594 && TF2_IsPlayerInCondition(client, TFCond_CritMmmph)) return true;
 		}
 		else if (StrEqual(sNetClass, "CTFMinigun"))
@@ -219,16 +222,16 @@ stock bool:IsClientCritBoosted(client)
 	return false;
 }
 
-stock ClientSwitchToWeaponSlot(client, iSlot)
+stock void ClientSwitchToWeaponSlot(int client,int iSlot)
 {
-	new iWeapon = GetPlayerWeaponSlot(client, iSlot);
+	int iWeapon = GetPlayerWeaponSlot(client, iSlot);
 	if (iWeapon == -1) return;
 	
 	// EquipPlayerWeapon(client, iWeapon); // doesn't work with TF2 that well.
 	SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", iWeapon);
 }
 
-stock ChangeClientTeamNoSuicide(client, team, bool:bRespawn=true)
+stock void ChangeClientTeamNoSuicide(int client,int team, bool bRespawn=true)
 {
 	if (!IsClientInGame(client)) return;
 	
@@ -241,9 +244,9 @@ stock ChangeClientTeamNoSuicide(client, team, bool:bRespawn=true)
 	}
 }
 
-stock UTIL_ScreenShake(client, Float:amplitude, Float:duration, Float:frequency)
+stock void UTIL_ScreenShake(int client, float amplitude, float duration, float frequency)
 {
-	new Handle:hBf = StartMessageOne("Shake", client);
+	Handle hBf = StartMessageOne("Shake", client);
 	if (hBf != INVALID_HANDLE)
 	{
 		BfWriteByte(hBf, 0);
@@ -254,9 +257,10 @@ stock UTIL_ScreenShake(client, Float:amplitude, Float:duration, Float:frequency)
 	}
 }
 
-public UTIL_ScreenFade(client, duration, time, flags, r, g, b, a)
+public void UTIL_ScreenFade(int client,int duration,int time,int flags,int r,int g,int b,int a)
 {
-	new clients[1], Handle:bf;
+	int clients[1];
+	Handle bf;
 	clients[0] = client;
 	
 	bf = StartMessage("Fade", clients, 1);
@@ -270,24 +274,24 @@ public UTIL_ScreenFade(client, duration, time, flags, r, g, b, a)
 	EndMessage();
 }
 
-stock bool:IsValidClient(client)
+stock bool IsValidClient(int client)
 {
-	return bool:(client > 0 && client <= MaxClients && IsClientInGame(client));
+	return view_as<bool>((client > 0 && client <= MaxClients && IsClientInGame(client)));
 }
 
 //	==========================================================
 //	TF2-SPECIFIC FUNCTIONS
 //	==========================================================
-stock bool:IsTauntWep(iWeapon)
+stock bool IsTauntWep(int iWeapon)
 {
-	new Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
+	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
 	if(Index==37)
 		return true;
 	return false;
 }
-stock ForceTeamWin(team)
+stock void ForceTeamWin(int team)
 {
-	new ent = FindEntityByClassname(-1, "team_control_point_master");
+	int ent = FindEntityByClassname(-1, "team_control_point_master");
 	if (ent == -1)
 	{
 		ent = CreateEntityByName("team_control_point_master");
@@ -299,9 +303,9 @@ stock ForceTeamWin(team)
 	AcceptEntityInput(ent, "SetWinner");
 }
 
-stock GameTextTFMessage(const String:message[], const String:icon[]="")
+stock void GameTextTFMessage(const char[] message, const char[] icon="")
 {
-	new ent = CreateEntityByName("game_text_tf");
+	int ent = CreateEntityByName("game_text_tf");
 	DispatchKeyValue(ent, "message", message);
 	DispatchKeyValue(ent, "display_to_team", "0");
 	DispatchKeyValue(ent, "icon", icon);
@@ -310,12 +314,12 @@ stock GameTextTFMessage(const String:message[], const String:icon[]="")
 	AcceptEntityInput(ent, "Kill");
 }
 
-stock BuildAnnotationBitString(const clients[], iMaxClients)
+stock int BuildAnnotationBitString(const int[] clients,int iMaxClients)
 {
-	new iBitString = 1;
-	for (new i = 0; i < maxClients; i++)
+	int iBitString = 1;
+	for (int i = 0; i < maxClients; i++)
 	{
-		new client = clients[i];
+		int client = clients[i];
 		if (!IsClientInGame(client) || !IsPlayerAlive(client)) continue;
 	
 		iBitString |= RoundFloat(Pow(2.0, float(client)));
@@ -324,9 +328,9 @@ stock BuildAnnotationBitString(const clients[], iMaxClients)
 	return iBitString;
 }
 
-stock SpawnAnnotation(client, entity, const Float:pos[3], const String:message[], Float:lifetime)
+stock void SpawnAnnotation(int client,int entity, const float pos[3], const char[] message, float lifetime)
 {
-	new Handle:event = CreateEvent("show_annotation", true);
+	Handle event = CreateEvent("show_annotation", true);
 	if (event != INVALID_HANDLE)
 	{
 		new bitstring = BuildAnnotationBitString(id, pos, type, team);
@@ -347,7 +351,7 @@ stock SpawnAnnotation(client, entity, const Float:pos[3], const String:message[]
 	}
 }
 
-stock Float:TF2_GetClassBaseSpeed(TFClassType:class)
+stock float TF2_GetClassBaseSpeed(TFClassType class)
 {
 	switch (class)
 	{
@@ -392,22 +396,22 @@ stock Float:TF2_GetClassBaseSpeed(TFClassType:class)
 	return 0.0;
 }
 
-stock Handle:PrepareItemHandle(String:classname[], index, level, quality, String:att[])
+stock Handle PrepareItemHandle(char[] classname,int index,int level,int quality, char[] att)
 {
-	new Handle:hItem = TF2Items_CreateItem(OVERRIDE_ALL | FORCE_GENERATION);
+	Handle hItem = TF2Items_CreateItem(OVERRIDE_ALL | FORCE_GENERATION);
 	TF2Items_SetClassname(hItem, classname);
 	TF2Items_SetItemIndex(hItem, index);
 	TF2Items_SetLevel(hItem, level);
 	TF2Items_SetQuality(hItem, quality);
 	
 	// Set attributes.
-	new String:atts[32][32];
-	new count = ExplodeString(att, " ; ", atts, 32, 32);
+	char atts[32][32];
+	int count = ExplodeString(att, " ; ", atts, 32, 32);
 	if (count > 1)
 	{
 		TF2Items_SetNumAttributes(hItem, count / 2);
-		new i2 = 0;
-		for (new i = 0; i < count; i+= 2)
+		int i2 = 0;
+		for (int i = 0; i < count; i+= 2)
 		{
 			TF2Items_SetAttribute(hItem, i2, StringToInt(atts[i]), StringToFloat(atts[i+1]));
 			i2++;
@@ -422,15 +426,15 @@ stock Handle:PrepareItemHandle(String:classname[], index, level, quality, String
 }
 
 // Removes wearables such as botkillers from weapons.
-stock TF2_RemoveWeaponSlotAndWearables(client, iSlot)
+stock void TF2_RemoveWeaponSlotAndWearables(int client,int iSlot)
 {
-	new iWeapon = GetPlayerWeaponSlot(client, iSlot);
+	int iWeapon = GetPlayerWeaponSlot(client, iSlot);
 	if (!IsValidEntity(iWeapon)) return;
 	
-	new iWearable = INVALID_ENT_REFERENCE;
+	int iWearable = INVALID_ENT_REFERENCE;
 	while ((iWearable = FindEntityByClassname(iWearable, "tf_wearable")) != -1)
 	{
-		new iWeaponAssociated = GetEntPropEnt(iWearable, Prop_Send, "m_hWeaponAssociatedWith");
+		int iWeaponAssociated = GetEntPropEnt(iWearable, Prop_Send, "m_hWeaponAssociatedWith");
 		if (iWeaponAssociated == iWeapon)
 		{
 			AcceptEntityInput(iWearable, "Kill");
@@ -440,7 +444,7 @@ stock TF2_RemoveWeaponSlotAndWearables(client, iSlot)
 	iWearable = INVALID_ENT_REFERENCE;
 	while ((iWearable = FindEntityByClassname(iWearable, "tf_wearable_vm")) != -1)
 	{
-		new iWeaponAssociated = GetEntPropEnt(iWearable, Prop_Send, "m_hWeaponAssociatedWith");
+		int iWeaponAssociated = GetEntPropEnt(iWearable, Prop_Send, "m_hWeaponAssociatedWith");
 		if (iWeaponAssociated == iWeapon)
 		{
 			AcceptEntityInput(iWearable, "Kill");
@@ -450,7 +454,7 @@ stock TF2_RemoveWeaponSlotAndWearables(client, iSlot)
 	TF2_RemoveWeaponSlot(client, iSlot);
 }
 
-stock TE_SetupTFParticleEffect(iParticleSystemIndex, const Float:flOrigin[3], const Float:flStart[3]=NULL_VECTOR, iAttachType=0, iEntIndex=-1, iAttachmentPointIndex=0, bool:bControlPoint1=false, const Float:flControlPoint1Offset[3]=NULL_VECTOR)
+stock void TE_SetupTFParticleEffect(int iParticleSystemIndex, const float flOrigin[3], const float flStart[3]=NULL_VECTOR,int iAttachType=0,int iEntIndex=-1,int iAttachmentPointIndex=0, bool bControlPoint1=false, const float flControlPoint1Offset[3]=NULL_VECTOR)
 {
 	TE_Start("TFParticleEffect");
 	TE_WriteFloat("m_vecOrigin[0]", flOrigin[0]);
@@ -476,7 +480,7 @@ stock TE_SetupTFParticleEffect(iParticleSystemIndex, const Float:flOrigin[3], co
 /**
  *	Converts a given timestamp into hours, minutes, and seconds.
  */
-stock FloatToTimeHMS(Float:time, &h=0, &m=0, &s=0)
+stock void FloatToTimeHMS(float time,int &h=0,int &m=0,int &s=0)
 {
 	s = RoundFloat(time);
 	h = s / 3600;
@@ -485,9 +489,9 @@ stock FloatToTimeHMS(Float:time, &h=0, &m=0, &s=0)
 	s = s % 60;
 }
 
-stock FixedUnsigned16(Float:value, scale)
+stock int FixedUnsigned16(float value,int scale)
 {
-	new iOutput;
+	int iOutput;
 	
 	iOutput = RoundToFloor(value * float(scale));
 	
@@ -504,13 +508,13 @@ stock FixedUnsigned16(Float:value, scale)
 	return iOutput;
 }
 
-stock Float:FloatMin(Float:a, Float:b)
+stock float FloatMin(float a, float b)
 {
 	if (a < b) return a;
 	return b;
 }
 
-stock Float:FloatMax(Float:a, Float:b)
+stock float FloatMax(float a, float b)
 {
 	if (a > b) return a;
 	return b;
@@ -523,14 +527,14 @@ stock Float:FloatMax(Float:a, Float:b)
 /**
  *	Copies a vector into another vector.
  */
-stock CopyVector(const Float:flCopy[3], Float:flDest[3])
+stock void CopyVector(const float flCopy[3], float flDest[3])
 {
 	flDest[0] = flCopy[0];
 	flDest[1] = flCopy[1];
 	flDest[2] = flCopy[2];
 }
 
-stock LerpVectors(const Float:fA[3], const Float:fB[3], Float:fC[3], Float:t)
+stock void LerpVectors(const float fA[3] , const float fB[3], float fC[3], float t)
 {
     if (t < 0.0) t = 0.0;
     if (t > 1.0) t = 1.0;
@@ -543,9 +547,9 @@ stock LerpVectors(const Float:fA[3], const Float:fB[3], Float:fC[3], Float:t)
 /**
  *	Translates and re-orients a given offset vector into world space, given a world position and angle.
  */
-stock VectorTransform(const Float:offset[3], const Float:worldpos[3], const Float:ang[3], Float:buffer[3])
+stock void VectorTransform(const float offset[3], const float worldpos[3], const float ang[3], float buffer[3])
 {
-	decl Float:fwd[3], Float:right[3], Float:up[3];
+	float fwd[3],right[3], up[3];
 	GetAngleVectors(ang, fwd, right, up);
 	
 	NormalizeVector(fwd, fwd);
@@ -565,9 +569,9 @@ stock VectorTransform(const Float:offset[3], const Float:worldpos[3], const Floa
 //	ANGLE FUNCTIONS
 //	==========================================================
 
-stock Float:ApproachAngle(Float:target, Float:value, Float:speed)
+stock float ApproachAngle(float target, float value, float speed)
 {
-	new Float:delta = AngleDiff(value, target);
+	float delta = AngleDiff(value, target);
 	
 	if (speed < 0.0) speed = -speed;
 	
@@ -578,16 +582,16 @@ stock Float:ApproachAngle(Float:target, Float:value, Float:speed)
 	return AngleNormalize(value);
 }
 
-stock Float:AngleNormalize(Float:angle)
+stock float AngleNormalize(float angle)
 {
 	while (angle > 180.0) angle -= 360.0;
 	while (angle < -180.0) angle += 360.0;
 	return angle;
 }
 
-stock Float:AngleDiff(Float:firstAngle, Float:secondAngle)
+stock float AngleDiff(float firstAngle, float secondAngle)
 {
-	new Float:diff = secondAngle - firstAngle;
+	float diff = secondAngle - firstAngle;
 	return AngleNormalize(diff);
 }
 
@@ -595,26 +599,26 @@ stock Float:AngleDiff(Float:firstAngle, Float:secondAngle)
 //	PRECACHING FUNCTIONS
 //	==========================================================
 
-stock PrecacheSound2(const String:path[])
+stock void PrecacheSound2(const char[] path)
 {
 	PrecacheSound(path, true);
-	decl String:buffer[PLATFORM_MAX_PATH];
+	char buffer[PLATFORM_MAX_PATH];
 	Format(buffer, sizeof(buffer), "sound/%s", path);
 	AddFileToDownloadsTable(buffer);
 }
 
-stock PrecacheMaterial2(const String:path[])
+stock void PrecacheMaterial2(const char[] path)
 {
-	decl String:buffer[PLATFORM_MAX_PATH];
+	char buffer[PLATFORM_MAX_PATH];
 	Format(buffer, sizeof(buffer), "materials/%s.vmt", path);
 	AddFileToDownloadsTable(buffer);
 	Format(buffer, sizeof(buffer), "materials/%s.vtf", path);
 	AddFileToDownloadsTable(buffer);
 }
 
-stock PrecacheParticleSystem(const String:particleSystem[])
+stock int PrecacheParticleSystem(const char[] particleSystem)
 {
-	static particleEffectNames = INVALID_STRING_TABLE;
+	static int particleEffectNames = INVALID_STRING_TABLE;
 
 	if (particleEffectNames == INVALID_STRING_TABLE) {
 		if ((particleEffectNames = FindStringTable("ParticleEffectNames")) == INVALID_STRING_TABLE) {
@@ -622,9 +626,9 @@ stock PrecacheParticleSystem(const String:particleSystem[])
 		}
 	}
 
-	new index = FindStringIndex2(particleEffectNames, particleSystem);
+	int index = FindStringIndex2(particleEffectNames, particleSystem);
 	if (index == INVALID_STRING_INDEX) {
-		new numStrings = GetStringTableNumStrings(particleEffectNames);
+		int numStrings = GetStringTableNumStrings(particleEffectNames);
 		if (numStrings >= GetStringTableMaxStrings(particleEffectNames)) {
 			return INVALID_STRING_INDEX;
 		}
@@ -636,12 +640,12 @@ stock PrecacheParticleSystem(const String:particleSystem[])
 	return index;
 }
 
-stock FindStringIndex2(tableidx, const String:str[])
+stock int FindStringIndex2(int tableidx, const char[] str)
 {
-	decl String:buf[1024];
+	char buf[1024];
 	
-	new numStrings = GetStringTableNumStrings(tableidx);
-	for (new i=0; i < numStrings; i++) {
+	int numStrings = GetStringTableNumStrings(tableidx);
+	for (int i=0; i < numStrings; i++) {
 		ReadStringTable(tableidx, i, buf, sizeof(buf));
 		
 		if (StrEqual(buf, str)) {
@@ -652,12 +656,12 @@ stock FindStringIndex2(tableidx, const String:str[])
 	return INVALID_STRING_INDEX;
 }
 
-stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDist, Float:flAddAng, Function:iCallback=INVALID_FUNCTION, any:data=-1)
+stock void InsertNodesAroundPoint(Handle hArray, const float flOrigin[3], float flDist, float flAddAng, Function iCallback=INVALID_FUNCTION, any data=-1)
 {
-	decl Float:flDirection[3];
-	decl Float:flPos[3];
+	float flDirection[3];
+	float flPos[3];
 	
-	for (new Float:flAng = 0.0; flAng < 360.0; flAng += flAddAng)
+	for (float flAng = 0.0; flAng < 360.0; flAng += flAddAng)
 	{
 		flDirection[0] = 0.0;
 		flDirection[1] = flAng;
@@ -668,12 +672,12 @@ stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDis
 		ScaleVector(flDirection, flDist);
 		AddVectors(flDirection, flOrigin, flPos);
 		
-		new Float:flPos2[3];
-		for (new i = 0; i < 2; i++) flPos2[i] = flPos[i];
+		float flPos2[3];
+		for (int i = 0; i < 2; i++) flPos2[i] = flPos[i];
 		
 		if (iCallback != INVALID_FUNCTION)
 		{
-			new Action:iAction = Plugin_Continue;
+			Action iAction = Plugin_Continue;
 			
 			Call_StartFunction(INVALID_HANDLE, iCallback);
 			Call_PushArray(flOrigin, 3);
@@ -684,7 +688,7 @@ stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDis
 			if (iAction == Plugin_Stop || iAction == Plugin_Handled) continue;
 			else if (iAction == Plugin_Changed)
 			{
-				for (new i = 0; i < 2; i++) flPos[i] = flPos2[i];
+				for (int i = 0; i < 2; i++) flPos[i] = flPos2[i];
 			}
 		}
 		
@@ -696,25 +700,40 @@ stock InsertNodesAroundPoint(Handle:hArray, const Float:flOrigin[3], Float:flDis
 //	TRACE FUNCTIONS
 //	==========================================================
 
-public bool:TraceRayDontHitEntity(entity, mask, any:data)
+public bool TraceRayDontHitEntity(int entity,int mask,any data)
 {
 	if (entity == data) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
+	if (IsValidEdict(entity))
+	{
+		char sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	return true;
 }
 
-public bool:TraceRayDontHitPlayers(entity, mask, any:data)
+public bool TraceRayDontHitPlayers(int entity,int mask, any data)
 {
 	if (entity > 0 && entity <= MaxClients) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
+	if (IsValidEdict(entity))
+	{
+		char sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	return true;
 }
 
-public bool:TraceRayDontHitPlayersOrEntity(entity, mask, any:data)
+public bool TraceRayDontHitPlayersOrEntity(int entity,int mask,any data)
 {
 	if (entity == data) return false;
-	if (entity <= MAX_BOSSES && g_iSlenderHitbox[entity] > MaxClients && g_iSlenderHitbox[entity] == entity) return false;
 	if (entity > 0 && entity <= MaxClients) return false;
+	if (IsValidEdict(entity))
+	{
+		char sClass[64];
+		GetEntityNetClass(entity, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss")) return false;
+	}
 	
 	return true;
 }
@@ -723,9 +742,9 @@ public bool:TraceRayDontHitPlayersOrEntity(entity, mask, any:data)
 //	TIMER/CALLBACK FUNCTIONS
 //	==========================================================
 
-public Action:Timer_KillEntity(Handle:timer, any:entref)
+public Action Timer_KillEntity(Handle timer, any entref)
 {
-	new ent = EntRefToEntIndex(entref);
+	int ent = EntRefToEntIndex(entref);
 	if (ent == INVALID_ENT_REFERENCE) return;
 	
 	AcceptEntityInput(ent, "Kill");
@@ -734,15 +753,15 @@ public Action:Timer_KillEntity(Handle:timer, any:entref)
 //	==========================================================
 //	SPECIAL ROUND FUCNTIONS
 //	==========================================================
-stock bool:IsInfiniteFlashlightEnabled()
+stock bool IsInfiniteFlashlightEnabled()
 {
-	return bool:(g_bRoundInfiniteFlashlight || (GetConVarInt(g_cvPlayerInfiniteFlashlightOverride) == 1) || SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT));
+	return view_as<bool>(g_bRoundInfiniteFlashlight || (GetConVarInt(g_cvPlayerInfiniteFlashlightOverride) == 1) || SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT));
 }
-stock bool:SF_IsSurvivalMap()
+stock bool SF_IsSurvivalMap()
 {
-	return bool:(g_bIsSurvivalMap || (GetConVarInt(g_cvSurvivalMap) == 1));
+	return view_as<bool>(g_bIsSurvivalMap || (GetConVarInt(g_cvSurvivalMap) == 1));
 }
-stock bool:SF_SpecialRound(specialround)
+stock bool SF_SpecialRound(int specialround)
 {
 	if(!g_bSpecialRound)
 		return false;

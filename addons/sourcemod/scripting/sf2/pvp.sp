@@ -6,35 +6,57 @@
 
 #define SF2_PVP_SPAWN_SOUND "items/spawn_item.wav"
 
-new Handle:g_cvPvPArenaLeaveTime;
-new Handle:g_cvPvPArenaPlayerCollisions;
+#define TRIGGER_CLIENTS (1 << 0)
+#define TRIGGER_NPCS (1 << 1)
+#define TRIGGER_PUSHABLES (1 << 2)
+#define TRIGGER_PHYSICS_OBJECTS (1 << 3)
+#define TRIGGER_ALLY_NPCS (1 << 4)
+#define TRIGGER_CLIENTS_VEHICLES (1 << 5)
+#define TRIGGER_EVERYTHING_NOT_DEBRIS (1 << 6)
+#define TRIGGER_CLIENTS_NOT_VEHICLES (1 << 7)
+#define TRIGGER_PHYSICS_DEBRIS (1 << 8)
+#define TRIGGER_NPCS_VEHICLES (1 << 9)
+#define TRIGGER_NOT_BOTS (1 << 10)
 
-static const String:g_sPvPProjectileClasses[][] = 
+Handle g_cvPvPArenaLeaveTime;
+Handle g_cvPvPArenaPlayerCollisions;
+
+static const char g_sPvPProjectileClasses[][] = 
 {
 	"tf_projectile_rocket", 
-	"tf_projectile_sentryrocket", 
-	"tf_projectile_arrow", 
+	"tf_projectile_sentryrocket",
 	"tf_projectile_stun_ball",
 	"tf_projectile_ball_ornament",
 	"tf_projectile_cleaver",
 	"tf_projectile_energy_ball",
-	"tf_projectile_energy_ring",
 	"tf_projectile_flare",
-	"tf_projectile_healing_bolt",
 	"tf_projectile_jar",
 	"tf_projectile_jar_milk",
 	"tf_projectile_pipe",
 	"tf_projectile_pipe_remote",
+	"tf_projectile_throwable_breadmonster",
+	"tf_projectile_throwable_brick",
+	"tf_projectile_throwable",
+	//Don't change
+	"tf_projectile_arrow",
+	"tf_projectile_healing_bolt",
+	"tf_projectile_energy_ring",
 	"tf_projectile_syringe"
 };
+static const char g_sPvPProjectileClassesNoTouch[][] = 
+{
+	"tf_projectile_stun_ball",
+	"tf_projectile_ball_ornament",
+	"tf_projectile_pipe"
+};
 
-static bool:g_bPlayerInPvP[MAXPLAYERS + 1];
-static Handle:g_hPlayerPvPTimer[MAXPLAYERS + 1];
-static Handle:g_hPlayerPvPRespawnTimer[MAXPLAYERS + 1];
-static g_iPlayerPvPTimerCount[MAXPLAYERS + 1];
-static bool:g_bPlayerInPvPTrigger[MAXPLAYERS + 1];
+static bool g_bPlayerInPvP[MAXPLAYERS + 1];
+static Handle g_hPlayerPvPTimer[MAXPLAYERS + 1];
+static Handle g_hPlayerPvPRespawnTimer[MAXPLAYERS + 1];
+static int g_iPlayerPvPTimerCount[MAXPLAYERS + 1];
+static bool g_bPlayerInPvPTrigger[MAXPLAYERS + 1];
 
-static Handle:g_hPvPFlameEntities;
+static Handle g_hPvPFlameEntities;
 
 enum
 {
@@ -43,7 +65,7 @@ enum
 	PvPFlameEntData_MaxStats
 };
 
-public PvP_Initialize()
+public void PvP_Initialize()
 {
 	g_cvPvPArenaLeaveTime = CreateConVar("sf2_player_pvparena_leavetime", "3");
 	g_cvPvPArenaPlayerCollisions = CreateConVar("sf2_player_pvparena_collisions", "1");
@@ -51,7 +73,7 @@ public PvP_Initialize()
 	g_hPvPFlameEntities = CreateArray(PvPFlameEntData_MaxStats);
 }
 
-public PvP_SetupMenus()
+public void PvP_SetupMenus()
 {
 	g_hMenuSettingsPvP = CreateMenu(Menu_SettingsPvP);
 	SetMenuTitle(g_hMenuSettingsPvP, "%t%t\n \n", "SF2 Prefix", "SF2 Settings PvP Menu Title");
@@ -59,46 +81,84 @@ public PvP_SetupMenus()
 	SetMenuExitBackButton(g_hMenuSettingsPvP, true);
 }
 
-public PvP_OnMapStart()
+public void PvP_OnMapStart()
 {
 	ClearArray(g_hPvPFlameEntities);
+	int iEnt = -1;
+	while ((iEnt = FindEntityByClassname(iEnt, "trigger_multiple")) != -1)
+	{
+		if(IsValidEntity(iEnt))
+		{
+			char strName[50];
+			GetEntPropString(iEnt, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, "sf2_pvp_trigger") == 0)
+			{
+				//StartTouch seems to be unreliable if a player is teleported/spawns in the trigger
+				//SDKHook( iEnt, SDKHook_StartTouch, PvP_OnTriggerStartTouch );
+				//But end touch works fine.
+				SDKHook( iEnt, SDKHook_EndTouch, PvP_OnTriggerEndTouch );
+				SDKHook( iEnt, SDKHook_StartTouch, PvP_OnTriggerStartTouchEx );
+			}
+		}
+	}
 }
-
-public PvP_Precache()
+public void PvP_OnRoundStart()
+{
+	int iEnt = -1;
+	while ((iEnt = FindEntityByClassname(iEnt, "trigger_multiple")) != -1)
+	{
+		if(IsValidEntity(iEnt))
+		{
+			char strName[50];
+			GetEntPropString(iEnt, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, "sf2_pvp_trigger") == 0)
+			{
+				//Add physics object flag, so we can zap projectiles!
+				int flags = GetEntProp(iEnt, Prop_Data, "m_spawnflags");
+				flags |= TRIGGER_PHYSICS_OBJECTS;
+				flags |= TRIGGER_PHYSICS_DEBRIS;
+				SetEntProp(iEnt, Prop_Data, "m_spawnflags", flags);
+				SDKHook( iEnt, SDKHook_EndTouch, PvP_OnTriggerEndTouch );
+				SDKHook( iEnt, SDKHook_StartTouch, PvP_OnTriggerStartTouchEx );
+			}
+		}
+	}
+}
+public void PvP_Precache()
 {
 	PrecacheSound2(SF2_PVP_SPAWN_SOUND);
 }
 
-public PvP_OnClientPutInServer(client)
+public void PvP_OnClientPutInServer(int client)
 {
 	PvP_ForceResetPlayerPvPData(client);
 }
 
-public PvP_OnClientDisconnect(client)
+public void PvP_OnClientDisconnect(int client)
 {
 	PvP_SetPlayerPvPState(client, false, false, false);
 }
 
-public PvP_OnGameFrame()
+public void PvP_OnGameFrame()
 {
 	// Process through PvP projectiles.
-	for (new i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
+	for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
 	{
-		new ent = -1;
+		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			new iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
-			new bool:bChangeProjectileTeam = false;
+			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			bool bChangeProjectileTeam = false;
 			
-			new iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
-			if (IsValidClient(iOwnerEntity) && IsClientInPvP(iOwnerEntity) && GetClientTeam(iOwnerEntity) != _:TFTeam_Red)
+			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
+			if (IsValidClient(iOwnerEntity) && IsClientInPvP(iOwnerEntity) && GetClientTeam(iOwnerEntity) != TFTeam_Red)
 			{
 				bChangeProjectileTeam = true;
 			}
 			else if (iThrowerOffset != -1)
 			{
 				iOwnerEntity = GetEntDataEnt2(ent, iThrowerOffset);
-				if (IsValidClient(iOwnerEntity) && IsClientInPvP(iOwnerEntity) && GetClientTeam(iOwnerEntity) != _:TFTeam_Red)
+				if (IsValidClient(iOwnerEntity) && IsClientInPvP(iOwnerEntity) && GetClientTeam(iOwnerEntity) != TFTeam_Red)
 				{
 					bChangeProjectileTeam = true;
 				}
@@ -114,15 +174,15 @@ public PvP_OnGameFrame()
 
 	// Process through PvP flame entities.
 	{
-		static Float:flMins[3] = { -6.0, ... };
-		static Float:flMaxs[3] = { 6.0, ... };
+		static float flMins[3] = { -6.0, ... };
+		static float flMaxs[3] = { 6.0, ... };
 		
-		decl Float:flOrigin[3];
+		float flOrigin[3];
 		
-		new Handle:hTrace = INVALID_HANDLE;
-		new ent = -1;
-		new iOwnerEntity = INVALID_ENT_REFERENCE; 
-		new iHitEntity = INVALID_ENT_REFERENCE;
+		Handle hTrace = INVALID_HANDLE;
+		int ent = -1;
+		int iOwnerEntity = INVALID_ENT_REFERENCE; 
+		int iHitEntity = INVALID_ENT_REFERENCE;
 		
 		while ((ent = FindEntityByClassname(ent, "tf_flame")) != -1)
 		{
@@ -146,12 +206,12 @@ public PvP_OnGameFrame()
 				
 				if (IsValidEntity(iHitEntity))
 				{
-					new entref = EntIndexToEntRef(ent);
+					int entref = EntIndexToEntRef(ent);
 					
-					new iIndex = FindValueInArray(g_hPvPFlameEntities, entref);
+					int iIndex = FindValueInArray(g_hPvPFlameEntities, entref);
 					if (iIndex != -1)
 					{
-						new iLastHitEnt = EntRefToEntIndex(GetArrayCell(g_hPvPFlameEntities, iIndex, PvPFlameEntData_LastHitEntRef));
+						int iLastHitEnt = EntRefToEntIndex(GetArrayCell(g_hPvPFlameEntities, iIndex, PvPFlameEntData_LastHitEntRef));
 					
 						if (iHitEntity != iLastHitEnt)
 						{
@@ -165,11 +225,14 @@ public PvP_OnGameFrame()
 	}
 }
 
-public PvP_OnEntityCreated(ent, const String:sClassname[])
+public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 {
+#if defined DEBUG
+	CPrintToChatAll("{green}+%i(%s)",ent,sClassname);
+#endif
 	if (StrEqual(sClassname, "tf_flame", false))
 	{
-		new iIndex = PushArrayCell(g_hPvPFlameEntities, EntIndexToEntRef(ent));
+		int iIndex = PushArrayCell(g_hPvPFlameEntities, EntIndexToEntRef(ent));
 		if (iIndex != -1)
 		{
 			SetArrayCell(g_hPvPFlameEntities, iIndex, INVALID_ENT_REFERENCE, PvPFlameEntData_LastHitEntRef);
@@ -177,38 +240,69 @@ public PvP_OnEntityCreated(ent, const String:sClassname[])
 	}
 	else
 	{
-		for (new i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
+		for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
 		{
 			if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
 			{
 				SDKHook(ent, SDKHook_Spawn, Hook_PvPProjectileSpawn);
 				SDKHook(ent, SDKHook_SpawnPost, Hook_PvPProjectileSpawnPost);
+				SDKHook(ent, SDKHook_EndTouch, Hook_PvPProjectile_OnEndTouch);
+				break;
+			}
+			if (StrEqual(sClassname, g_sPvPProjectileClassesNoTouch[1], false))
+			{
+				SDKHook(ent, SDKHook_Touch, Hook_PvPProjectile_OnTouch);
 				break;
 			}
 		}
 	}
 }
-
-public PvP_OnEntityDestroyed(ent, const String:sClassname[])
+public void PvP_OnEntityDestroyed(int ent, const char[] sClassname)
 {
+#if defined DEBUG
+	CPrintToChatAll("{red}-%i(%s)",ent,sClassname);
+#endif
 	if (StrEqual(sClassname, "tf_flame", false))
 	{
-		new entref = EntIndexToEntRef(ent);
-		new iIndex = FindValueInArray(g_hPvPFlameEntities, entref);
+		int entref = EntIndexToEntRef(ent);
+		int iIndex = FindValueInArray(g_hPvPFlameEntities, entref);
 		if (iIndex != -1)
 		{
 			RemoveFromArray(g_hPvPFlameEntities, iIndex);
 		}
 	}
 }
-
-public Action:Hook_PvPProjectileSpawn(ent)
+public Action Hook_PvPProjectile_OnTouch(int iProjectile, int iClient)
 {
-	decl String:sClass[64];
+	// Check if the projectile hit a player outside of pvp area
+	// Without cannon balls can bounce players which should not happen because they are outside of pvp.
+	if(IsValidClient(iClient) && !IsClientInPvP(iClient))
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+public Action Hook_PvPProjectile_OnEndTouch(int iProjectile, int iOther)
+{
+	if(iOther > 0 && IsValidEntity(iOther))
+	{
+#if defined DEBUG
+		char sClass[64], sClass2[64];
+		GetEntityClassname(iOther, sClass, sizeof(sClass));
+		GetEntityClassname(iOther, sClass2, sizeof(sClass2));
+		PrintToChatAll("(Hook_PvPProjectile_OnEndTouch) Projectile: %i (%s),end touch entity %i (%s)",iProjectile,sClass2,iOther,sClass);
+#endif
+	}
+	return Plugin_Continue;
+}
+public Action Hook_PvPProjectileSpawn(int ent)
+{
+	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	new iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
-	new iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
+	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
 	{
@@ -227,13 +321,13 @@ public Action:Hook_PvPProjectileSpawn(ent)
 	return Plugin_Continue;
 }
 
-public Hook_PvPProjectileSpawnPost(ent)
+public void Hook_PvPProjectileSpawnPost(int ent)
 {
-	decl String:sClass[64];
+	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	new iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
-	new iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
+	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
 	{
@@ -244,13 +338,30 @@ public Hook_PvPProjectileSpawnPost(ent)
 	{
 		if (IsClientInPvP(iOwnerEntity))
 		{
-			SetEntProp(ent, Prop_Data, "m_iInitialTeamNum", 0);
-			SetEntProp(ent, Prop_Send, "m_iTeamNum", 0);
+			SetEntProp(ent, Prop_Data, "m_usSolidFlags", 1);
+			if(g_hPlayerPvPTimer[iOwnerEntity]==INVALID_HANDLE)
+			{
+				SetEntProp(ent, Prop_Data, "m_iInitialTeamNum", 0);
+				SetEntProp(ent, Prop_Send, "m_iTeamNum", 0);
+			}
+			else
+			{
+				//Client is not in pvp, remove the projectile
+				PvP_ZapProjectile(ent,false);
+			}
 		}
 	}
+	CreateTimer(0.1,PvP_EntitySpawnPost,ent);
 }
-
-public PvP_OnPlayerSpawn(client)
+public Action PvP_EntitySpawnPost(Handle timer,any ent)
+{
+	if(IsValidEntity(ent))
+	{
+		if(GetEntProp(ent, Prop_Data, "m_usSolidFlags")!=0)
+			PvP_ZapProjectile(ent,false);
+	}
+}
+public void PvP_OnPlayerSpawn(int client)
 {
 	PvP_SetPlayerPvPState(client, false, false, false);
 
@@ -260,7 +371,7 @@ public PvP_OnPlayerSpawn(client)
 		{
 			if (g_bPlayerEliminated[client] || g_bPlayerEscaped[client])
 			{
-				new bool:bAutoSpawn = g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn];
+				bool bAutoSpawn = g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn];
 				
 				if (bAutoSpawn)
 				{
@@ -274,14 +385,30 @@ public PvP_OnPlayerSpawn(client)
 		}
 	}
 }
-
-public PvP_OnPlayerDeath(client, bool:bFake)
+void PvP_ZapProjectile(int iProjectile,bool bEffects=true)
+{
+	//Add zap effects
+	if(bEffects)
+	{
+		float flPos[3];
+		GetEntPropVector(iProjectile, Prop_Send, "m_vecOrigin", flPos);
+		//Spawn the particle.
+		TE_SetupTFParticleEffect(g_iParticle[ZapParticle], flPos, flPos);
+		TE_SendToAll();
+		//Play zap sound.
+		EmitSoundToAll(ZAP_SOUND, iProjectile, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+		SetEntityRenderMode(iProjectile, RENDER_TRANSCOLOR);
+		SetEntityRenderColor(iProjectile, 0, 0, 0, 1);
+	}
+	AcceptEntityInput(iProjectile,"Kill");
+}
+public void PvP_OnPlayerDeath(int client, bool bFake)
 {
 	if (!bFake)
 	{
 		if (!IsClientInGhostMode(client) && !g_bPlayerProxy[client])
 		{
-			new bool:bAutoSpawn = g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn];
+			bool bAutoSpawn = g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn];
 			
 			if (bAutoSpawn)
 			{
@@ -297,75 +424,110 @@ public PvP_OnPlayerDeath(client, bool:bFake)
 	}
 }
 
-public PvP_OnClientGhostModeEnable(client)
+public void PvP_OnClientGhostModeEnable(int client)
 {
 	g_hPlayerPvPRespawnTimer[client] = INVALID_HANDLE;
 }
 
-public PvP_OnClientPutInPlay(client)
+public void PvP_OnClientPutInPlay(int client)
 {
 	g_hPlayerPvPRespawnTimer[client] = INVALID_HANDLE;
 }
 
-public bool:Hook_ClientPvPShouldCollide(ent, collisiongroup, contentsmask, bool:originalResult)
+public bool Hook_ClientPvPShouldCollide(int ent,int collisiongroup,int contentsmask, bool originalResult)
 {
 	if (!g_bEnabled) return originalResult;
 	return true;
 }
 
-public PvP_OnTriggerStartTouch(trigger, other)
+public void PvP_OnTriggerStartTouch(int trigger,int iOther)
 {
-	decl String:sName[64];
+	char sName[64];
 	GetEntPropString(trigger, Prop_Data, "m_iName", sName, sizeof(sName));
 	
 	if (StrContains(sName, "sf2_pvp_trigger", false) == 0)
 	{
-		if (IsValidClient(other) && IsPlayerAlive(other))
+		if (IsValidClient(iOther) && IsPlayerAlive(iOther))
 		{
-			g_bPlayerInPvPTrigger[other] = true;
+			g_bPlayerInPvPTrigger[iOther] = true;
 			
-			if (IsClientInPvP(other))
+			if (IsClientInPvP(iOther))
 			{
 				// Player left and came back again, but is still in PvP mode.
-				g_iPlayerPvPTimerCount[other] = 0;
-				g_hPlayerPvPTimer[other] = INVALID_HANDLE;
+				g_iPlayerPvPTimerCount[iOther] = 0;
+				g_hPlayerPvPTimer[iOther] = INVALID_HANDLE;
 			}
 			else
 			{
-				PvP_SetPlayerPvPState(other, true);
+				PvP_SetPlayerPvPState(iOther, true);
 			}
 		}
 	}
 }
-
-public PvP_OnTriggerEndTouch(trigger, other)
+public Action PvP_OnTriggerStartTouchEx(int trigger,int iOther)
 {
-	decl String:sName[64];
-	GetEntPropString(trigger, Prop_Data, "m_iName", sName, sizeof(sName));
-	
-	if (StrContains(sName, "sf2_pvp_trigger", false) == 0)
+	//(Experimental)
+	if (iOther>MaxClients && IsValidEntity(iOther))
 	{
-		if (IsValidClient(other))
+		//Get entity's classname.
+		char sClassname[50];
+		GetEntityClassname(iOther,sClassname,sizeof(sClassname));
+		for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
 		{
-			g_bPlayerInPvPTrigger[other] = false;
-			
-			if (IsClientInPvP(other))
+			if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
 			{
-				g_iPlayerPvPTimerCount[other] = GetConVarInt(g_cvPvPArenaLeaveTime);
-				g_hPlayerPvPTimer[other] = CreateTimer(1.0, Timer_PlayerPvPLeaveCountdown, GetClientUserId(other), TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+				SetEntProp(iOther, Prop_Data, "m_usSolidFlags", 0);
 			}
 		}
 	}
 }
-
+public Action PvP_OnTriggerEndTouch(int trigger,int iOther)
+{
+	//Get entity's classname.
+	char sClassname[50];
+	GetEntityClassname(iOther,sClassname,sizeof(sClassname));
+#if defined DEBUG
+	PrintToChatAll("(PvP_OnTriggerEndTouch) Trigger: %i,end touch entity %i (%s)",trigger,iOther,sClassname);
+#endif
+	if (IsValidClient(iOther))
+	{
+		g_bPlayerInPvPTrigger[iOther] = false;
+		
+		if (IsClientInPvP(iOther))
+		{
+			g_iPlayerPvPTimerCount[iOther] = GetConVarInt(g_cvPvPArenaLeaveTime);
+			g_hPlayerPvPTimer[iOther] = CreateTimer(1.0, Timer_PlayerPvPLeaveCountdown, GetClientUserId(iOther), TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+		}
+	}
+	//A projectile went off pvp area. (Experimental)
+	if (iOther>MaxClients && IsValidEntity(iOther))
+	{
+		for (int i = 0; i < (sizeof(g_sPvPProjectileClasses)-4); i++)
+		{
+			if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
+			{
+				//Yup it's a projectile zap it!
+				//But we have to wait to prevent some bugs.
+				CreateTimer(0.1,EntityStillAlive,iOther);
+			}
+		}
+	}
+}
+public Action EntityStillAlive(Handle timer, any iEnt)
+{
+	if(IsValidEntity(iEnt))
+	{
+		PvP_ZapProjectile(iEnt);
+	}
+}
 /**
  *	Enables/Disables PvP mode on the player.
  */
-PvP_SetPlayerPvPState(client, bool:bStatus, bool:bRemoveProjectiles=true, bool:bRegenerate=true)
+void PvP_SetPlayerPvPState(int client, bool bStatus, bool bRemoveProjectiles=true, bool bRegenerate=true)
 {
 	if (!IsValidClient(client)) return;
 	
-	new bool:bOldInPvP = g_bPlayerInPvP[client];
+	bool bOldInPvP = g_bPlayerInPvP[client];
 	if (bStatus == bOldInPvP) return; // no change
 	
 	g_bPlayerInPvP[client] = bStatus;
@@ -382,7 +544,7 @@ PvP_SetPlayerPvPState(client, bool:bStatus, bool:bRemoveProjectiles=true, bool:b
 	if (bRegenerate)
 	{
 		// Regenerate player but keep health the same.
-		new iHealth = GetEntProp(client, Prop_Send, "m_iHealth");
+		int iHealth = GetEntProp(client, Prop_Send, "m_iHealth");
 		TF2_RegeneratePlayer(client);
 		SetEntProp(client, Prop_Data, "m_iHealth", iHealth);
 		SetEntProp(client, Prop_Send, "m_iHealth", iHealth);
@@ -398,24 +560,24 @@ PvP_SetPlayerPvPState(client, bool:bStatus, bool:bRemoveProjectiles=true, bool:b
 	}
 }
 
-static PvP_OnFlameEntityStartTouchPost(flame, other)
+static void PvP_OnFlameEntityStartTouchPost(int flame,int iOther)
 {
-	if (IsValidClient(other))
+	if (IsValidClient(iOther))
 	{
-		if ((IsRoundInWarmup() || IsClientInPvP(other)) && !IsRoundEnding())
+		if ((IsRoundInWarmup() || IsClientInPvP(iOther)) && !IsRoundEnding())
 		{
-			new iFlamethrower = GetEntPropEnt(flame, Prop_Data, "m_hOwnerEntity");
+			int iFlamethrower = GetEntPropEnt(flame, Prop_Data, "m_hOwnerEntity");
 			if (IsValidEdict(iFlamethrower))
 			{
-				new iOwnerEntity = GetEntPropEnt(iFlamethrower, Prop_Data, "m_hOwnerEntity");
-				if (iOwnerEntity != other && IsValidClient(iOwnerEntity))
+				int iOwnerEntity = GetEntPropEnt(iFlamethrower, Prop_Data, "m_hOwnerEntity");
+				if (iOwnerEntity != iOther && IsValidClient(iOwnerEntity))
 				{
 					if (IsRoundInWarmup() || IsClientInPvP(iOwnerEntity))
 					{
-						if (GetClientTeam(other) == GetClientTeam(iOwnerEntity) && GetClientTeam(iOwnerEntity) != _:TFTeam_Red)
+						if (GetClientTeam(iOther) == GetClientTeam(iOwnerEntity) && GetClientTeam(iOwnerEntity) != TFTeam_Red)
 						{
-							TF2_IgnitePlayer(other, iOwnerEntity);
-							SDKHooks_TakeDamage(other, iOwnerEntity, iOwnerEntity, 7.0, IsClientCritBoosted(iOwnerEntity) ? (DMG_BURN | DMG_PREVENT_PHYSICS_FORCE | DMG_ACID) : DMG_BURN | DMG_PREVENT_PHYSICS_FORCE); 
+							TF2_IgnitePlayer(iOther, iOwnerEntity);
+							SDKHooks_TakeDamage(iOther, iOwnerEntity, iOwnerEntity, 7.0, IsClientCritBoosted(iOwnerEntity) ? (DMG_BURN | DMG_PREVENT_PHYSICS_FORCE | DMG_ACID) : DMG_BURN | DMG_PREVENT_PHYSICS_FORCE); 
 						}
 					}
 				}
@@ -427,7 +589,7 @@ static PvP_OnFlameEntityStartTouchPost(flame, other)
 /**
  *	Forcibly resets global vars of the player relating to PvP. Ignores checking.
  */
-PvP_ForceResetPlayerPvPData(client)
+void PvP_ForceResetPlayerPvPData(int client)
 {
 	g_bPlayerInPvP[client] = false;
 	g_hPlayerPvPTimer[client] = INVALID_HANDLE;
@@ -435,17 +597,17 @@ PvP_ForceResetPlayerPvPData(client)
 	g_hPlayerPvPRespawnTimer[client] = INVALID_HANDLE;
 }
 
-static PvP_RemovePlayerProjectiles(client)
+static void PvP_RemovePlayerProjectiles(int client)
 {
-	for (new i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
+	for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
 	{
-		new ent = -1;
+		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			new iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
-			new bool:bMine = false;
+			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			bool bMine = false;
 		
-			new iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
+			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 			if (iOwnerEntity == client)
 			{
 				bMine = true;
@@ -464,20 +626,20 @@ static PvP_RemovePlayerProjectiles(client)
 	}
 }
 
-public Action:Timer_TeleportPlayerToPvP(Handle:timer, any:userid)
+public Action Timer_TeleportPlayerToPvP(Handle timer, any userid)
 {
-	new client = GetClientOfUserId(userid);
+	int client = GetClientOfUserId(userid);
 	if (client <= 0) return;
 	
 	if (timer != g_hPlayerPvPRespawnTimer[client]) return;
 	g_hPlayerPvPRespawnTimer[client] = INVALID_HANDLE;
 	
-	new Handle:hSpawnPointList = CreateArray();
+	Handle hSpawnPointList = CreateArray();
 	
-	new ent = -1;
+	int ent = -1;
 	while ((ent = FindEntityByClassname(ent, "info_target")) != -1)
 	{
-		decl String:sName[32];
+		char sName[32];
 		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
 		if (!StrContains(sName, "sf2_pvp_spawnpoint", false))
 		{
@@ -485,21 +647,21 @@ public Action:Timer_TeleportPlayerToPvP(Handle:timer, any:userid)
 		}
 	}
 	
-	decl Float:flMins[3], Float:flMaxs[3];
+	float flMins[3], flMaxs[3];
 	GetEntPropVector(client, Prop_Send, "m_vecMins", flMins);
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", flMaxs);
 	
-	new Handle:hClearSpawnPointList = CloneArray(hSpawnPointList);
-	for (new i = 0; i < GetArraySize(hSpawnPointList); i++)
+	Handle hClearSpawnPointList = CloneArray(hSpawnPointList);
+	for (int i = 0; i < GetArraySize(hSpawnPointList); i++)
 	{
-		new iEnt = GetArrayCell(hSpawnPointList, i);
+		int iEnt = GetArrayCell(hSpawnPointList, i);
 		
-		decl Float:flMyPos[3];
+		float flMyPos[3];
 		GetEntPropVector(iEnt, Prop_Data, "m_vecAbsOrigin", flMyPos);
 		
 		if (IsSpaceOccupiedPlayer(flMyPos, flMins, flMaxs, client))
 		{
-			new iIndex = FindValueInArray(hClearSpawnPointList, iEnt);
+			int iIndex = FindValueInArray(hClearSpawnPointList, iEnt);
 			if (iIndex != -1)
 			{
 				RemoveFromArray(hClearSpawnPointList, iIndex);
@@ -507,7 +669,7 @@ public Action:Timer_TeleportPlayerToPvP(Handle:timer, any:userid)
 		}
 	}
 	
-	new iNum;
+	int iNum;
 	if ((iNum = GetArraySize(hClearSpawnPointList)) > 0)
 	{
 		ent = GetArrayCell(hClearSpawnPointList, GetRandomInt(0, iNum - 1));
@@ -519,10 +681,10 @@ public Action:Timer_TeleportPlayerToPvP(Handle:timer, any:userid)
 	
 	if (iNum > 0)
 	{
-		decl Float:flPos[3], Float:flAng[3];
+		float flPos[3], flAng[3];
 		GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", flPos);
 		GetEntPropVector(ent, Prop_Data, "m_angAbsRotation", flAng);
-		TeleportEntity(client, flPos, flAng, Float:{ 0.0, 0.0, 0.0 });
+		TeleportEntity(client, flPos, flAng, view_as<float>({ 0.0, 0.0, 0.0 }));
 		
 		EmitAmbientSound(SF2_PVP_SPAWN_SOUND, flPos, _, SNDLEVEL_NORMAL, _, 1.0);
 	}
@@ -531,9 +693,9 @@ public Action:Timer_TeleportPlayerToPvP(Handle:timer, any:userid)
 	CloseHandle(hClearSpawnPointList);
 }
 
-public Action:Timer_PlayerPvPLeaveCountdown(Handle:timer, any:userid)
+public Action Timer_PlayerPvPLeaveCountdown(Handle timer, any userid)
 {
-	new client = GetClientOfUserId(userid);
+	int client = GetClientOfUserId(userid);
 	if (client <= 0) return Plugin_Stop;
 	
 	if (timer != g_hPlayerPvPTimer[client]) return Plugin_Stop;
@@ -562,7 +724,7 @@ public Action:Timer_PlayerPvPLeaveCountdown(Handle:timer, any:userid)
 	
 	return Plugin_Continue;
 }
-bool:IsClientInPvP(client)
+bool IsClientInPvP(int client)
 {
 	return g_bPlayerInPvP[client];
 }
@@ -570,12 +732,12 @@ bool:IsClientInPvP(client)
 
 // API
 
-public PvP_InitializeAPI()
+public void PvP_InitializeAPI()
 {
 	CreateNative("SF2_IsClientInPvP", Native_IsClientInPvP);
 }
 
-public Native_IsClientInPvP(Handle:plugin, numParams)
+public int Native_IsClientInPvP(Handle plugin,int numParams)
 {
-	return IsClientInPvP(GetNativeCell(1));
+	return view_as<bool>(IsClientInPvP(GetNativeCell(1)));
 }

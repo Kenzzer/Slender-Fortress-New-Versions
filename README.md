@@ -1,3 +1,9 @@
+Coder/Developer: Benoist3012
+
+Russian translations: x3m77rus
+
+French translations(soon): Benoist3012
+
 # Slender-Fortress-New-Versions
 
 Benoist: Since Kit is busy with his real life, I took the developement of slender fortress, and I made new and improved versions. Slender fortress new versions.

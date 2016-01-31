@@ -5,7 +5,6 @@
 
 #define JumpCrouchHeight 58.0
 
-#if defined METHODMAPS
 
 methodmap NavPath < Handle
 {
@@ -14,14 +13,14 @@ methodmap NavPath < Handle
 		return NavPath:CreateNavPath();
 	}
 
-	public int AddNodeToHead(float nodePos[3])
+	public int AddNodeToHead(float nodePos[3],int nodeIndex)
 	{
-		return NavPathAddNodeToHead(this, nodePos);
+		return NavPathAddNodeToHead(this, nodePos, nodeIndex);
 	}
 	
-	public int AddNodeToTail(float nodePos[3])
+	public int AddNodeToTail(float nodePos[3], int nodeIndex)
 	{
-		return NavPathAddNodeToTail(this, nodePos);
+		return NavPathAddNodeToTail(this, nodePos, nodeIndex);
 	}
 	
 	public void GetNodePosition(int nodeIndex, float buffer[3])
@@ -45,33 +44,32 @@ methodmap NavPath < Handle
 	}
 }
 
-#endif
 
-stock Handle:CreateNavPath()
+stock Handle CreateNavPath()
 {
 	return CreateArray(5);
 }
 
-stock NavPathGetNodePosition(Handle:hNavPath, iNodeIndex, Float:buffer[3])
+stock void NavPathGetNodePosition(Handle hNavPath,int iNodeIndex, float buffer[3])
 {
 	buffer[0] = Float:GetArrayCell(hNavPath, iNodeIndex, 0);
 	buffer[1] = Float:GetArrayCell(hNavPath, iNodeIndex, 1);
 	buffer[2] = Float:GetArrayCell(hNavPath, iNodeIndex, 2);
 }
 
-stock NavPathGetNodeAreaIndex(Handle:hNavPath, iNodeIndex)
+stock int NavPathGetNodeAreaIndex(Handle hNavPath,int iNodeIndex)
 {
 	return GetArrayCell(hNavPath, iNodeIndex, 3);
 }
 
-stock NavPathGetNodeLadderIndex(Handle:hNavPath, iNodeIndex)
+stock int NavPathGetNodeLadderIndex(Handle hNavPath,int iNodeIndex)
 {
 	return GetArrayCell(hNavPath, iNodeIndex, 4);
 }
 
-stock NavPathAddNodeToHead(Handle:hNavPath, const Float:flNodePos[3], iNodeAreaIndex, iLadderIndex=-1)
+stock int NavPathAddNodeToHead(Handle hNavPath, const float flNodePos[3],int iNodeAreaIndex,int iLadderIndex=-1)
 {
-	new iIndex = -1;
+	int iIndex = -1;
 
 	if (GetArraySize(hNavPath) == 0)
 	{
@@ -91,9 +89,9 @@ stock NavPathAddNodeToHead(Handle:hNavPath, const Float:flNodePos[3], iNodeAreaI
 	return iIndex;
 }
 
-stock NavPathAddNodeToTail(Handle:hNavPath, const Float:flNodePos[3], iNodeAreaIndex, iLadderIndex=-1)
+stock int NavPathAddNodeToTail(Handle hNavPath, const float flNodePos[3],int iNodeAreaIndex,int iLadderIndex=-1)
 {
-	new iIndex = PushArrayArray(hNavPath, flNodePos, 3);
+	int iIndex = PushArrayArray(hNavPath, flNodePos, 3);
 	SetArrayCell(hNavPath, iIndex, iNodeAreaIndex, 3);
 	SetArrayCell(hNavPath, iIndex, iLadderIndex, 4);
 	
@@ -103,25 +101,25 @@ stock NavPathAddNodeToTail(Handle:hNavPath, const Float:flNodePos[3], iNodeAreaI
 /**
  *	Constructs a straight path leading from flStartPos to flEndPos. Useful if both points are within the same area, so pathing around is unnecessary.
  */
-stock bool:NavPathConstructTrivialPath(Handle:hNavPath, const Float:flStartPos[3], const Float:flEndPos[3], Float:flNearestAreaRadius)
+stock bool NavPathConstructTrivialPath(Handle hNavPath, const float flStartPos[3], const float flEndPos[3], float flNearestAreaRadius)
 {
 	ClearArray(hNavPath);
 
-	new iStartAreaIndex = NavMesh_GetNearestArea(flStartPos, _, flNearestAreaRadius);
+	int iStartAreaIndex = NavMesh_GetNearestArea(flStartPos, _, flNearestAreaRadius);
 	if (iStartAreaIndex == -1) return false;
 	
-	new iEndAreaIndex = NavMesh_GetNearestArea(flEndPos, _, flNearestAreaRadius);
+	int iEndAreaIndex = NavMesh_GetNearestArea(flEndPos, _, flNearestAreaRadius);
 	if (iEndAreaIndex == -1) return false;
 
 	// Build a trivial path instead.
-	decl Float:flStartPosOnNavMesh[3];
+	float flStartPosOnNavMesh[3];
 	flStartPosOnNavMesh[0] = flStartPos[0];
 	flStartPosOnNavMesh[1] = flStartPos[1];
 	flStartPosOnNavMesh[2] = NavMeshArea_GetZ(iStartAreaIndex, flStartPos);
 	
 	NavPathAddNodeToTail(hNavPath, flStartPosOnNavMesh, iStartAreaIndex);
 	
-	decl Float:flEndPosOnNavMesh[3];
+	float flEndPosOnNavMesh[3];
 	flEndPosOnNavMesh[0] = flEndPos[0];
 	flEndPosOnNavMesh[1] = flEndPos[1];
 	flEndPosOnNavMesh[2] = NavMeshArea_GetZ(iEndAreaIndex, flEndPos);
@@ -134,14 +132,14 @@ stock bool:NavPathConstructTrivialPath(Handle:hNavPath, const Float:flStartPos[3
 /**
  *	Constructs a path leading from flStartPos to flEndPos. First node index (0) is the start of the path, last node index is the end.
  */
-stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPos[3], const Float:flEndPos[3], Float:flNearestAreaRadius, Function:fCostFunction, any:iCostData=-1, bool:bPopulateIfIncomplete=false, &iClosestAreaIndex=0)
+stock bool NavPathConstructPathFromPoints(Handle hNavPath, const float flStartPos[3], const float flEndPos[3], float flNearestAreaRadius, Function fCostFunction, any iCostData=-1, bool bPopulateIfIncomplete=false,int &iClosestAreaIndex=0)
 {
 	ClearArray(hNavPath);
 	
-	new iStartAreaIndex = NavMesh_GetNearestArea(flStartPos, _, flNearestAreaRadius);
+	int iStartAreaIndex = NavMesh_GetNearestArea(flStartPos, _, flNearestAreaRadius);
 	if (iStartAreaIndex == -1) return false;
 	
-	new iEndAreaIndex = NavMesh_GetNearestArea(flEndPos, _, flNearestAreaRadius);
+	int iEndAreaIndex = NavMesh_GetNearestArea(flEndPos, _, flNearestAreaRadius);
 	if (iEndAreaIndex == -1) return false;
 	
 	if (iStartAreaIndex == iEndAreaIndex)
@@ -151,7 +149,7 @@ stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPo
 	
 	iClosestAreaIndex = 0;
 	
-	new bool:bResult = NavMesh_BuildPath(iStartAreaIndex,
+	bool bResult = NavMesh_BuildPath(iStartAreaIndex,
 		iEndAreaIndex,
 		flEndPos,
 		fCostFunction,
@@ -163,7 +161,7 @@ stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPo
 	if (bResult)
 	{
 		// Because we were able to get to the goal position successfully, add the goal position itself.
-		decl Float:flEndPosOnNavMesh[3];
+		float flEndPosOnNavMesh[3];
 		flEndPosOnNavMesh[0] = flEndPos[0];
 		flEndPosOnNavMesh[1] = flEndPos[1];
 		flEndPosOnNavMesh[2] = NavMeshArea_GetZ(iEndAreaIndex, flEndPos);
@@ -171,12 +169,12 @@ stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPo
 		NavPathAddNodeToHead(hNavPath, flEndPosOnNavMesh, iEndAreaIndex);
 	}
 	
-	decl Float:flCenter[3], Float:flCenterPortal[3], Float:flClosestPoint[3];
+	float flCenter[3], Float:flCenterPortal[3], Float:flClosestPoint[3];
 	
-	new iTempAreaIndex = iClosestAreaIndex;
-	new iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
-	new iNavDirection;
-	new Float:flHalfWidth;
+	int iTempAreaIndex = iClosestAreaIndex;
+	int iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+	int iNavDirection;
+	float flHalfWidth;
 	
 	while (iTempParentAreaIndex != -1)
 	{
@@ -195,7 +193,7 @@ stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPo
 		iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
 	}
 	
-	decl Float:flStartPosOnNavMesh[3];
+	float flStartPosOnNavMesh[3];
 	flStartPosOnNavMesh[0] = flStartPos[0];
 	flStartPosOnNavMesh[1] = flStartPos[1];
 	flStartPosOnNavMesh[2] = NavMeshArea_GetZ(iStartAreaIndex, flStartPos);
@@ -210,15 +208,15 @@ stock bool:NavPathConstructPathFromPoints(Handle:hNavPath, const Float:flStartPo
  *	If "local" is true, only check the portion of the path surrounding iPathNodeIndex.
  *	(function imported from HL SDK)
  */
-stock FindClosestPositionOnPath(Handle:hNavPath, const Float:flFeetPos[3], const Float:flCentroidPos[3], const Float:flEyePos[3], Float:flBuffer[3]=NULL_VECTOR, bool:bLocal=false, iPathNodeIndex=-1)
+stock int FindClosestPositionOnPath(Handle hNavPath, const float flFeetPos[3], const float flCentroidPos[3], const float flEyePos[3], float flBuffer[3]=NULL_VECTOR, bool bLocal=false, int iPathNodeIndex=-1)
 {
 	if (hNavPath == INVALID_HANDLE) return -1;
 	
-	new iNodeCount = GetArraySize(hNavPath);
+	int iNodeCount = GetArraySize(hNavPath);
 	if (iNodeCount == 0) return -1;
 	
-	new iStartNode = -1;
-	new iEndNode = -1;
+	int iStartNode = -1;
+	int iEndNode = -1;
 	
 	if (bLocal)
 	{
@@ -235,19 +233,19 @@ stock FindClosestPositionOnPath(Handle:hNavPath, const Float:flFeetPos[3], const
 		iEndNode = iNodeCount;
 	}
 	
-	decl Float:flFrom[3], Float:flTo[3];
-	decl Float:flAlong[3], Float:flToFeetPos[3];
+	float flFrom[3], Float:flTo[3];
+	float flAlong[3], Float:flToFeetPos[3];
 	
-	decl Float:flLength, Float:flCloseLength, Float:flDistSq;
+	float flLength, Float:flCloseLength, Float:flDistSq;
 	
-	decl Float:flPos[3], Float:flSub[3], Float:flProbe[3];
+	float flPos[3], Float:flSub[3], Float:flProbe[3];
 	
-	new Float:flCloseDistSq = 9999999999.9;
-	new iCloseIndex = -1;
+	float flCloseDistSq = 9999999999.9;
+	int iCloseIndex = -1;
 	
-	new Float:flMidHeight = flCentroidPos[2] - flFeetPos[2];
+	float flMidHeight = flCentroidPos[2] - flFeetPos[2];
 	
-	for (new i = iStartNode; i < iEndNode; i++)
+	for (int i = iStartNode; i < iEndNode; i++)
 	{
 		NavPathGetNodePosition(hNavPath, i - 1, flFrom);
 		NavPathGetNodePosition(hNavPath, i, flTo);
@@ -306,15 +304,15 @@ stock FindClosestPositionOnPath(Handle:hNavPath, const Float:flFeetPos[3], const
  *	Returns path index just after point.
  *	(function imported from HL SDK)
  */
-stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, const Float:flFeetPos[3], const Float:flCentroidPos[3], const Float:flEyePos[3], Float:flPoint[3], &iPrevPathNodeIndex)
+stock int FindAheadPathPoint(Handle hNavPath, float flAheadRange,int iPathNodeIndex, const float flFeetPos[3], const float flCentroidPos[3], const float flEyePos[3], float flPoint[3],int &iPrevPathNodeIndex)
 {
 	if (hNavPath == INVALID_HANDLE) return -1;
 	
-	new iAfterPathNodeIndex;
+	int iAfterPathNodeIndex;
 	
-	decl Float:flClosestPos[3];
+	float flClosestPos[3];
 	
-	new iStartPathNodeIndex = FindClosestPositionOnPath(hNavPath, flFeetPos, flCentroidPos, flEyePos, flClosestPos, true, iPathNodeIndex);
+	int iStartPathNodeIndex = FindClosestPositionOnPath(hNavPath, flFeetPos, flCentroidPos, flEyePos, flClosestPos, true, iPathNodeIndex);
 	iPrevPathNodeIndex = iStartPathNodeIndex;
 	
 	if (iStartPathNodeIndex <= 0)
@@ -323,13 +321,13 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 		return iPathNodeIndex;
 	}
 	
-	decl Float:flFeetPos2D[3], Float:flPathNodePos2D[3];
+	float flFeetPos2D[3], Float:flPathNodePos2D[3];
 	CopyVector(flFeetPos, flFeetPos2D);
 	flFeetPos2D[2] = 0.0;
 	
 	while (iStartPathNodeIndex < (GetArraySize(hNavPath) - 1))
 	{
-		decl Float:flPathNodePos[3];
+		float flPathNodePos[3];
 		NavPathGetNodePosition(hNavPath, iStartPathNodeIndex, flPathNodePos);
 		flPathNodePos2D[2] = 0.0;
 		
@@ -364,31 +362,31 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 	}
 	
 	// Get the direction of the path segment we're currently on.
-	decl Float:flStartPathNodePos[3], Float:flPrevStartPathNodePos[3];
+	float flStartPathNodePos[3], Float:flPrevStartPathNodePos[3];
 	NavPathGetNodePosition(hNavPath, iStartPathNodeIndex, flStartPathNodePos);
 	NavPathGetNodePosition(hNavPath, iStartPathNodeIndex - 1, flPrevStartPathNodePos);
 	
-	decl Float:flInitDir[3];
+	float flInitDir[3];
 	SubtractVectors(flStartPathNodePos, flPrevStartPathNodePos, flInitDir);
 	NormalizeVector(flInitDir, flInitDir);
 	
-	new Float:flRangeSoFar = 0.0;
+	float flRangeSoFar = 0.0;
 	
 	// bVisible is true if our ahead point is visible.
-	new bool:bVisible = true;
+	bool bVisible = true;
 	
-	decl Float:flPrevDir[3];
+	float flPrevDir[3];
 	CopyVector(flInitDir, flPrevDir);
 	
-	new bool:bIsCorner = false;
-	new i = 0;
+	bool bIsCorner = false;
+	int i = 0;
 	
-	new Float:flMidHeight = flCentroidPos[2] - flFeetPos[2];
+	float flMidHeight = flCentroidPos[2] - flFeetPos[2];
 	
 	// Step along the path until we pass flAheadRange.
 	for (i = iStartPathNodeIndex; i < GetArraySize(hNavPath); i++)
 	{
-		decl Float:flPathNodePos[3], Float:flTo[3], Float:flDir[3];
+		float flPathNodePos[3], Float:flTo[3], Float:flDir[3];
 		NavPathGetNodePosition(hNavPath, i, flPathNodePos);
 		NavPathGetNodePosition(hNavPath, i - 1, flTo);
 		NegateVector(flTo);
@@ -413,7 +411,7 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 		
 		CopyVector(flDir, flPrevDir);
 		
-		decl Float:flProbe[3];
+		float flProbe[3];
 		CopyVector(flPathNodePos, flProbe);
 		flProbe[2] += flMidHeight;
 		
@@ -432,7 +430,7 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 		
 		if (i == iStartPathNodeIndex)
 		{
-			decl Float:flAlong[3];
+			float flAlong[3];
 			SubtractVectors(flPathNodePos, flFeetPos, flAlong);
 			flAlong[2] = 0.0;
 			flRangeSoFar += GetVectorLength(flAlong);
@@ -470,22 +468,22 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 	else
 	{
 		// Interpolate point along path segment to get exact distance.
-		decl Float:flBeforePointPos[3], Float:flAfterPointPos[3];
+		float flBeforePointPos[3], Float:flAfterPointPos[3];
 		NavPathGetNodePosition(hNavPath, iAfterPathNodeIndex, flAfterPointPos);
 		NavPathGetNodePosition(hNavPath, iAfterPathNodeIndex - 1, flBeforePointPos);
 		
-		decl Float:flTo[3], Float:flTo2D[3];
+		float flTo[3], Float:flTo2D[3];
 		SubtractVectors(flAfterPointPos, flBeforePointPos, flTo);
 		CopyVector(flTo, flTo2D);
 		flTo2D[2] = 0.0;
 		
-		new Float:flLength = GetVectorLength(flTo2D);
-		new Float:t = 1.0 - ((flRangeSoFar - flAheadRange) / flLength);
+		float flLength = GetVectorLength(flTo2D);
+		float t = 1.0 - ((flRangeSoFar - flAheadRange) / flLength);
 		
 		if (t < 0.0) t = 0.0;
 		else if (t > 1.0) t = 1.0;
 		
-		for (new i2 = 0; i2 < 3; i2++)
+		for (int i2 = 0; i2 < 3; i2++)
 		{
 			flPoint[i2] = flBeforePointPos[i2] + (t * flTo[i2]);
 		}
@@ -495,9 +493,9 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 			// iAfterPathNodeIndex isn't visible, so slide back towards previous node until it is. 
 		
 			static const Float:flSightStepSize = 25.0;
-			new Float:dt = flSightStepSize / flLength;
+			float dt = flSightStepSize / flLength;
 			
-			decl Float:flProbe[3];
+			float flProbe[3];
 			CopyVector(flPoint, flProbe);
 			flProbe[2] += flMidHeight;
 			
@@ -505,7 +503,7 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 			{
 				t -= dt;
 				
-				for (new i2 = 0; i2 < 3; i2++)
+				for (int i2 = 0; i2 < 3; i2++)
 				{
 					flPoint[i2] = flBeforePointPos[i2] + (t * flTo[i2]);
 				}
@@ -525,16 +523,16 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 	
 		static const Float:epsilon = 50.0;
 		
-		decl Float:flCentroid2D[3];
+		float flCentroid2D[3];
 		CopyVector(flCentroidPos, flCentroid2D);
 		flCentroid2D[2] = 0.0;
 		
-		decl Float:flTo2D[3];
+		float flTo2D[3];
 		flTo2D[0] = flPoint[0] - flCentroid2D[0];
 		flTo2D[1] = flPoint[1] - flCentroid2D[1];
 		flTo2D[2] = 0.0;
 		
-		decl Float:flInitDir2D[3];
+		float flInitDir2D[3];
 		CopyVector(flInitDir, flInitDir2D);
 		flInitDir2D[2] = 0.0;
 		
@@ -543,7 +541,7 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 			// Check points ahead.
 			for (i = iStartPathNodeIndex; i < GetArraySize(hNavPath); i++)
 			{
-				decl Float:flPathNodePos[3];
+				float flPathNodePos[3];
 				NavPathGetNodePosition(hNavPath, i, flPathNodePos);
 			
 				flTo2D[0] = flPathNodePos[0] - flCentroid2D[0];
@@ -575,20 +573,20 @@ stock FindAheadPathPoint(Handle:hNavPath, Float:flAheadRange, iPathNodeIndex, co
 }
 
 
-stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3], 
-	const Float:flOriginalFeetPos[3], 
-	const Float:flFloorNormalDir[3],
-	Float:flFeelerHeight, 
-	Float:flFeelerOffset, 
-	Float:flFeelerLength, 
-	Float:flAvoidRange, 
-	Float:flBuffer[3], 
-	iTraceMask=MASK_PLAYERSOLID,
-	Function:fTraceFilterFunction=INVALID_FUNCTION, 
-	any:iTraceFilterFunctionData=-1)
+stock void CalculateFeelerReflexAdjustment(const float flOriginalMovePos[3], 
+	const float flOriginalFeetPos[3], 
+	const float flFloorNormalDir[3],
+	float flFeelerHeight, 
+	float flFeelerOffset, 
+	float flFeelerLength, 
+	float flAvoidRange, 
+	float flBuffer[3], 
+	int iTraceMask=MASK_PLAYERSOLID,
+	Function fTraceFilterFunction=INVALID_FUNCTION, 
+	any iTraceFilterFunctionData=-1)
 {
 	// Forward direction vector.
-	decl Float:flOriginalMoveDir[3], Float:flLateralDir[3];
+	float flOriginalMoveDir[3], Float:flLateralDir[3];
 	SubtractVectors(flOriginalMovePos, flOriginalFeetPos, flOriginalMoveDir);
 	flOriginalMoveDir[2] = 0.0;
 	
@@ -599,7 +597,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 	NegateVector(flLateralDir);
 	
 	// Correct move direction vector along floor.
-	decl Float:flDir[3];
+	float flDir[3];
 	GetVectorCrossProduct(flLateralDir, flFloorNormalDir, flDir);
 	NormalizeVector(flDir, flDir);
 	
@@ -612,21 +610,21 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 		flFeelerHeight = StepHeight + 0.1;
 	}
 	
-	decl Float:flFeetPos[3];
+	float flFeetPos[3];
 	CopyVector(flOriginalFeetPos, flFeetPos);
 	flFeetPos[2] += flFeelerHeight;
 	
-	decl Float:flFromPos[3];
-	decl Float:flToPos[3];
+	float flFromPos[3];
+	float flToPos[3];
 	
 	// Check the left.
-	for (new i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		flFromPos[i] = flFeetPos[i] + (flFeelerOffset * flLateralDir[i]);
 		flToPos[i] = flFromPos[i] + (flFeelerLength * flDir[i]);
 	}
 	
-	new Handle:hTrace = INVALID_HANDLE;
+	Handle hTrace = INVALID_HANDLE;
 	if (fTraceFilterFunction != INVALID_FUNCTION)
 	{
 		hTrace = TR_TraceRayFilterEx(flFromPos, flToPos, iTraceMask, RayType_EndPoint, fTraceFilterFunction, iTraceFilterFunctionData);
@@ -636,7 +634,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 		hTrace = TR_TraceRayEx(flFromPos, flToPos, iTraceMask, RayType_EndPoint);
 	}
 	
-	new bool:bLeftClear = !TR_DidHit(hTrace);
+	bool bLeftClear = !TR_DidHit(hTrace);
 	CloseHandle(hTrace);
 	
 #if defined DEBUG
@@ -655,7 +653,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 #endif
 	
 	// Check the right.
-	for (new i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		flFromPos[i] = flFeetPos[i] - (flFeelerOffset * flLateralDir[i]);
 		flToPos[i] = flFromPos[i] + (flFeelerLength * flDir[i]);
@@ -670,7 +668,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 		hTrace = TR_TraceRayEx(flFromPos, flToPos, iTraceMask, RayType_EndPoint);
 	}
 	
-	new bool:bRightClear = !TR_DidHit(hTrace);
+	bool bRightClear = !TR_DidHit(hTrace);
 	CloseHandle(hTrace);
 	
 #if defined DEBUG
@@ -692,7 +690,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 	{
 		if (bLeftClear)
 		{
-			for (new i = 0; i < 3; i++)
+			for (int i = 0; i < 3; i++)
 			{
 				flBuffer[i] = flOriginalMovePos[i] + (flAvoidRange * flLateralDir[i]);
 			}
@@ -700,7 +698,7 @@ stock CalculateFeelerReflexAdjustment(const Float:flOriginalMovePos[3],
 	}
 	else if (!bLeftClear)
 	{
-		for (new i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			flBuffer[i] = flOriginalMovePos[i] - (flAvoidRange * flLateralDir[i]);
 		}

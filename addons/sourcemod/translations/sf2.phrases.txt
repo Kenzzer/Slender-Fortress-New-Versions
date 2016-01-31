@@ -1,4 +1,4 @@
-"Phrases"
+﻿"Phrases"
 {
 	"SF2 Difficulty Vote Menu Title"
 	{
