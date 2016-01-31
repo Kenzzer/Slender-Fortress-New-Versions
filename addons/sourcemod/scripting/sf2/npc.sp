@@ -1277,7 +1277,7 @@ public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsm
 		//PrintToChatAll("npc or player or door");
 		return false;
 	}
-	return true;
+	return originalResult;
 }
 public Action Hook_SlenderModelSetTransmit(int entity,int other)
 {
