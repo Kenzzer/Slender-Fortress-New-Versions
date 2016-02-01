@@ -12,7 +12,6 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <morecolors>
-#include <sf2>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -33,12 +32,11 @@ bool steamworks=false;
 
 //#define DEBUG
 
-
+#include <sf2>
+#pragma newdecls required
 
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
-
-#pragma newdecls required
 
 #define PLUGIN_VERSION "0.2.9-v5"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
@@ -869,9 +867,7 @@ public void OnPluginStart()
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
 	
-#if defined DEBUG
 	InitializeDebug();
-#endif
 }
 
 public void OnAllPluginsLoaded()

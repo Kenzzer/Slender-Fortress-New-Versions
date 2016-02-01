@@ -1275,7 +1275,7 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
 	SendDebugMessageToPlayers(DEBUG_BOSS_HITBOX,0,"Hitbox: %i wants to collide with entity contentsmask: %i",slender,contentsmask);
-	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP) || (contentsmask & CONTENTS_MOVEABLE))
+	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))
 	{
 		//PrintToChatAll("npc or player or door");
 		return false;
@@ -2087,21 +2087,17 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 
 /*
 // Deprecated.
-
 // This is just to calculate the new place, not do time checks.
 // Distance will be determined by the progression of the game and the
 // manually set values determined by flMinSearchDist and flMaxSearchDist,
 // which are float values that are (or should be) defined in the boss's
 // config file.
-
 // The place chosen should be out of (possible) sight of the players,
 // but should be within the AAS radius, the center being flActiveAreaCenterPos.
 // The game will try to find a place that is of flMinSearchDist first, but
 // if it can't, then it will try to find places that are a bit farther.
-
 // If the whole function fails, no place is given and the boss will not
 // be able to spawn.
-
 bool SlenderChaseBossCalculateNewPlace(int iBossIndex, const float flActiveAreaCenterPos[3], float flMinSearchDist, float flMaxSearchDist, Function iFunctor, float flBuffer[3])
 {
 	Handle hAreas = NavMesh_GetAreas();
