@@ -38,7 +38,7 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v5"
+#define PLUGIN_VERSION "0.2.9-v6"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
@@ -551,9 +551,9 @@ Handle g_hSDKPlaySpecificSequence;
 #include "sf2/effects.sp"
 #include "sf2/playergroups.sp"
 #include "sf2/menus.sp"
+#include "sf2/npc.sp"
 #include "sf2/pvp.sp"
 #include "sf2/client.sp"
-#include "sf2/npc.sp"
 #include "sf2/specialround.sp"
 #include "sf2/adminmenu.sp"
 

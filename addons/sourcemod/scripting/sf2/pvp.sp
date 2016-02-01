@@ -20,6 +20,7 @@
 
 Handle g_cvPvPArenaLeaveTime;
 Handle g_cvPvPArenaPlayerCollisions;
+Handle g_cvPvPArenaProjectileZap;
 
 static const char g_sPvPProjectileClasses[][] = 
 {
@@ -69,6 +70,7 @@ public void PvP_Initialize()
 {
 	g_cvPvPArenaLeaveTime = CreateConVar("sf2_player_pvparena_leavetime", "3");
 	g_cvPvPArenaPlayerCollisions = CreateConVar("sf2_player_pvparena_collisions", "1");
+	g_cvPvPArenaProjectileZap = CreateConVar("sf2_pvp_projectile_removal", "0", "This is an experimental code! It could make your server crash, if you get any crash disable this cvar");
 	
 	g_hPvPFlameEntities = CreateArray(PvPFlameEntData_MaxStats);
 }
@@ -338,7 +340,11 @@ public void Hook_PvPProjectileSpawnPost(int ent)
 	{
 		if (IsClientInPvP(iOwnerEntity))
 		{
-			//SetEntProp(ent, Prop_Data, "m_usSolidFlags", 1);
+			if(GetConVarBool(g_cvPvPArenaProjectileZap))
+			{
+				CreateTimer(0.1,PvP_EntitySpawnPost,ent);
+				SetEntProp(ent, Prop_Data, "m_usSolidFlags", 1);
+			}
 			if(g_hPlayerPvPTimer[iOwnerEntity]==INVALID_HANDLE)
 			{
 				SetEntProp(ent, Prop_Data, "m_iInitialTeamNum", 0);
@@ -347,20 +353,20 @@ public void Hook_PvPProjectileSpawnPost(int ent)
 			else
 			{
 				//Client is not in pvp, remove the projectile
-				//PvP_ZapProjectile(ent,false);
+				if(GetConVarBool(g_cvPvPArenaProjectileZap))
+					PvP_ZapProjectile(ent,false);
 			}
 		}
 	}
-	//CreateTimer(0.1,PvP_EntitySpawnPost,ent);
 }
-/*public Action PvP_EntitySpawnPost(Handle timer,any ent)
+public Action PvP_EntitySpawnPost(Handle timer,any ent)
 {
 	if(IsValidEntity(ent))
 	{
 		if(GetEntProp(ent, Prop_Data, "m_usSolidFlags")!=0)
 			PvP_ZapProjectile(ent,false);
 	}
-}*/
+}
 public void PvP_OnPlayerSpawn(int client)
 {
 	PvP_SetPlayerPvPState(client, false, false, false);
@@ -385,7 +391,7 @@ public void PvP_OnPlayerSpawn(int client)
 		}
 	}
 }
-/*void PvP_ZapProjectile(int iProjectile,bool bEffects=true)
+void PvP_ZapProjectile(int iProjectile,bool bEffects=true)
 {
 	//Add zap effects
 	if(bEffects)
@@ -401,7 +407,7 @@ public void PvP_OnPlayerSpawn(int client)
 		SetEntityRenderColor(iProjectile, 0, 0, 0, 1);
 	}
 	AcceptEntityInput(iProjectile,"Kill");
-}*/
+}
 public void PvP_OnPlayerDeath(int client, bool bFake)
 {
 	if (!bFake)
@@ -466,20 +472,23 @@ public void PvP_OnTriggerStartTouch(int trigger,int iOther)
 }
 public Action PvP_OnTriggerStartTouchEx(int trigger,int iOther)
 {
-	/*//(Experimental)
-	if (iOther>MaxClients && IsValidEntity(iOther))
+	if(GetConVarBool(g_cvPvPArenaProjectileZap))
 	{
-		//Get entity's classname.
-		char sClassname[50];
-		GetEntityClassname(iOther,sClassname,sizeof(sClassname));
-		for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
+		//(Experimental)
+		if (iOther>MaxClients && IsValidEntity(iOther))
 		{
-			if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
+			//Get entity's classname.
+			char sClassname[50];
+			GetEntityClassname(iOther,sClassname,sizeof(sClassname));
+			for (int i = 0; i < sizeof(g_sPvPProjectileClasses); i++)
 			{
-				SetEntProp(iOther, Prop_Data, "m_usSolidFlags", 0);
+				if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
+				{
+					SetEntProp(iOther, Prop_Data, "m_usSolidFlags", 0);
+				}
 			}
 		}
-	}*/
+	}
 }
 public Action PvP_OnTriggerEndTouch(int trigger,int iOther)
 {
@@ -499,27 +508,30 @@ public Action PvP_OnTriggerEndTouch(int trigger,int iOther)
 			g_hPlayerPvPTimer[iOther] = CreateTimer(1.0, Timer_PlayerPvPLeaveCountdown, GetClientUserId(iOther), TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		}
 	}
-	/*//A projectile went off pvp area. (Experimental)
-	if (iOther>MaxClients && IsValidEntity(iOther))
+	if(GetConVarBool(g_cvPvPArenaProjectileZap))
 	{
-		for (int i = 0; i < (sizeof(g_sPvPProjectileClasses)-4); i++)
+		//A projectile went off pvp area. (Experimental)
+		if (iOther>MaxClients && IsValidEntity(iOther))
 		{
-			if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
+			for (int i = 0; i < (sizeof(g_sPvPProjectileClasses)-4); i++)
 			{
-				//Yup it's a projectile zap it!
-				//But we have to wait to prevent some bugs.
-				CreateTimer(0.1,EntityStillAlive,iOther);
+				if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))
+				{
+					//Yup it's a projectile zap it!
+					//But we have to wait to prevent some bugs.
+					CreateTimer(0.1,EntityStillAlive,iOther);
+				}
 			}
 		}
-	}*/
+	}
 }
-/*public Action EntityStillAlive(Handle timer, any iEnt)
+public Action EntityStillAlive(Handle timer, any iEnt)
 {
 	if(IsValidEntity(iEnt))
 	{
 		PvP_ZapProjectile(iEnt);
 	}
-}*/
+}
 /**
  *	Enables/Disables PvP mode on the player.
  */

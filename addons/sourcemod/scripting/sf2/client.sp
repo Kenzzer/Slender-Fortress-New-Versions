@@ -6089,8 +6089,9 @@ bool IsWeaponRestricted(TFClassType iClass,int iItemDef)
 	bool bProxyBoss = false;
 	for (int i = 0; i < MAX_BOSSES; i++)
 	{
-		if (NPCGetUniqueID(i) == -1) continue;
-		if (NPCGetFlags(i) & SFF_PROXIES)
+		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(i);
+		if (!Npc.IsValid()) continue;
+		if (Npc.Flags & SFF_PROXIES)
 		{
 			bProxyBoss = true;
 			break;
