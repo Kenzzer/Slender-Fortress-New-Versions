@@ -230,7 +230,7 @@ public void PvP_OnGameFrame()
 public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 {
 #if defined DEBUG
-	CPrintToChatAll("{green}+%i(%s)",ent,sClassname);
+	SendDebugMessageToPlayers(DEBUG_ENTITIES,0,"\x083EFF3EFF+ %i(%s)",ent,sClassname);
 #endif
 	if (StrEqual(sClassname, "tf_flame", false))
 	{
@@ -248,7 +248,6 @@ public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 			{
 				SDKHook(ent, SDKHook_Spawn, Hook_PvPProjectileSpawn);
 				SDKHook(ent, SDKHook_SpawnPost, Hook_PvPProjectileSpawnPost);
-				SDKHook(ent, SDKHook_EndTouch, Hook_PvPProjectile_OnEndTouch);
 				break;
 			}
 			if (StrEqual(sClassname, g_sPvPProjectileClassesNoTouch[1], false))
@@ -262,7 +261,7 @@ public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 public void PvP_OnEntityDestroyed(int ent, const char[] sClassname)
 {
 #if defined DEBUG
-	CPrintToChatAll("{red}-%i(%s)",ent,sClassname);
+	SendDebugMessageToPlayers(DEBUG_ENTITIES,0,"\x08FF4040FF- %i(%s)",ent,sClassname);
 #endif
 	if (StrEqual(sClassname, "tf_flame", false))
 	{
@@ -283,19 +282,6 @@ public Action Hook_PvPProjectile_OnTouch(int iProjectile, int iClient)
 		return Plugin_Handled;
 	}
 
-	return Plugin_Continue;
-}
-public Action Hook_PvPProjectile_OnEndTouch(int iProjectile, int iOther)
-{
-	if(iOther > 0 && IsValidEntity(iOther))
-	{
-#if defined DEBUG
-		char sClass[64], sClass2[64];
-		GetEntityClassname(iOther, sClass, sizeof(sClass));
-		GetEntityClassname(iOther, sClass2, sizeof(sClass2));
-		PrintToChatAll("(Hook_PvPProjectile_OnEndTouch) Projectile: %i (%s),end touch entity %i (%s)",iProjectile,sClass2,iOther,sClass);
-#endif
-	}
 	return Plugin_Continue;
 }
 public Action Hook_PvPProjectileSpawn(int ent)
@@ -492,12 +478,6 @@ public Action PvP_OnTriggerStartTouchEx(int trigger,int iOther)
 }
 public Action PvP_OnTriggerEndTouch(int trigger,int iOther)
 {
-	//Get entity's classname.
-	char sClassname[50];
-	GetEntityClassname(iOther,sClassname,sizeof(sClassname));
-#if defined DEBUG
-	PrintToChatAll("(PvP_OnTriggerEndTouch) Trigger: %i,end touch entity %i (%s)",trigger,iOther,sClassname);
-#endif
 	if (IsValidClient(iOther))
 	{
 		g_bPlayerInPvPTrigger[iOther] = false;
@@ -513,6 +493,9 @@ public Action PvP_OnTriggerEndTouch(int trigger,int iOther)
 		//A projectile went off pvp area. (Experimental)
 		if (iOther>MaxClients && IsValidEntity(iOther))
 		{
+			//Get entity's classname.
+			char sClassname[50];
+			GetEntityClassname(iOther,sClassname,sizeof(sClassname));
 			for (int i = 0; i < (sizeof(g_sPvPProjectileClasses)-4); i++)
 			{
 				if (StrEqual(sClassname, g_sPvPProjectileClasses[i], false))

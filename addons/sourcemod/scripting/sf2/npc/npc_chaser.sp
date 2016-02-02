@@ -299,6 +299,9 @@ void NPCChaserSetStunHealth(int iNPCIndex, float flAmount)
 void NPCChaserAddStunHealth(int iNPCIndex, float flAmount)
 {
 	NPCChaserSetStunHealth(iNPCIndex, NPCChaserGetStunHealth(iNPCIndex) + flAmount);
+#if defined DEBUG
+	SendDebugMessageToPlayers(DEBUG_BOSS_STUN,0,"Boss %i, new amount: %0.0f",iNPCIndex,NPCChaserGetStunHealth(iNPCIndex));
+#endif
 }
 
 float NPCChaserGetStunInitialHealth(int iNPCIndex)

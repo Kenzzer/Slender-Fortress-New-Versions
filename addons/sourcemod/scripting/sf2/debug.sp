@@ -10,6 +10,8 @@
 #define DEBUG_PLAYER_ACTION_SLOT (1 << 3)
 #define DEBUG_BOSS_PROXIES (1 << 4)
 #define DEBUG_BOSS_HITBOX (1 << 5)
+#define DEBUG_BOSS_STUN (1 << 6)
+#define DEBUG_ENTITIES (1 << 7)
 
 int g_iPlayerDebugFlags[MAXPLAYERS + 1] = { 0, ... };
 
@@ -28,6 +30,8 @@ void InitializeDebug()
 	RegAdminCmd("sm_sf2_debug_player_stress", Command_DebugPlayerStress, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_boss_proxies", Command_DebugBossProxies, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_hitbox", Command_DebugHitbox, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_entity", Command_DebugEntity, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_boss_stun", Command_DebugStun, ADMFLAG_CHEATS);
 }
 
 void InitializeDebugLogging()
@@ -164,12 +168,44 @@ public Action Command_DebugHitbox(int client, int args)
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_HITBOX;
-		PrintToChat(client, "Enabled debugging boss proxies.");
+		PrintToChat(client, "Enabled debugging boss's hitbox.");
 	}
 	else
 	{
 		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_HITBOX;
-		PrintToChat(client, "Disabled debugging boss proxies.");
+		PrintToChat(client, "Disabled debugging boss's hitbox.");
+	}
+	
+	return Plugin_Handled;
+}
+public Action Command_DebugStun(int client, int args)
+{
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_STUN);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_STUN;
+		PrintToChat(client, "Enabled debugging boss's hitbox.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_STUN;
+		PrintToChat(client, "Disabled debugging boss's hitbox.");
+	}
+	
+	return Plugin_Handled;
+}
+public Action Command_DebugEntity(int client, int args)
+{
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_ENTITIES);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_ENTITIES;
+		PrintToChat(client, "Enabled debugging entities.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_ENTITIES;
+		PrintToChat(client, "Disabled debugging entities.");
 	}
 	
 	return Plugin_Handled;

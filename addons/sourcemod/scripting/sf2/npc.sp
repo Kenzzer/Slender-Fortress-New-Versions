@@ -1229,16 +1229,27 @@ public Action Hook_SlenderOnTakeDamage(int slender,int &attacker,int &inflictor,
 	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return Plugin_Continue;
 	SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
+	Boss_HitBox_Damage(g_iSlenderHitbox[iBossIndex], attacker, damage, damagetype);
+	SetVariantInt(30000);
+	AcceptEntityInput(g_iSlenderHitbox[iBossIndex],"SetHealth");
 	damage = 0.0;
 	return Plugin_Changed;
 }
 public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3],float damagePosition[3],int damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;
+	damage = Boss_HitBox_Damage(hitbox, attacker, damage, damagetype);
+	SetVariantInt(30000);
+	AcceptEntityInput(hitbox,"SetHealth");
+	
+	return Plugin_Changed;
+}
+float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
+{
 	if(damage > 0.0)
 	{
 		int iBossIndex = NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]);
-		if (iBossIndex == -1) return Plugin_Continue;
+		if (iBossIndex == -1) return damage;
 		if(IsValidClient(attacker) && g_bPlayerProxy[attacker])
 			damage = 0.0;
 		if (NPCGetType(iBossIndex) == SF2BossType_Chaser && damage > 0.0)
@@ -1248,9 +1259,11 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 			
 			if (NPCChaserIsStunEnabled(iBossIndex))
 			{
-				//if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
+				if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
 				
 				NPCChaserAddStunHealth(iBossIndex, -damage);
+				
+				if (damagetype & DMG_ACID) damage /= 2.0; // 2x damage for critical hits.
 			}
 			if ((damagetype & DMG_CRIT))
 			{
@@ -1266,19 +1279,20 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 				EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
 			}
 		}
-		SetVariantInt(30000);
-		AcceptEntityInput(hitbox,"SetHealth");
 	}
-	
-	return Plugin_Changed;
+	return damage;
 }
 public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
+#if defined DEBUG
 	SendDebugMessageToPlayers(DEBUG_BOSS_HITBOX,0,"Hitbox: %i wants to collide with entity contentsmask: %i",slender,contentsmask);
+#endif
 	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))// || (contentsmask & CONTENTS_MOVEABLE))
 	{
 		//CONTENTS_MOVEABLE seems to make the hitbox bullet proof
+#if defined DEBUG
 		SendDebugMessageToPlayers(DEBUG_BOSS_HITBOX,0,"npc or player");
+#endif
 		return false;
 	}
 	return originalResult;
