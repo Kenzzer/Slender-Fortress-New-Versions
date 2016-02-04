@@ -837,7 +837,6 @@ public void OnPluginStart()
 	
 	// Hook usermessages.
 	HookUserMessage(GetUserMessageId("VoiceSubtitle"), Hook_BlockUserMessage, true);
-	HookUserMessage(GetUserMessageId("TextMsg"), Hook_BlockUserMessage, true);
 	
 	// Hook sounds.
 	AddNormalSoundHook(view_as<NormalSHook>(Hook_NormalSound));
@@ -1754,6 +1753,7 @@ public Action Hook_CommandSayTeam(int client, const char[] command,int argc)
 	
 	return Plugin_Continue;
 }
+
 public Action Hook_CommandSuicideAttempt(int client, const char[] command,int argc)
 {
 	if (!g_bEnabled) return Plugin_Continue;
@@ -2687,19 +2687,6 @@ public Action Hook_BlockUserMessage(UserMsg msg_id, Handle bf, const int[] playe
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	return Plugin_Handled;
-}
-public Action Hook_BlockUserMessageEx(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
-{
-	if (!g_bEnabled) return Plugin_Continue;
-	char message[32];
-	msg.ReadByte();
-	msg.ReadString(message, sizeof(message));
-	if(strcmp(message, "#TF_Name_Change") == 0)
-	{
-		return Plugin_Handled;
-	}
-	
-	return Plugin_Continue;
 }
 
 public Action Hook_NormalSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
