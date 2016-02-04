@@ -543,7 +543,9 @@ Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
 
+#if defined DEBUG
 #include "sf2/debug.sp"
+#endif
 #include "sf2/stocks.sp"
 #include "sf2/logging.sp"
 #include "sf2/profiles.sp"
@@ -867,8 +869,9 @@ public void OnPluginStart()
 	
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
-	
+#if defined DEBUG
 	InitializeDebug();
+#endif
 }
 
 public void OnAllPluginsLoaded()
