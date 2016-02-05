@@ -250,10 +250,14 @@ public void PvP_OnEntityCreated(int ent, const char[] sClassname)
 				SDKHook(ent, SDKHook_SpawnPost, Hook_PvPProjectileSpawnPost);
 				break;
 			}
-			if (StrEqual(sClassname, g_sPvPProjectileClassesNoTouch[i], false))
+			//g_sPvPProjectileClassesNoTouch's size should be always under of equal to the size of g_sPvPProjectileClasses
+			if(i<sizeof(g_sPvPProjectileClassesNoTouch))
 			{
-				SDKHook(ent, SDKHook_Touch, Hook_PvPProjectile_OnTouch);
-				break;
+				if (StrEqual(sClassname, g_sPvPProjectileClassesNoTouch[i], false))
+				{
+					SDKHook(ent, SDKHook_Touch, Hook_PvPProjectile_OnTouch);
+					break;
+				}
 			}
 		}
 	}
