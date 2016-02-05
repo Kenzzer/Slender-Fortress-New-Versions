@@ -223,16 +223,15 @@ public Action Timer_SpecialRoundFakeBosses(Handle timer)
 	for (int i = 0; i < MAX_BOSSES; i++)
 	{
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(i);
-		if (!Npc.IsValid()) continue;
+		if (Npc.IsValid()) continue;
 		if (Npc.Flags & SFF_FAKE)
 		{
 			continue;
 		}
-		//Harcoded max of 3 fake bosses
 		if(iFakeBossCount==3) break;
 		Npc.GetProfile(sProfile, sizeof(sProfile));
 		SF2NPC_BaseNPC NpcFake = AddProfile(sProfile, SFF_FAKE, Npc);
-		if (!NpcFake.IsValid())
+		if (NpcFake.IsValid())
 		{
 			LogError("Could not add fake boss for %d: No free slots!", i);
 		}
@@ -335,7 +334,7 @@ void SpecialRoundCycleFinish()
 		if(!SF_SpecialRound(SPECIALROUND_NOGRACE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
 			
-		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NIGHTVISION);
 			
 		if(!bDoubleRoulette)

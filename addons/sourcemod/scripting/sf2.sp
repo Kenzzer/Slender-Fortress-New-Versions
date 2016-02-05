@@ -38,7 +38,7 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v7"
+#define PLUGIN_VERSION "0.2.9-v6b"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
@@ -442,7 +442,6 @@ Handle g_cvUltravisionRadiusRed;
 Handle g_cvUltravisionRadiusBlue;
 Handle g_cvUltravisionBrightness;
 Handle g_cvNightvisionRadius;
-Handle g_cvNightvisionEnabled;
 Handle g_cvGhostModeConnection;
 Handle g_cvGhostModeConnectionCheck;
 Handle g_cvGhostModeConnectionTolerance;
@@ -716,7 +715,6 @@ public void OnPluginStart()
 	g_cvUltravisionRadiusBlue = CreateConVar("sf2_player_ultravision_radius_blue", "800.0");
 	g_cvNightvisionRadius = CreateConVar("sf2_player_nightvision_radius", "400.0");
 	g_cvUltravisionBrightness = CreateConVar("sf2_player_ultravision_brightness", "-4");
-	g_cvNightvisionEnabled = CreateConVar("sf2_player_flashlight_isnightvision", "0", "Enable/Disable flashlight replacement with nightvision",_, true, 0.0, true, 1.0);
 	
 	g_cvGhostModeConnection = CreateConVar("sf2_ghostmode_no_tolerance", "0", "If set on 1, it will instant kick out the client of the Ghost mode if the client has timed out.");
 	g_cvGhostModeConnectionCheck = CreateConVar("sf2_ghostmode_check_connection", "1", "Checks a player's connection while in Ghost Mode. If the check fails, the client is booted out of Ghost Mode and the action and client's SteamID is logged in the main SF2 log.");
@@ -3478,7 +3476,7 @@ public Action Timer_ClientAverageUpdate(Handle timer)
 						}
 					}
 				}
-				if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+				if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
 				{
 					iBars = RoundToCeil(float(iMaxBars) * ClientGetFlashlightBatteryLife(i));
 					if (iBars > iMaxBars) iBars = iMaxBars;
@@ -5962,7 +5960,6 @@ void InitializeintGame()
 	else
 	{
 		SetRoundState(SF2RoundState_Active);
-		SF2_RefreshRestrictions();
 	}
 	
 	if (g_iRoundActiveCount == 1)
@@ -6204,8 +6201,6 @@ public Action Timer_ActivateRoundFromIntro(Handle timer)
 	
 	// Obviously we don't want to spawn the boss when g_strRoundBossProfile isn't set yet.
 	SetRoundState(SF2RoundState_Active);
-	SF2_RefreshRestrictions();
-	
 	
 	// Spawn the boss!
 	SelectProfile(view_as<SF2NPC_BaseNPC>(0), g_strRoundBossProfile);
