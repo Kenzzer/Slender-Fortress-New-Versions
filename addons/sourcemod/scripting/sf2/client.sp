@@ -1339,7 +1339,7 @@ void ClientHandleFlashlight(int client)
 		if (!g_bPlayerEliminated[client])
 		{
 			bool bCanUseFlashlight = true;
-			if (g_bSpecialRound && (SF_SpecialRound(SPECIALROUND_LIGHTSOUT) || SF_SpecialRound(SPECIALROUND_NIGHTVISION))) 
+			if (GetConVarBool(g_cvNightvisionEnabled) || (g_bSpecialRound && (SF_SpecialRound(SPECIALROUND_LIGHTSOUT) || SF_SpecialRound(SPECIALROUND_NIGHTVISION)))) 
 			{
 				// Unequip the flashlight please.
 				bCanUseFlashlight = false;
@@ -1385,7 +1385,7 @@ void ClientActivateUltravision(int client)
 		GetClientEyePosition(client, flEyePos);
 		
 		TeleportEntity(ent, flEyePos, view_as<float>({ 90.0, 0.0, 0.0 }), NULL_VECTOR);
-		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+		if(!GetConVarBool(g_cvNightvisionEnabled) || !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
 			DispatchKeyValue(ent, "rendercolor", "0 200 255");
 		else
 			DispatchKeyValue(ent, "rendercolor", "110 255 100");
@@ -1399,7 +1399,7 @@ void ClientActivateUltravision(int client)
 		{
 			flRadius = GetConVarFloat(g_cvUltravisionRadiusRed);
 		}
-		if(SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client])
+		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
 			flRadius = GetConVarFloat(g_cvNightvisionRadius); //To-do make a cvar for this.//Done
 		
 		SetVariantFloat(flRadius);
@@ -1409,7 +1409,7 @@ void ClientActivateUltravision(int client)
 		
 		SetVariantInt(-15); // Start dark, then fade in via the Timer_UltravisionFadeInEffect timer func.
 		AcceptEntityInput(ent, "brightness");
-		if(SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client])
+		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
 		{
 			SetVariantInt(4);
 			AcceptEntityInput(ent, "brightness");
@@ -1430,7 +1430,7 @@ void ClientActivateUltravision(int client)
 		AcceptEntityInput(ent, "TurnOn");
 		SetEntityRenderFx(ent, RENDERFX_SOLID_SLOW);
 		SetEntityRenderColor(ent, 100, 200, 255, 255);
-		if(SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client])
+		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
 			SetEntityRenderColor(ent, 110, 255, 100, 255);
 		
 		g_iPlayerUltravisionEnt[client] = EntIndexToEntRef(ent);
@@ -5690,7 +5690,15 @@ stock bool IsPointVisibleToPlayer(int client, const float pos[3], bool bCheckFOV
 	
 	return true;
 }
-
+//
+void SF2_RefreshRestrictions()
+{
+	for(int client=1;client <=MaxClients;client++)
+	{
+		if(IsValidClient(client))
+			g_hPlayerPostWeaponsTimer[client]=CreateTimer(1.0,Timer_ClientPostWeapons,GetClientUserId(client));
+	}
+}
 public Action Timer_ClientPostWeapons(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
@@ -6090,10 +6098,13 @@ bool IsWeaponRestricted(TFClassType iClass,int iItemDef)
 	}
 	if (KvJumpToKey(g_hRestrictedWeaponsConfig, "all"))
 	{
-		bReturn = view_as<bool>(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef));
-		if(bProxyBoss)
+		//bReturn = view_as<bool>(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef));
+		//view_as bool value turn to 2 into a true value.
+		if(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef)==1)
+			bReturn=true;
+		if(bProxyBoss && !bReturn)
 		{
-			int bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn);
+			int bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, 0);
 			if(bProxyRestricted==2)
 				bReturn=true;
 		}
@@ -6126,13 +6137,15 @@ bool IsWeaponRestricted(TFClassType iClass,int iItemDef)
 	
 	if (bFoundSection)
 	{
-		if(bProxyBoss)
+		//bReturn = view_as<bool>(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn));
+		if(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef)==1)
+			bReturn=true;
+		if(bProxyBoss && !bReturn)
 		{
-			int bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn);
+			int bProxyRestricted = KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, 0);
 			if(bProxyRestricted==2)
 				bReturn=true;
 		}
-		bReturn = view_as<bool>(KvGetNum(g_hRestrictedWeaponsConfig, sItemDef, bReturn));
 	}
 	
 	return bReturn;
