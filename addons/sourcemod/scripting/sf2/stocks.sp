@@ -52,6 +52,9 @@
 
 #define vec3_origin { 0.0, 0.0, 0.0 }
 
+//I told alliedmodders to add this cond in their enum list but my message got removed.
+TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
+
 // hull defines, mostly used for space checking.
 float HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }
 float HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
@@ -147,6 +150,9 @@ stock bool IsSpaceOccupiedNPC(const float pos[3], const float mins[3], const flo
 
 stock void EntitySetAnimation(int iEntity, const char[] sAnimation, bool bDefaultAnimation=true, float flPlaybackRate=1.0)
 {
+	//The min and max playbackrate are -12/12
+	if(flPlaybackRate<-12.0) flPlaybackRate=-12.0;
+	if(flPlaybackRate>12.0) flPlaybackRate=12.0;
 	// Set m_nSequence to 0 to fix an animation glitch with HL2/GMod models.
 	SetEntProp(iEntity, Prop_Send, "m_nSequence", 0);
 	
@@ -294,7 +300,7 @@ stock bool IsValidClient(int client)
 stock bool IsTauntWep(int iWeapon)
 {
 	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
-	if(Index==37)
+	if(Index==37 || Index==304 || Index==5 || Index==195 || Index==43 || Index==239 || Index==310 || Index==331 || Index==426 || Index==587 || Index==656 || Index==1084 || Index==1100)
 		return true;
 	return false;
 }

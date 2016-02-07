@@ -2198,7 +2198,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 		bChangeAngles = true;
 	}
 	TeleportEntity(iBoss, NULL_VECTOR, bChangeAngles ? flMoveAng : NULL_VECTOR, flMoveVelocity);
-	if(g_iSlenderHitbox[iBossIndex]>MaxClients)
+	if(g_iSlenderHitbox[iBossIndex]>MaxClients && IsValidEntity(g_iSlenderHitbox[iBossIndex]))
 	{
 		TeleportEntity(g_iSlenderHitbox[iBossIndex], flMyPos, bChangeAngles ? flMoveAng : NULL_VECTOR, NULL_VECTOR);
 		GetEntPropVector(g_iSlenderHitbox[iBossIndex], Prop_Data, "m_vecAbsOrigin", flMyPos);
@@ -2478,8 +2478,12 @@ static bool NPCAttackValidateTarget(int iBossIndex,int iTarget, float flAttackRa
 	
 	float flMyEyePos[3], flMyEyeAng[3];
 	NPCGetEyePosition(iBossIndex, flMyEyePos);
-	if(iTarget>64)//We asume it's a prop
+	if(iTarget>MaxClients)
+	{
+		//float flVecMaxs[3];
 		flMyEyePos[2]+=30.0;
+		//GetEntPropVector(g_iSlenderHitbox[iBossIndex], Prop_Data, "m_vecMaxs", flVecMaxs);
+	}
 	GetEntPropVector(iBoss, Prop_Data, "m_angAbsRotation", flMyEyeAng);
 	AddVectors(g_flSlenderEyeAngOffset[iBossIndex], flMyEyeAng, flMyEyeAng);
 	for (int i = 0; i < 3; i++) flMyEyeAng[i] = AngleNormalize(flMyEyeAng[i]);
@@ -2512,6 +2516,7 @@ static bool NPCAttackValidateTarget(int iBossIndex,int iTarget, float flAttackRa
 				
 			bool bTraceDidHit = TR_DidHit(hTrace);
 			int iTraceHitEntity = TR_GetEntityIndex(hTrace);
+			PrintToChatAll("Entity: %i",iTraceHitEntity);
 			CloseHandle(hTrace);
 			
 			if (!bTraceDidHit || iTraceHitEntity == iTarget)

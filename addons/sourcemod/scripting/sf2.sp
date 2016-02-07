@@ -38,13 +38,15 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v7"
+#define PLUGIN_VERSION "0.2.9-v8"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2
 #define TFTeam_Blue 3
 //#define TFTeam_Boss 5
+
+#define EF_ITEM_BLINK 0x100
 
 
 public Plugin myinfo = 
@@ -102,6 +104,7 @@ int g_offsPlayerPunchAngle = -1;
 int g_offsPlayerPunchAngleVel = -1;
 int g_offsFogCtrlEnable = -1;
 int g_offsFogCtrlEnd = -1;
+int g_offsCollisionGroup = -1;
 
 bool g_bEnabled;
 
@@ -670,6 +673,9 @@ public void OnPluginStart()
 	g_offsFogCtrlEnd = FindSendPropInfo("CFogController", "m_fog.end");
 	if (g_offsFogCtrlEnd == -1) LogError("Couldn't find CFogController offset for m_fog.end!");
 	
+	g_offsCollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
+	if (g_offsCollisionGroup == -1)  LogError("Couldn't find CBaseEntity offset for m_CollisionGroup!");
+	
 	g_hPageMusicRanges = CreateArray(3);
 	
 	// Register console variables.
@@ -822,6 +828,7 @@ public void OnPluginStart()
 	// Hook events.
 	HookEvent("teamplay_round_start", Event_RoundStart);
 	HookEvent("teamplay_round_win", Event_RoundEnd);
+	HookEvent("teamplay_win_panel", Event_WinPanel, EventHookMode_Pre);
 	HookEvent("player_team", Event_DontBroadcastToClients, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_spawn", Event_PlayerSpawn);
@@ -837,7 +844,7 @@ public void OnPluginStart()
 	// Hook entities.
 	HookEntityOutput("info_npc_spawn_destination", "OnUser1", NPCSpawn);
 	HookEntityOutput("trigger_multiple", "OnStartTouch", Hook_TriggerOnStartTouch);
-	//HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
+	HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
 	
 	// Hook usermessages.
 	HookUserMessage(GetUserMessageId("VoiceSubtitle"), Hook_BlockUserMessage, true);
@@ -2558,7 +2565,7 @@ public Action Timer_RoundMessages(Handle timer)
 	
 	switch (g_iRoundMessagesNum)
 	{
-		case 0: CPrintToChatAll("{olive}== {lightgreen}Slender Fortress{olive} coded by {lightgreen}Kit o' Rifty{olive}==\n== New versions by {lightgreen}Benoist3012{olive}, current version {lightgreen}%s{olive}==", PLUGIN_VERSION_DISPLAY);
+		case 0: CPrintToChatAll("{olive}== {springgreen}Slender Fortress{olive} coded by {springgreen}Kit o' Rifty{olive}==\n== New versions by {springgreen}Benoist3012{olive}, current version {springgreen}%s{olive}==", PLUGIN_VERSION_DISPLAY);
 		case 1: CPrintToChatAll("%t", "SF2 Ad Message 1");
 		case 2: CPrintToChatAll("%t", "SF2 Ad Message 2");
 	}
@@ -2898,16 +2905,29 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 			}
 		}
 	}
+	//We have to disable hitbox's colisions in order to prevent some bugs.
+	if(activator>MaxClients)
+	{
+		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
+		if(Npc.IsValid())//Turn off colisions.
+		{
+			SetEntData(g_iSlenderHitbox[Npc.Index], g_offsCollisionGroup, 2, 4, true);
+		}
+	}
 	
 	PvP_OnTriggerStartTouch(caller, activator);
 }
 
-/*public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator, float flDelay)
+public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator, float flDelay)
 {
 	if (!g_bEnabled) return;
-	
-	PvP_OnTriggerEndTouch(caller, activator);
-}*/
+	if(activator>MaxClients)
+	{
+		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
+		if(Npc.IsValid())//Turn colisions back.
+			SetEntData(g_iSlenderHitbox[Npc.Index], g_offsCollisionGroup, 4, 4, true);
+	}
+}
 
 public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3], float damagePosition[3],int damagecustom)
 {
@@ -2945,7 +2965,7 @@ static void CollectPage(int page,int activator)
 	FireEvent(hEvent);
 	
 	AcceptEntityInput(page, "FireUser1");
-	AcceptEntityInput(page, "Kill");
+	AcceptEntityInput(page, "KillHierarchy");
 }
 
 //	==========================================================
@@ -3806,6 +3826,23 @@ public Action Hook_SlenderObjectSetTransmit(int ent,int other)
 	
 	return Plugin_Continue;
 }
+public Action Hook_SlenderObjectSetTransmitEx(int ent,int other)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+	
+	if (!IsPlayerAlive(other) || IsClientInDeathCam(other))
+	{
+		if (!IsValidEdict(GetEntPropEnt(other, Prop_Send, "m_hObserverTarget"))) return Plugin_Handled;
+	}
+	if (IsClientInGhostMode(other)) return Plugin_Handled;
+	if (IsValidClient(other))
+	{
+		if(ClientGetDistanceFromEntity(other,ent)<=320)
+			return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
 
 public Action Timer_SlenderBlinkBossThink(Handle timer, any entref)
 {
@@ -4357,6 +4394,23 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_RoundStart");
 #endif
+}
+public Action Event_WinPanel(Event event, const char[] name, bool dontBroadcast)
+{
+	if(!g_bEnabled) return Plugin_Continue;
+	
+	char cappers[7];
+	int i=0;
+	for(int client;client<=MaxClients;client++)
+	{
+		if(IsValidClient(client) && DidClientEscape(client) && i<7)
+		{
+			cappers[i] = client;
+			event.SetString("cappers", cappers);
+			i+=1;
+		}
+	}
+	return Plugin_Continue;
 }
 
 public Action Event_RoundEnd(Handle event, const char[] name, bool dB)
@@ -5513,11 +5567,13 @@ static void InitializeMapEntities()
 			NormalizeVector(vecDir, vecDir);
 			ScaleVector(vecDir, 1.0);
 			
+			char pageName[50];
 			page = CreateEntityByName("prop_dynamic_override");
 			if (page != -1)
 			{
 				TeleportEntity(page, vecPos, vecAng, NULL_VECTOR);
-				DispatchKeyValue(page, "targetname", "sf2_page");
+				Format(pageName,50,"sf2_page_%i",i);
+				DispatchKeyValue(page, "targetname", pageName);
 				
 				if (g_bPageRef)
 				{
@@ -5529,6 +5585,8 @@ static void InitializeMapEntities()
 				}
 				
 				DispatchKeyValue(page, "solid", "2");
+				DispatchKeyValue(page, "fademindist", "300");
+				DispatchKeyValue(page, "fademaxdist", "400");
 				DispatchSpawn(page);
 				ActivateEntity(page);
 				SetVariantInt(i);
@@ -5543,9 +5601,45 @@ static void InitializeMapEntities()
 				{
 					SetEntPropFloat(page, Prop_Send, "m_flModelScale", PAGE_MODELSCALE);
 				}
+				SetEntProp(page, Prop_Send, "m_fEffects", EF_ITEM_BLINK);
 				
 				SDKHook(page, SDKHook_OnTakeDamage, Hook_PageOnTakeDamage);
 				SDKHook(page, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmit);
+			}
+			int page2 = CreateEntityByName("prop_dynamic_override");
+			if (page2 != -1)
+			{
+				TeleportEntity(page2, vecPos, vecAng, NULL_VECTOR);
+				DispatchKeyValue(page2, "targetname", "sf2_page_ex");
+				
+				if (g_bPageRef)
+				{
+					SetEntityModel(page2, g_strPageRefModel);
+				}
+				else
+				{
+					SetEntityModel(page2, PAGE_MODEL);
+				}
+				
+				DispatchKeyValue(page2, "solid", "0");
+				DispatchKeyValue(page2, "parentname", pageName);
+				DispatchSpawn(page2);
+				ActivateEntity(page2);
+				SetVariantInt(i);
+				AcceptEntityInput(page2, "Skin");
+				AcceptEntityInput(page2, "DisableCollision");
+				SetVariantString(pageName);
+				AcceptEntityInput(page2, "SetParent");
+				
+				if (g_bPageRef)
+				{
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", (g_flPageRefModelScale-0.05));
+				}
+				else
+				{
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", (PAGE_MODELSCALE-0.05));
+				}
+				SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
 			}
 		}
 		
@@ -5949,7 +6043,6 @@ void InitializeintGame()
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START InitializeintGame()");
 #endif
-	
 	GetRoundIntroParameters();
 	GetRoundEscapeParameters();
 	

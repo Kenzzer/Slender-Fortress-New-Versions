@@ -3539,7 +3539,7 @@ void ClientSetGhostModeState(int client, bool bState)
 	if (bState)
 	{
 		ClientHandleGhostMode(client, true);
-		
+		TF2Attrib_SetByName(client, "mod see enemy health", 1.0);
 		if (GetConVarBool(g_cvGhostModeConnectionCheck))
 		{
 			g_hPlayerGhostModeConnectionCheckTimer[client] = CreateTimer(0.0, Timer_GhostModeConnectionCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -3551,6 +3551,7 @@ void ClientSetGhostModeState(int client, bool bState)
 	}
 	else
 	{
+		TF2Attrib_SetByName(client, "mod see enemy health", 0.0);
 		g_hPlayerGhostModeConnectionCheckTimer[client] = INVALID_HANDLE;
 		g_flPlayerGhostModeConnectionTimeOutTime[client] = -1.0;
 		g_flPlayerGhostModeConnectionBootTime[client] = -1.0;

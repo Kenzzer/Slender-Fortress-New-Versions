@@ -1096,7 +1096,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Data,"m_nNextThinkTick",-1);
 			g_iSlenderHitboxOwner[g_iSlenderHitbox[iBossIndex]]=iBoss;
 			//PrintToChatAll("Slender spawn: %i",g_iSlenderHitbox[iBossIndex]);
-			SDKHook(g_iSlenderHitbox[iBossIndex],  SDKHook_ShouldCollide, Hook_HitBoxShouldCollid);
+			SDKHook(g_iSlenderHitbox[iBossIndex],  SDKHook_ShouldCollide, Hook_HitBoxShouldCollide);
 			SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamage, Hook_HitboxOnTakeDamage);
 			//SDKHook(g_iSlenderHitbox[iBossIndex], SDKHook_OnTakeDamagePost, Hook_HitboxOnTakeDamagePost);
 			
@@ -1282,12 +1282,12 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 	}
 	return damage;
 }
-public bool Hook_HitBoxShouldCollid(int slender,int collisiongroup,int contentsmask, bool originalResult)
+public bool Hook_HitBoxShouldCollide(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
 #if defined DEBUG
 	SendDebugMessageToPlayers(DEBUG_BOSS_HITBOX,0,"Hitbox: %i wants to collide with entity contentsmask: %i",slender,contentsmask);
 #endif
-	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))// || (contentsmask & CONTENTS_MOVEABLE))
+	if ((contentsmask & CONTENTS_MONSTERCLIP) || (contentsmask & CONTENTS_PLAYERCLIP))
 	{
 		//CONTENTS_MOVEABLE seems to make the hitbox bullet proof
 #if defined DEBUG
