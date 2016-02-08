@@ -2565,7 +2565,7 @@ public Action Timer_RoundMessages(Handle timer)
 	
 	switch (g_iRoundMessagesNum)
 	{
-		case 0: CPrintToChatAll("{olive}== {springgreen}Slender Fortress{olive} coded by {springgreen}Kit o' Rifty{olive}==\n== New versions by {springgreen}Benoist3012{olive}, current version {springgreen}%s{olive}==", PLUGIN_VERSION_DISPLAY);
+		case 0: CPrintToChatAll("{powderblue}== {deepskyblue}Slender Fortress{powderblue} coded by {blue}Kit o' Rifty{powderblue}==\n== New versions by {blue}Benoist3012{powderblue}, current version {frozen}%s{powderblue}==", PLUGIN_VERSION_DISPLAY);
 		case 1: CPrintToChatAll("%t", "SF2 Ad Message 1");
 		case 2: CPrintToChatAll("%t", "SF2 Ad Message 2");
 	}
