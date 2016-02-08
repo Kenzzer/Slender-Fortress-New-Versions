@@ -2516,7 +2516,6 @@ static bool NPCAttackValidateTarget(int iBossIndex,int iTarget, float flAttackRa
 				
 			bool bTraceDidHit = TR_DidHit(hTrace);
 			int iTraceHitEntity = TR_GetEntityIndex(hTrace);
-			PrintToChatAll("Entity: %i",iTraceHitEntity);
 			CloseHandle(hTrace);
 			
 			if (!bTraceDidHit || iTraceHitEntity == iTarget)

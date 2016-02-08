@@ -1228,10 +1228,14 @@ public Action Hook_SlenderOnTakeDamage(int slender,int &attacker,int &inflictor,
 	
 	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return Plugin_Continue;
-	SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
-	Boss_HitBox_Damage(g_iSlenderHitbox[iBossIndex], attacker, damage, damagetype);
-	SetVariantInt(30000);
-	AcceptEntityInput(g_iSlenderHitbox[iBossIndex],"SetHealth");
+	if(IsValidEntity(attacker))
+	{
+		if(attacker <= MaxClients && !IsValidClient(attacker)) return Plugin_Continue;
+		SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
+		Boss_HitBox_Damage(g_iSlenderHitbox[iBossIndex], attacker, damage, damagetype);
+		SetVariantInt(30000);
+		AcceptEntityInput(g_iSlenderHitbox[iBossIndex],"SetHealth");
+	}
 	damage = 0.0;
 	return Plugin_Changed;
 }
