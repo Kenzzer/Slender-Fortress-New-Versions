@@ -6,18 +6,18 @@
 
 Handle g_hMenuMain;
 Handle g_hMenuVoteDifficulty;
-Handle g_hMenuGhostMode;
 Handle g_hMenuHelp;
 Handle g_hMenuHelpObjective;
 Handle g_hMenuHelpObjective2;
 Handle g_hMenuHelpCommands;
-Handle g_hMenuHelpGhostMode;
 Handle g_hMenuHelpSprinting;
 Handle g_hMenuHelpControls;
 Handle g_hMenuHelpClassInfo;
+Handle g_hMenuHelpGhostMode;
 Handle g_hMenuSettings;
 Handle g_hMenuCredits;
 Handle g_hMenuCredits2;
+Handle g_hMenuUpdate;
 
 #include "sf2/playergroups/menus.sp"
 #include "sf2/pvp/menus.sp"
@@ -37,6 +37,8 @@ void SetupMenus()
 	AddMenuItem(g_hMenuMain, "0", buffer);
 	Format(buffer, sizeof(buffer), "%t (!slghost)", "SF2 Ghost Mode Menu Title");
 	AddMenuItem(g_hMenuMain, "0", buffer);
+	Format(buffer, sizeof(buffer), "%t (!slpack)", "SF2 Boss Pack Menu Title");
+	AddMenuItem(g_hMenuMain, "0", buffer);
 	Format(buffer, sizeof(buffer), "%t (!slsettings)", "SF2 Settings Menu Title");
 	AddMenuItem(g_hMenuMain, "0", buffer);
 	strcopy(buffer, sizeof(buffer), "Credits (!slcredits)");
@@ -50,13 +52,6 @@ void SetupMenus()
 	AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
 	Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
 	AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
-	
-	g_hMenuGhostMode = CreateMenu(Menu_GhostMode);
-	SetMenuTitle(g_hMenuGhostMode, "%t%t\n \n", "SF2 Prefix", "SF2 Ghost Mode Menu Title");
-	Format(buffer, sizeof(buffer), "Enable");
-	AddMenuItem(g_hMenuGhostMode, "0", buffer);
-	Format(buffer, sizeof(buffer), "Disable");
-	AddMenuItem(g_hMenuGhostMode, "1", buffer);
 	
 	g_hMenuHelp = CreateMenu(Menu_Help);
 	SetMenuTitle(g_hMenuHelp, "%t%t\n \n", "SF2 Prefix", "SF2 Help Menu Title");
@@ -139,21 +134,19 @@ void SetupMenus()
 	
 	g_hMenuCredits = CreateMenu(Menu_Credits);
 	
-	Format(buffer, sizeof(buffer), "%tCredits\n \n", "SF2 Prefix");
-	StrCat(buffer, sizeof(buffer), "Coder: Kit o' Rifty\n");
-	StrCat(buffer, sizeof(buffer), "Version: ");
-	StrCat(buffer, sizeof(buffer), PLUGIN_VERSION);
+	Format(buffer, sizeof(buffer), "Credits\n \n");
+	StrCat(buffer, sizeof(buffer), "Coders: Kit o' Rifty, Benoist3012\n");
 	StrCat(buffer, sizeof(buffer), "\n \n");
-	StrCat(buffer, sizeof(buffer), "Mark J. Hadley (AgentParsec) - The creator of the Slender game!\n");
-	StrCat(buffer, sizeof(buffer), "Mark Steen - Composing the intro music");
-	StrCat(buffer, sizeof(buffer), "Mammoth Mogul - for being a GREAT test subject\n");
-	StrCat(buffer, sizeof(buffer), "Egosins - for offering to host this publicly\n");
-	StrCat(buffer, sizeof(buffer), "Somberguy - suggestions and support\n");
-	StrCat(buffer, sizeof(buffer), "Omi-Box - materials, maps, current Slender Man model, and more!\n");
-	StrCat(buffer, sizeof(buffer), "Narry Gewman - imported first Slender Man model\n");
-	StrCat(buffer, sizeof(buffer), "Simply Delicious - for the awesome camera overlay!\n");
-	StrCat(buffer, sizeof(buffer), "Jason278 - Page models");
-	StrCat(buffer, sizeof(buffer), "\n \n");
+	StrCat(buffer, sizeof(buffer), "Mark J. Hadley -The creator of the Slender game\n");
+	StrCat(buffer, sizeof(buffer), "Mark Steen -Composing the intro music\n");
+	StrCat(buffer, sizeof(buffer), "Mammoth Mogul -for being a GREAT test subject\n");
+	StrCat(buffer, sizeof(buffer), "Egosins -for offering to host this publicly\n");
+	StrCat(buffer, sizeof(buffer), "Glubbable -for working on a ton of maps\n");
+	StrCat(buffer, sizeof(buffer), "Somberguy -suggestions and support\n");
+	StrCat(buffer, sizeof(buffer), "Omi-Box -materials, maps, current Slender Man model, and more\n");
+	StrCat(buffer, sizeof(buffer), "Narry Gewman -imported first Slender Man model\n");
+	StrCat(buffer, sizeof(buffer), "Simply Delicious -for the awesome camera overlay\n");
+	StrCat(buffer, sizeof(buffer), "Jason278 -Page models");
 	
 	SetMenuTitle(g_hMenuCredits, buffer);
 	AddMenuItem(g_hMenuCredits, "0", "Next");
@@ -177,9 +170,22 @@ void SetupMenus()
 	SetMenuTitle(g_hMenuCredits2, buffer);
 	AddMenuItem(g_hMenuCredits2, "0", "Back");
 	
+	g_hMenuUpdate = CreateMenu(Menu_Update);
+	Format(buffer, sizeof(buffer), "%tSlender Fortress\n \n", "SF2 Prefix");
+	StrCat(buffer, sizeof(buffer), "Coders: Kit o' Rifty, Benoist3012\n");
+	StrCat(buffer, sizeof(buffer), "Version: ");
+	StrCat(buffer, sizeof(buffer), PLUGIN_VERSION);
+	StrCat(buffer, sizeof(buffer), "\n \n");
+	Format(buffer, sizeof(buffer), "%s%t\n",buffer,"SF2 Recent Changes");
+	Format(buffer, sizeof(buffer), "%s%t\n",buffer,"SF2 Change Log");
+	StrCat(buffer, sizeof(buffer), "\n \n");
+	
+	SetMenuTitle(g_hMenuUpdate, buffer);
+	
+	AddMenuItem(g_hMenuUpdate, "0", "Display main menu");
+	
 	PvP_SetupMenus();
 }
-
 public int Menu_Main(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
@@ -189,9 +195,10 @@ public int Menu_Main(Handle menu, MenuAction action,int param1,int param2)
 			case 0: DisplayMenu(g_hMenuHelp, param1, 30);
 			case 1: DisplayQueuePointsMenu(param1);
 			case 2:	DisplayGroupMainMenuToClient(param1);
-			case 3: DisplayMenu(g_hMenuGhostMode, param1, 30);
-			case 4: DisplayMenu(g_hMenuSettings, param1, 30);
-			case 5: DisplayMenu(g_hMenuCredits, param1, MENU_TIME_FOREVER);
+			case 3: FakeClientCommand(param1, "sm_slghost");
+			case 4: FakeClientCommand(param1, "sm_slpack");
+			case 5: DisplayMenu(g_hMenuSettings, param1, 30);
+			case 6: DisplayMenu(g_hMenuCredits, param1, MENU_TIME_FOREVER);
 		}
 	}
 }
@@ -632,7 +639,15 @@ public int Menu_Credits2(Handle menu, MenuAction action,int param1,int param2)
 		}
 	}
 }
-
+public int Menu_Update(Handle menu, MenuAction action,int param1,int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		if( param2 == 0 )
+			DisplayMenu(g_hMenuMain, param1, 30);
+	}
+	return;
+}
 void DisplayQueuePointsMenu(int client)
 {
 	Handle menu = CreateMenu(Menu_QueuePoints);

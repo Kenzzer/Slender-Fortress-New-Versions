@@ -178,7 +178,7 @@ stock void EntitySetAnimation(int iEntity, const char[] sAnimation, bool bDefaul
 //	==========================================================
 
 //Credits to Linux_lover for this stock and signature.
-stock void ClientSDK_PlaySpecificSequence(int client, const char[] strSequence)
+stock void SDK_PlaySpecificSequence(int client, const char[] strSequence)
 {
 	if(g_hSDKPlaySpecificSequence != INVALID_HANDLE)
 	{
@@ -191,6 +191,13 @@ stock void ClientSDK_PlaySpecificSequence(int client, const char[] strSequence)
 		}
 #endif
 		SDKCall(g_hSDKPlaySpecificSequence, client, strSequence);
+	}
+}
+stock void SDK_EquipWearable(int client, int entity)
+{
+	if(g_hSDKEquipWearable != INVALID_HANDLE)
+	{
+		SDKCall( g_hSDKEquipWearable, client, entity );
 	}
 }
 stock void KillClient(int client)

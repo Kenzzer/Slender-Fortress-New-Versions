@@ -1198,6 +1198,8 @@ void RemoveSlender(int iBossIndex)
 	
 	if (iBoss && iBoss != INVALID_ENT_REFERENCE)
 	{
+		//Turn off all slender's effects in order to prevent some bugs.
+		SlenderRemoveEffects(iBoss);
 		// Stop all possible looping sounds.
 		ClientStopAllSlenderSounds(iBoss, sProfile, "sound_move", SNDCHAN_AUTO);
 		
@@ -2170,7 +2172,7 @@ bool SlenderChaseBossCalculateNewPlace(int iBossIndex, const float flActiveAreaC
 }
 */
 
-bool SlenderCalculateNewPlace(int iBossIndex, float buffer[3], bool bIgnoreCopies=false, bool bProxy=false,int iProxyPlayer=-1,int &iBestPlayer=-1, Handle hAreaArray=INVALID_HANDLE)
+/*bool SlenderCalculateNewPlace(int iBossIndex, float buffer[3], bool bIgnoreCopies=false, bool bProxy=false,int iProxyPlayer=-1,int &iBestPlayer=-1, Handle hAreaArray=INVALID_HANDLE)
 {
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
@@ -2669,7 +2671,7 @@ bool SlenderCalculateNewPlace(int iBossIndex, float buffer[3], bool bIgnoreCopie
 	CloseHandle(hArrayAverage);
 	CloseHandle(hArrayFar);
 	return true;
-}
+}*/
 
 bool SlenderMarkAsFake(int iBossIndex)
 {
@@ -2783,7 +2785,7 @@ stock int SpawnSlenderModel(int iBossIndex, const float pos[3])
 		SetEntityRenderColor(iSlenderModel, iColor[0], iColor[1], iColor[2], iColor[3]);
 		
 		KvRewind(g_hConfig);
-		if (KvJumpToKey(g_hConfig, sProfile) && 
+		/*if (KvJumpToKey(g_hConfig, sProfile) && 
 			KvJumpToKey(g_hConfig, "effects") &&
 			KvGotoFirstSubKey(g_hConfig))
 		{
@@ -2792,7 +2794,7 @@ stock int SpawnSlenderModel(int iBossIndex, const float pos[3])
 				
 			}
 			while KvGotoNextKey(g_hConfig);
-		}
+		}*/
 		//Beginning of the code for boss's glow
 		/*int iEntFlags = GetEntityFlags( iEntity );
 		if(iEntFlags & FL_EDICT_ALWAYS)

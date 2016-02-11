@@ -227,7 +227,7 @@ public Action Command_Pack(int client,int args)
 	KvGetString(g_hBossPackConfig, "name", bossPackName, sizeof(bossPackName), MapbossPack);
 	if(StrEqual(bossPackName,""))
 		Format(bossPackName,sizeof(bossPackName),"Core Pack");
-	PrintToChat(client,"Pack: %s",bossPackName);
+	CPrintToChat(client,"{olive}Pack:{lightgreen}%s",bossPackName);
 	return Plugin_Handled;
 }
 

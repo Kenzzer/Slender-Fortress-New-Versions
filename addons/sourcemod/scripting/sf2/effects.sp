@@ -255,7 +255,29 @@ void SlenderSpawnEffects(int iBossIndex, EffectEvent iEvent)
 	
 	CloseHandle(hArray);
 }
-
+void SlenderRemoveEffects(int iSlender,bool bKill=false)
+{
+	int iEffect = -1;
+	while((iEffect = FindEntityByClassname(iEffect, "light_dynamic")) > MaxClients)
+	{
+		if(GetEntProp(iEffect,Prop_Send,"moveparent") == iSlender)
+		{
+			AcceptEntityInput(iEffect, "TurnOff");
+			if(bKill)
+				AcceptEntityInput(iEffect, "Kill");
+		}
+	}
+	iEffect = -1;
+	while((iEffect = FindEntityByClassname(iEffect, "env_steam")) > MaxClients)
+	{
+		if(GetEntProp(iEffect,Prop_Send,"moveparent") == iSlender)
+		{
+			AcceptEntityInput(iEffect, "TurnOff");
+			if(bKill)
+				AcceptEntityInput(iEffect, "Kill");
+		}
+	}
+}
 stock void GetEffectEventString(EffectEvent iEvent, char[] sBuffer,int iBufferLen)
 {
 	switch (iEvent)

@@ -38,7 +38,7 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v8"
+#define PLUGIN_VERSION "0.2.9-v9"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
@@ -95,6 +95,11 @@ enum MuteMode
 	MuteMode_DontHearOtherTeam,
 	MuteMode_DontHearOtherTeamIfNotProxy
 };
+
+//Update
+bool g_bSeeUpdateMenu[MAXPLAYERS+1] = false;
+//Command
+bool g_bAdminNoPoints[MAXPLAYERS+1] = false;
 
 // Offsets.
 int g_offsPlayerFOV = -1;
@@ -393,12 +398,12 @@ int g_iSpecialRoundCount = 1;
 bool g_bPlayerPlayedSpecialRound[MAXPLAYERS + 1] = { true, ... };
 
 // int boss round variables.
-static bool g_bintBossRound = false;
-static bool g_bintBossRoundint = false;
-static bool g_bintBossRoundContinuous = false;
-static int g_iintBossRoundCount = 1;
+static bool g_bNewBossRound = false;
+static bool g_bNewBossRoundNew = false;
+static bool g_bNewBossRoundContinuous = false;
+static int g_iNewBossRoundCount = 1;
 
-static bool g_bPlayerPlayedintBossRound[MAXPLAYERS + 1] = { true, ... };
+static bool g_bPlayerPlayedNewBossRound[MAXPLAYERS + 1] = { true, ... };
 static char g_strintBossRoundProfile[64] = "";
 
 static Handle g_hRoundMessagesTimer = INVALID_HANDLE;
@@ -785,7 +790,9 @@ public void OnPluginStart()
 	
 	// Register console commands.
 	RegConsoleCmd("sm_sf2", Command_MainMenu);
+	RegConsoleCmd("sm_sl", Command_MainMenu);
 	RegConsoleCmd("sm_slender", Command_MainMenu);
+	RegConsoleCmd("sm_slupdate", Command_Update);
 	RegConsoleCmd("sm_slpack", Command_Pack);
 	RegConsoleCmd("sm_sf2pack", Command_Pack);
 	RegConsoleCmd("sm_slnext", Command_Next);
@@ -800,6 +807,7 @@ public void OnPluginStart()
 	RegConsoleCmd("-sprint", Command_SprintOff);
 
 	RegAdminCmd("sm_sf2_bosspack_vote", DevCommand_BossPackVote, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_nopoints", Command_NoPoints, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_scare", Command_ClientPerformScare, ADMFLAG_SLAY);
 	RegAdminCmd("sm_sf2_spawn_boss", Command_SpawnSlender, ADMFLAG_SLAY);
 	RegAdminCmd("sm_sf2_add_boss", Command_AddSlender, ADMFLAG_SLAY);
@@ -1152,10 +1160,10 @@ static void StartPlugin()
 	SpecialRoundReset();
 	
 	// Reset boss rounds.
-	g_bintBossRound = false;
-	g_bintBossRoundint = false;
-	g_bintBossRoundContinuous = false;
-	g_iintBossRoundCount = 1;
+	g_bNewBossRound = false;
+	g_bNewBossRoundNew = false;
+	g_bNewBossRoundContinuous = false;
+	g_iNewBossRoundCount = 1;
 	strcopy(g_strintBossRoundProfile, sizeof(g_strintBossRoundProfile), "");
 	
 	// Reset global round vars.
@@ -1402,8 +1410,6 @@ public void OnGameFrame()
 			}
 		}
 	}
-	
-		
 	// Check if we can add some proxies.
 	if (!g_bRoundGrace)
 	{
@@ -1651,14 +1657,35 @@ public Action Command_SprintOff(int client,int args)
 	
 	return Plugin_Handled;
 }
+
 public Action DevCommand_BossPackVote(int client,int args)
 {
+	if (!g_bEnabled) return Plugin_Continue;
 	InitiateBossPackVote(client);
+	return Plugin_Handled;
 }
+
+public Action Command_NoPoints(int client,int args)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+	if(!g_bAdminNoPoints[client])
+		g_bAdminNoPoints[client] = true;
+	else
+		g_bAdminNoPoints[client] = false;
+	return Plugin_Handled;
+}
+
 public Action Command_MainMenu(int client,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	DisplayMenu(g_hMenuMain, client, 30);
+	return Plugin_Handled;
+}
+
+public Action Command_Update(int client, int args)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+	DisplayMenu(g_hMenuUpdate, client, 30);
 	return Plugin_Handled;
 }
 
@@ -1728,7 +1755,26 @@ public Action Command_GhostMode(int client,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	DisplayMenu(g_hMenuGhostMode, client, 15);
+	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[client] || !IsClientParticipating(client) || g_bPlayerProxy[client])
+	{
+		CPrintToChat(client, "{red}%T", "SF2 Ghost Mode Not Allowed", client);
+		return Plugin_Handled;
+	}
+	if (!IsClientInGhostMode(client))
+	{
+		TF2_RespawnPlayer(client);
+		ClientSetGhostModeState(client, true);
+		HandlePlayerHUD(client);
+	
+		CPrintToChat(client, "{olive}%T", "SF2 Ghost Mode Enabled", client);
+	}
+	else
+	{
+		ClientSetGhostModeState(client, false);
+		TF2_RespawnPlayer(client);
+		
+		CPrintToChat(client, "{olive}%T", "SF2 Ghost Mode Disabled", client);
+	}
 	return Plugin_Handled;
 }
 
@@ -3079,7 +3125,7 @@ public void OnClientPutInServer(int client)
 	g_bPlayerEliminated[client] = true;
 	g_bPlayerChoseTeam[client] = false;
 	g_bPlayerPlayedSpecialRound[client] = true;
-	g_bPlayerPlayedintBossRound[client] = true;
+	g_bPlayerPlayedNewBossRound[client] = true;
 	
 	g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn] = false;
 	g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight] = false;
@@ -3184,8 +3230,9 @@ public void OnClientDisconnect(int client)
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START OnClientDisconnect(%d)", client);
 #endif
-	
+	g_bSeeUpdateMenu[client] = false;
 	g_bPlayerEscaped[client] = false;
+	g_bAdminNoPoints[client] = false;
 	
 	// Save and reset settings for the next client.
 	ClientSaveCookies(client);
@@ -3685,7 +3732,7 @@ void SetClientPlayState(int client, bool bState, bool bEnablePlay=true)
 			SetClientPlaySpecialRoundState(client, true);
 		}
 		
-		if (g_bintBossRound) 
+		if (g_bNewBossRound) 
 		{
 			SetClientPlayintBossRoundState(client, true);
 		}
@@ -3711,17 +3758,17 @@ void SetClientPlayState(int client, bool bState, bool bEnablePlay=true)
 
 bool DidClientPlayintBossRound(int client)
 {
-	return g_bPlayerPlayedintBossRound[client];
+	return g_bPlayerPlayedNewBossRound[client];
 }
 
 void SetClientPlayintBossRoundState(int client, bool bState)
 {
-	g_bPlayerPlayedintBossRound[client] = bState;
+	g_bPlayerPlayedNewBossRound[client] = bState;
 }
 
 bool DidClientPlaySpecialRound(int client)
 {
-	return g_bPlayerPlayedintBossRound[client];
+	return g_bPlayerPlayedNewBossRound[client];
 }
 
 void SetClientPlaySpecialRoundState(int client, bool bState)
@@ -3757,7 +3804,7 @@ void ForceInNextPlayersInQueue(int iAmount, bool bShowMessage=false)
 		if (!GetArrayCell(hArray, i, 2))
 		{
 			int iClient = GetArrayCell(hArray, i);
-			if (g_bPlayerPlaying[iClient] || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient)) continue;
+			if (g_bPlayerPlaying[iClient] || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bAdminNoPoints[iClient]) continue;
 			
 			PushArrayCell(hPlayers, iClient);
 			iAmountLeft-=1;
@@ -4369,7 +4416,7 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 	}
 	g_iSpecialRoundType = -1;
 	g_iSpecialRoundType2 = -1;
-	// Calculate the int round state.
+	// Calculate the new round state.
 	if (g_bRoundWaitingForPlayers)
 	{
 		SetRoundState(SF2RoundState_Waiting);
@@ -4387,7 +4434,7 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 	{
 		g_iRoundActiveCount++;
 		
-		InitializeintGame();
+		InitializeNewGame();
 	}
 	
 	PvP_OnRoundStart();
@@ -4478,7 +4525,7 @@ static void DistributeQueuePointsToPlayers()
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i)) continue;
-		
+		if (g_bAdminNoPoints[i]) continue;
 		if (g_bPlayerPlaying[i]) 
 		{
 			ClientSetQueuePoints(i, 0);
@@ -4574,7 +4621,7 @@ public Action Event_PlayerTeam(Handle event, const char[] name, bool dB)
 			if (g_bSpecialRound) g_bPlayerPlayedSpecialRound[client] = true;
 			
 			// Boss round.
-			if (g_bintBossRound) g_bPlayerPlayedintBossRound[client] = true;
+			if (g_bNewBossRound) g_bPlayerPlayedNewBossRound[client] = true;
 		}
 		else
 		{
@@ -4727,7 +4774,14 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 	PrintToChatAll("(SPAWN) Spawn event called.");
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerSpawn(%d)", client);
 #endif
-	
+	if(GetClientTeam(client) > 1)
+	{
+		if(!g_bSeeUpdateMenu[client])
+		{
+			g_bSeeUpdateMenu[client] = true;
+			DisplayMenu(g_hMenuUpdate, client, 30);
+		}
+	}
 	if (!IsClientParticipating(client))
 	{
 		TF2Attrib_SetByName(client, "increased jump height", 1.0);
@@ -4775,6 +4829,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			StopSound(client, MUSIC_CHAN, sPath);
 		}
 		TF2_RemoveCondition(client, view_as<TFCond>(82));
+		TF2_RemoveCondition(client, TFCond_SpawnOutline);
 		if (HandlePlayerTeam(client))
 		{
 #if defined DEBUG
@@ -5676,7 +5731,7 @@ static bool HandleSpecialRoundState()
 	g_bSpecialRoundint = false;
 	g_bSpecialRoundContinuous = false;
 	
-	bool bForceint = false;
+	bool bForceNew = false;
 	
 	if (bOld)
 	{
@@ -5707,7 +5762,7 @@ static bool HandleSpecialRoundState()
 	if (iRoundInterval > 0 && g_iSpecialRoundCount >= iRoundInterval)
 	{
 		g_bSpecialRound = true;
-		bForceint = true;
+		bForceNew = true;
 	}
 	
 	// Do special round force override and reset it.
@@ -5719,7 +5774,7 @@ static bool HandleSpecialRoundState()
 	
 	if (g_bSpecialRound)
 	{
-		if (bForceint || !bOld || !bContinuousOld)
+		if (bForceNew || !bOld || !bContinuousOld)
 		{
 			g_bSpecialRoundint = true;
 		}
@@ -5749,7 +5804,7 @@ static bool HandleSpecialRoundState()
 
 bool IsintBossRoundRunning()
 {
-	return g_bintBossRound;
+	return g_bNewBossRound;
 }
 
 /**
@@ -5786,13 +5841,13 @@ static void HandleintBossRoundState()
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START HandleintBossRoundState()");
 #endif
 	
-	bool bOld = g_bintBossRound;
-	bool bContinuousOld = g_bintBossRoundContinuous;
-	g_bintBossRound = false;
-	g_bintBossRoundint = false;
-	g_bintBossRoundContinuous = false;
+	bool bOld = g_bNewBossRound;
+	bool bContinuousOld = g_bNewBossRoundContinuous;
+	g_bNewBossRound = false;
+	g_bNewBossRoundNew = false;
+	g_bNewBossRoundContinuous = false;
 	
-	bool bForceint = false;
+	bool bForceNew = false;
 	
 	if (bOld)
 	{
@@ -5803,15 +5858,15 @@ static void HandleintBossRoundState()
 			{
 				if (!IsClientInGame(i) || !IsClientParticipating(i))
 				{
-					g_bPlayerPlayedintBossRound[i] = true;
+					g_bPlayerPlayedNewBossRound[i] = true;
 					continue;
 				}
 				
-				if (!g_bPlayerPlayedintBossRound[i])
+				if (!g_bPlayerPlayedNewBossRound[i])
 				{
 					// Someone didn't get to play this yet. Continue the boss round.
-					g_bintBossRound = true;
-					g_bintBossRoundContinuous = true;
+					g_bNewBossRound = true;
+					g_bNewBossRoundContinuous = true;
 					break;
 				}
 			}
@@ -5819,64 +5874,64 @@ static void HandleintBossRoundState()
 	}
 	
 	// Don't force a int special round while a continuous round is going on.
-	if (!g_bintBossRoundContinuous)
+	if (!g_bNewBossRoundContinuous)
 	{
 		int iRoundInterval = GetConVarInt(g_cvNewBossRoundInterval);
 		
-		if (/*iRoundInterval > 0 &&*/ iRoundInterval <= 0 || g_iintBossRoundCount >= iRoundInterval)
+		if (/*iRoundInterval > 0 &&*/ iRoundInterval <= 0 || g_iNewBossRoundCount >= iRoundInterval)
 		{
-			g_bintBossRound = true;
-			bForceint = true;
+			g_bNewBossRound = true;
+			bForceNew = true;
 		}
 	}
 	
 	// Do boss round force override and reset it.
 	if (GetConVarInt(g_cvNewBossRoundForce) >= 0)
 	{
-		g_bintBossRound = GetConVarBool(g_cvNewBossRoundForce);
+		g_bNewBossRound = GetConVarBool(g_cvNewBossRoundForce);
 		SetConVarInt(g_cvNewBossRoundForce, -1);
 	}
 	
 	// Check if we have enough bosses.
-	if (g_bintBossRound)
+	if (g_bNewBossRound)
 	{
 		Handle hBossList = GetintBossRoundProfileList();
 	
 		if (GetArraySize(hBossList) < 1)
 		{
-			g_bintBossRound = false; // Not enough bosses.
+			g_bNewBossRound = false; // Not enough bosses.
 		}
 		
 		CloseHandle(hBossList);
 	}
 	
-	if (g_bintBossRound)
+	if (g_bNewBossRound)
 	{
-		if (bForceint || !bOld || !bContinuousOld)
+		if (bForceNew || !bOld || !bContinuousOld)
 		{
-			g_bintBossRoundint = true;
+			g_bNewBossRoundNew = true;
 		}
 		
-		if (g_bintBossRoundint)
+		if (g_bNewBossRoundNew)
 		{
 			if (GetConVarInt(g_cvNewBossRoundBehavior) == 1)
 			{
-				g_bintBossRoundContinuous = true;
+				g_bNewBossRoundContinuous = true;
 			}
 			else
 			{
 				// int "int boss round", but it's not continuous.
-				g_bintBossRoundContinuous = false;
+				g_bNewBossRoundContinuous = false;
 			}
 		}
 	}
 	else
 	{
-		g_bintBossRoundContinuous = false;
+		g_bNewBossRoundContinuous = false;
 	}
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END HandleintBossRoundState() -> g_bintBossRound = %d (count = %d, int = %d, continuous = %d)", g_bintBossRound, g_iintBossRoundCount, g_bintBossRoundint, g_bintBossRoundContinuous);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END HandleintBossRoundState() -> g_bNewBossRound = %d (count = %d, int = %d, continuous = %d)", g_bNewBossRound, g_iNewBossRoundCount, g_bNewBossRoundNew, g_bNewBossRoundContinuous);
 #endif
 }
 
@@ -5918,9 +5973,9 @@ static void SelectStartingBossesForRound()
 		strcopy(g_strRoundBossProfile, sizeof(g_strRoundBossProfile), sProfileOverride);
 		SetConVarString(g_cvBossProfileOverride, "");
 	}
-	else if (g_bintBossRound)
+	else if (g_bNewBossRound)
 	{
-		if (g_bintBossRoundint)
+		if (g_bNewBossRoundNew)
 		{
 			Handle hBossList = GetintBossRoundProfileList();
 		
@@ -6038,10 +6093,10 @@ static void GetRoundEscapeParameters()
 	}
 }
 
-void InitializeintGame()
+void InitializeNewGame()
 {
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START InitializeintGame()");
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START InitializeNewGame()");
 #endif
 	GetRoundIntroParameters();
 	GetRoundEscapeParameters();
@@ -6065,7 +6120,7 @@ void InitializeintGame()
 	
 	HandleSpecialRoundState();
 	
-	// Was a int special round initialized?
+	// Was a new special round initialized?
 	if (g_bSpecialRound)
 	{
 		if (g_bSpecialRoundint)
@@ -6113,34 +6168,34 @@ void InitializeintGame()
 	// Determine boss round state.
 	HandleintBossRoundState();
 	
-	if (g_bintBossRound)
+	if (g_bNewBossRound)
 	{
-		if (g_bintBossRoundint)
+		if (g_bNewBossRoundNew)
 		{
 			// Reset round count;
-			g_iintBossRoundCount = 1;
+			g_iNewBossRoundCount = 1;
 			
-			if (g_bintBossRoundContinuous)
+			if (g_bNewBossRoundContinuous)
 			{
-				// It's the start of a continuous "int boss round".
+				// It's the start of a continuous "new boss round".
 			
 				// Initialize all players' values.
 				for (int i = 1; i <= MaxClients; i++)
 				{
 					if (!IsClientInGame(i) || !IsClientParticipating(i))
 					{
-						g_bPlayerPlayedintBossRound[i] = true;
+						g_bPlayerPlayedNewBossRound[i] = true;
 						continue;
 					}
 					
-					g_bPlayerPlayedintBossRound[i] = false;
+					g_bPlayerPlayedNewBossRound[i] = false;
 				}
 			}
 		}
 	}
 	else
 	{
-		g_iintBossRoundCount++;
+		g_iNewBossRoundCount++;
 	}
 	
 	InitializeMapEntities();
@@ -6199,7 +6254,7 @@ void InitializeintGame()
 	}
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END InitializeintGame()");
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END InitializeNewGame()");
 #endif
 }
 

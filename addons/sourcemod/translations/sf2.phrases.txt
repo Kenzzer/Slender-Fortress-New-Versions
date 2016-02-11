@@ -131,18 +131,6 @@
 		"ru"	"Вы отключили Режим Призрака."
 	}
 
-	"SF2 Ghost Mode Enabled Already"
-	{
-		"en"	"Ghost Mode is already enabled!"
-		"ru"	"Режим Призрака уже Включен!"
-	}
-
-	"SF2 Ghost Mode Disabled Already"
-	{
-		"en"	"Ghost Mode is already disabled!"
-		"ru"	"Режим Призрака уже Выключен!"
-	}
-
 	"SF2 Ghost Mode Not Allowed"
 	{
 		"en"	"You cannot toggle Ghost Mode right now."
@@ -1077,7 +1065,12 @@
 		"en"	"You've been chosen to be a Proxy!\nYou will be teleported to the RED area in {1} second(s)."
 		"ru"	"Вас выбрали Помощником!\nВы будете телепортированы к Красным через {1} секунд(ы)."
 	}
-
+	
+	"SF2 Boss Pack Menu Title"
+	{
+		"en" "Show the current pack, if there's one:
+	}
+	
 	"SF2 Boss Pack Vote Menu Title"
 	{
 		"en"	"Select the boss pack for the next map!"
@@ -1125,5 +1118,15 @@
 	{
 		"en"	"{lightgreen}Muted opposing team, but settings will be automatically set to normal if you're a proxy."
 		"ru"	"{lightgreen}Чат другой команды выключен, но будет автоматически включен, если Вы станете Помощником."
+	}
+	
+	"SF2 Recent Changes"
+	{
+		"en"	"Recent Changes:"
+	}
+	
+	"SF2 Change Log"
+	{
+		"en"	"-Fixed an issue where boss's light could create lighting problems with the props.\n-Fixed an issue where proxies could spawn disguised.\n-Fixed ghost camera overlay from not being applied to ghosts.\n-Added an update panel.\n-(!slghost) is now a toggle command!\n-Updated credits menu."
 	}
 }

@@ -613,7 +613,7 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 								// Cancel out any other taunts.
 								if(TF2_IsPlayerInCondition(victim, TFCond_Taunting)) TF2_RemoveCondition(victim, TFCond_Taunting);
 								//The model has a death anim play it.
-								ClientSDK_PlaySpecificSequence(victim,sBuffer);
+								SDK_PlaySpecificSequence(victim,sBuffer);
 								g_iClientFrame[victim]=0;
 								RequestFrame(ProxyDeathAnimation,victim);
 								TF2_AddCondition(victim, view_as<TFCond>(87), 5.0);
@@ -2901,6 +2901,8 @@ void ClientEnableProxy(int client,int iBossIndex)
 	
 	TF2_RemoveCondition(client, view_as<TFCond>(82));
 	
+	TF2_RemovePlayerDisguise(client);
+	
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	
@@ -3538,6 +3540,16 @@ void ClientSetGhostModeState(int client, bool bState)
 	
 	if (bState)
 	{
+		TFClassType iDesiredClass = TF2_GetPlayerClass(client);
+		if(iDesiredClass == TFClass_Unknown) iDesiredClass = TFClass_Scout;
+		
+		//Set player's class to spy, it allows the player to see red player's names.
+		TF2_SetPlayerClass(client, TFClass_Spy);
+		TF2_RegeneratePlayer(client);
+		
+		//Set player's old class as desired class.
+		SetEntProp(client, Prop_Send, "m_iDesiredPlayerClass", iDesiredClass);
+		
 		ClientHandleGhostMode(client, true);
 		TF2Attrib_SetByName(client, "mod see enemy health", 1.0);
 		if (GetConVarBool(g_cvGhostModeConnectionCheck))
@@ -3626,6 +3638,13 @@ void ClientHandleGhostMode(int client, bool bForceSpawn=false)
 		// Set first observer target.
 		ClientGhostModeNextTarget(client);
 		ClientActivateUltravision(client);
+		
+		if(g_iPlayerPreferences[client][PlayerPreference_GhostOverlay])
+		{
+			// screen overlay timer
+			g_hPlayerOverlayCheck[client] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+			TriggerTimer(g_hPlayerOverlayCheck[client], true);
+		}
 	}
 	
 #if defined DEBUG
@@ -5998,7 +6017,7 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
 			Format(g_sClientProxyModel[client],sizeof(g_sClientProxyModel[]),sBuffer);
 			//Prevent plugins like Model manager to override proxy model.
-			CreateTimer(0.5,ClientCheckProxyModel,client,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer(0.5,ClientCheckProxyModel,GetClientUserId(client),TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 		}
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
@@ -6046,10 +6065,7 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 				CloseHandle(ZombieSoul);
 				if( IsValidEdict( entity ) )
 				{
-					if( g_hSDKEquipWearable != INVALID_HANDLE )
-					{
-						SDKCall( g_hSDKEquipWearable, client, entity );
-					}
+					SDK_EquipWearable(client, entity);
 				}
 				if(TF2_GetPlayerClass(client) == TFClass_Spy)
 					SetEntProp(client, Prop_Send, "m_nForcedSkin", 23);
@@ -6062,6 +6078,7 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 public Action ClientCheckProxyModel(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
+	if(client <= 0) return Plugin_Stop;
 	if(!IsValidClient(client)) return Plugin_Stop;
 	if(!IsPlayerAlive(client)) return Plugin_Stop;
 	if(!g_bPlayerProxy[client]) return Plugin_Stop;
