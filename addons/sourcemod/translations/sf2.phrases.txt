@@ -1068,7 +1068,7 @@
 	
 	"SF2 Boss Pack Menu Title"
 	{
-		"en" "Show the current pack, if there's one:
+		"en" "Show the current pack, if there's one:"
 	}
 	
 	"SF2 Boss Pack Vote Menu Title"
@@ -1127,6 +1127,6 @@
 	
 	"SF2 Change Log"
 	{
-		"en"	"-Fixed an issue where boss's light could create lighting problems with the props.\n-Fixed an issue where proxies could spawn disguised.\n-Fixed ghost camera overlay from not being applied to ghosts.\n-Added an update panel.\n-(!slghost) is now a toggle command!\n-Updated credits menu."
+		"en"	"-Added a new boss attribute (reduced air speed on look).\n-Fixed an issue where hitting non pvp blu players could create blood decals on walls/entities.\n-Fixed an issue where an escaped player could keep camera overlay.\n-Fixed an issue where proxies's models were showing an error model."
 	}
 }

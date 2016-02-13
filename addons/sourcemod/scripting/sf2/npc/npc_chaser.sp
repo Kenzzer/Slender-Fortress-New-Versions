@@ -488,8 +488,10 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	
 	float flOriginalSpeed = NPCGetSpeed(iBossIndex, iDifficulty);
 	float flOriginalWalkSpeed = NPCChaserGetWalkSpeed(iBossIndex, iDifficulty);
+	float flOriginalAirSpeed = NPCChaserGetAirSpeed(iBossIndex, iDifficulty);
 	float flMaxSpeed = NPCGetMaxSpeed(iBossIndex, iDifficulty);
 	float flMaxWalkSpeed = NPCChaserGetMaxWalkSpeed(iBossIndex, iDifficulty);
+	float flMaxAirSpeed = NPCChaserGetMaxAirSpeed(iBossIndex, iDifficulty);
 	
 	float flSpeed = flOriginalSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
 	if (flSpeed < flOriginalSpeed) flSpeed = flOriginalSpeed;
@@ -498,6 +500,10 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	float flWalkSpeed = flOriginalWalkSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
 	if (flWalkSpeed < flOriginalWalkSpeed) flWalkSpeed = flOriginalWalkSpeed;
 	if (flWalkSpeed > flMaxWalkSpeed) flWalkSpeed = flMaxWalkSpeed;
+	
+	float flAirSpeed = flOriginalAirSpeed * NPCGetAnger(iBossIndex) * g_flRoundDifficultyModifier;
+	if (flAirSpeed < flOriginalAirSpeed) flAirSpeed = flOriginalAirSpeed;
+	if (flAirSpeed > flMaxAirSpeed) flAirSpeed = flMaxAirSpeed;
 	
 	if (PeopleCanSeeSlender(iBossIndex, _, false))
 	{
@@ -510,10 +516,16 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		{
 			flWalkSpeed *= NPCGetAttributeValue(iBossIndex, "reduced walk speed on look");
 		}
+		
+		if (NPCHasAttribute(iBossIndex, "reduced air speed on look"))
+		{
+			flAirSpeed *= NPCGetAttributeValue(iBossIndex, "reduced air speed on look");
+		}
 	}
 	
 	g_flSlenderCalculatedWalkSpeed[iBossIndex] = flWalkSpeed;
 	g_flSlenderCalculatedSpeed[iBossIndex] = flSpeed;
+	g_flSlenderCalculatedAirSpeed[iBossIndex] = flAirSpeed;
 	
 	if (flOriginalSpeed <= 0.0) flVelocityRatio = 0.0;
 	else flVelocityRatio = GetVectorLength(flSlenderVelocity) / flOriginalSpeed;
@@ -1782,6 +1794,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	
 	float flWalkSpeed = g_flSlenderCalculatedWalkSpeed[iBossIndex];
 	float flSpeed = g_flSlenderCalculatedSpeed[iBossIndex];
+	float flAirSpeed = g_flSlenderCalculatedAirSpeed[iBossIndex];
 	
 	float flMyPos[3], flMyEyeAng[3], flMyVelocity[3];
 	
@@ -1952,7 +1965,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	{
 		flDesiredVelocity[2] = 0.0;
 		NormalizeVector(flDesiredVelocity, flDesiredVelocity);
-		ScaleVector(flDesiredVelocity, NPCChaserGetAirSpeed(iBossIndex, GetConVarInt(g_cvDifficulty)));
+		ScaleVector(flDesiredVelocity, flAirSpeed);
 	}
 	
 	bool bSlenderTeleportedOnStep = false;

@@ -89,7 +89,7 @@ static int g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
 static int g_iClientFrame[MAXPLAYERS + 1];
 
 //Proxy model
-char g_sClientProxyModel[MAXPLAYERS + 1][MAX_NAME_LENGTH];
+char g_sClientProxyModel[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
 
 //	==========================================================
 //	GENERAL CLIENT HOOK FUNCTIONS
@@ -742,11 +742,38 @@ void ClientEscape(int client)
 	
 	g_bPlayerEscaped[client] = true;
 	
-	ClientResetBreathing(client);
-	ClientResetSprint(client);
+	g_iPlayerPageCount[client] = 0;
+	
+	ClientDisableFakeLagCompensation(client);
+	
+	ClientResetStatic(client);
+	ClientResetSlenderStats(client);
+	ClientResetCampingStats(client);
+	ClientResetOverlay(client);
+	ClientResetJumpScare(client);
+	ClientUpdateListeningFlags(client);
+	ClientUpdateMusicSystem(client);
+	ClientChaseMusicReset(client);
+	ClientChaseMusicSeeReset(client);
+	ClientAlertMusicReset(client);
+	Client20DollarsMusicReset(client);
+	ClientMusicReset(client);
+	ClientResetProxy(client);
+	ClientResetHints(client);
+	ClientResetScare(client);
+			
+	ClientResetDeathCam(client);
 	ClientResetFlashlight(client);
 	ClientDeactivateUltravision(client);
+	ClientResetSprint(client);
+	ClientResetBreathing(client);
+	ClientResetBlink(client);
+	ClientResetInteractiveGlow(client);
 	ClientDisableConstantGlow(client);
+	
+	ClientHandleGhostMode(client);
+
+	TF2Attrib_SetByName(client, "increased jump height", 1.0);
 	
 	// Speed recalculation. Props to the creators of FF2/VSH for this snippet.
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
@@ -6015,9 +6042,10 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 			SetVariantString(sBuffer);
 			AcceptEntityInput(client, "SetCustomModel");
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", true);
-			Format(g_sClientProxyModel[client],sizeof(g_sClientProxyModel[]),sBuffer);
+			strcopy(g_sClientProxyModel[client],sizeof(g_sClientProxyModel[]),sBuffer);
 			//Prevent plugins like Model manager to override proxy model.
 			CreateTimer(0.5,ClientCheckProxyModel,GetClientUserId(client),TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+			//PrintToChatAll("Proxy model:%s",g_sClientProxyModel[client]);
 		}
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)

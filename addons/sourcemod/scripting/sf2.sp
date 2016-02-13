@@ -38,7 +38,7 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v9"
+#define PLUGIN_VERSION "0.2.9-v9b"
 #define PLUGIN_VERSION_DISPLAY "0.2.9"
 
 #define TFTeam_Spectator 1
@@ -171,6 +171,7 @@ float g_flSlenderLastFoundPlayerPos[MAX_BOSSES][MAXPLAYERS + 1][3];
 float g_flSlenderNextPathTime[MAX_BOSSES] = { -1.0, ... };
 float g_flSlenderCalculatedWalkSpeed[MAX_BOSSES];
 float g_flSlenderCalculatedSpeed[MAX_BOSSES];
+float g_flSlenderCalculatedAirSpeed[MAX_BOSSES];
 float g_flSlenderTimeUntilNoPersistence[MAX_BOSSES];
 
 float g_flSlenderProxyTeleportMinRange[MAX_BOSSES];
@@ -1312,22 +1313,22 @@ public void OnMapTimeLeftChanged()
 	}
 }
 
-public void TF2_OnConditionAdded(int client, TFCond cond)
+public void TF2_OnConditionAdded(int iClient, TFCond cond)
 {
 	if (cond == TFCond_Taunting)
 	{
-		if (IsClientInGhostMode(client))
+		if (IsClientInGhostMode(iClient))
 		{
 			// Stop ghosties from taunting.
-			TF2_RemoveCondition(client, TFCond_Taunting);
+			TF2_RemoveCondition(iClient, TFCond_Taunting);
 		}
 	}
 	if(cond==view_as<TFCond>(82))
 	{
-		if (g_bPlayerProxy[client])
+		if (g_bPlayerProxy[iClient])
 		{
 			//Stop proxies from using kart commands
-			TF2_RemoveCondition(client, view_as<TFCond>(82));
+			TF2_RemoveCondition(iClient, view_as<TFCond>(82));
 		}
 	}
 }
@@ -1593,139 +1594,139 @@ public void OnGameFrame()
 //	COMMANDS AND COMMAND HOOK FUNCTIONS
 //	==========================================================
 
-public Action Command_Help(int client,int args)
+public Action Command_Help(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	DisplayMenu(g_hMenuHelp, client, 30);
+	DisplayMenu(g_hMenuHelp, iClient, 30);
 	return Plugin_Handled;
 }
 
-public Action Command_Settings(int client,int args)
+public Action Command_Settings(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	DisplayMenu(g_hMenuSettings, client, 30);
+	DisplayMenu(g_hMenuSettings, iClient, 30);
 	return Plugin_Handled;
 }
 
-public Action Command_Credits(int client,int args)
+public Action Command_Credits(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	DisplayMenu(g_hMenuCredits, client, MENU_TIME_FOREVER);
+	DisplayMenu(g_hMenuCredits, iClient, MENU_TIME_FOREVER);
 	return Plugin_Handled;
 }
 
-public Action Command_ToggleFlashlight(int client,int args)
+public Action Command_ToggleFlashlight(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	if (!IsClientInGame(client) || !IsPlayerAlive(client)) return Plugin_Handled;
+	if (!IsClientInGame(iClient) || !IsPlayerAlive(iClient)) return Plugin_Handled;
 	
-	if (!IsRoundInWarmup() && !IsRoundInIntro() && !IsRoundEnding() && !DidClientEscape(client))
+	if (!IsRoundInWarmup() && !IsRoundInIntro() && !IsRoundEnding() && !DidClientEscape(iClient))
 	{
-		if (GetGameTime() >= ClientGetFlashlightNextInputTime(client))
+		if (GetGameTime() >= ClientGetFlashlightNextInputTime(iClient))
 		{
-			ClientHandleFlashlight(client);
+			ClientHandleFlashlight(iClient);
 		}
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_SprintOn(int client,int args)
+public Action Command_SprintOn(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	if (IsPlayerAlive(client) && !g_bPlayerEliminated[client])
+	if (IsPlayerAlive(iClient) && !g_bPlayerEliminated[iClient])
 	{
-		ClientHandleSprint(client, true);
+		ClientHandleSprint(iClient, true);
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_SprintOff(int client,int args)
+public Action Command_SprintOff(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	if (IsPlayerAlive(client) && !g_bPlayerEliminated[client])
+	if (IsPlayerAlive(iClient) && !g_bPlayerEliminated[iClient])
 	{
-		ClientHandleSprint(client, false);
+		ClientHandleSprint(iClient, false);
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action DevCommand_BossPackVote(int client,int args)
+public Action DevCommand_BossPackVote(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	InitiateBossPackVote(client);
+	InitiateBossPackVote(iClient);
 	return Plugin_Handled;
 }
 
-public Action Command_NoPoints(int client,int args)
+public Action Command_NoPoints(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if(!g_bAdminNoPoints[client])
-		g_bAdminNoPoints[client] = true;
+	if(!g_bAdminNoPoints[iClient])
+		g_bAdminNoPoints[iClient] = true;
 	else
-		g_bAdminNoPoints[client] = false;
+		g_bAdminNoPoints[iClient] = false;
 	return Plugin_Handled;
 }
 
-public Action Command_MainMenu(int client,int args)
+public Action Command_MainMenu(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	DisplayMenu(g_hMenuMain, client, 30);
+	DisplayMenu(g_hMenuMain, iClient, 30);
 	return Plugin_Handled;
 }
 
-public Action Command_Update(int client, int args)
+public Action Command_Update(int iClient, int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	DisplayMenu(g_hMenuUpdate, client, 30);
+	DisplayMenu(g_hMenuUpdate, iClient, 30);
 	return Plugin_Handled;
 }
 
-public Action Command_Next(int client,int args)
-{
-	if (!g_bEnabled) return Plugin_Continue;
-	
-	DisplayQueuePointsMenu(client);
-	return Plugin_Handled;
-}
-
-
-public Action Command_Group(int client,int args)
+public Action Command_Next(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	DisplayGroupMainMenuToClient(client);
+	DisplayQueuePointsMenu(iClient);
 	return Plugin_Handled;
 }
 
-public Action Command_GroupName(int client,int args)
+
+public Action Command_Group(int iClient,int args)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+	
+	DisplayGroupMainMenuToClient(iClient);
+	return Plugin_Handled;
+}
+
+public Action Command_GroupName(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
 	if (args < 1)
 	{
-		ReplyToCommand(client, "Usage: sm_slgroupname <name>");
+		ReplyToCommand(iClient, "Usage: sm_slgroupname <name>");
 		return Plugin_Handled;
 	}
 	
-	int iGroupIndex = ClientGetPlayerGroup(client);
+	int iGroupIndex = ClientGetPlayerGroup(iClient);
 	if (!IsPlayerGroupActive(iGroupIndex))
 	{
-		CPrintToChat(client, "%T", "SF2 Group Does Not Exist", client);
+		CPrintToChat(iClient, "%T", "SF2 Group Does Not Exist", iClient);
 		return Plugin_Handled;
 	}
 	
-	if (GetPlayerGroupLeader(iGroupIndex) != client)
+	if (GetPlayerGroupLeader(iGroupIndex) != iClient)
 	{
-		CPrintToChat(client, "%T", "SF2 Not Group Leader", client);
+		CPrintToChat(iClient, "%T", "SF2 Not Group Leader", iClient);
 		return Plugin_Handled;
 	}
 	
@@ -1733,7 +1734,7 @@ public Action Command_GroupName(int client,int args)
 	GetCmdArg(1, sGroupName, sizeof(sGroupName));
 	if (!sGroupName[0])
 	{
-		CPrintToChat(client, "%T", "SF2 Invalid Group Name", client);
+		CPrintToChat(iClient, "%T", "SF2 Invalid Group Name", iClient);
 		return Plugin_Handled;
 	}
 	
@@ -1751,77 +1752,77 @@ public Action Command_GroupName(int client,int args)
 	return Plugin_Handled;
 }
 
-public Action Command_GhostMode(int client,int args)
+public Action Command_GhostMode(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[client] || !IsClientParticipating(client) || g_bPlayerProxy[client])
+	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bPlayerProxy[iClient])
 	{
-		CPrintToChat(client, "{red}%T", "SF2 Ghost Mode Not Allowed", client);
+		CPrintToChat(iClient, "{red}%T", "SF2 Ghost Mode Not Allowed", iClient);
 		return Plugin_Handled;
 	}
-	if (!IsClientInGhostMode(client))
+	if (!IsClientInGhostMode(iClient))
 	{
-		TF2_RespawnPlayer(client);
-		ClientSetGhostModeState(client, true);
-		HandlePlayerHUD(client);
+		TF2_RespawnPlayer(iClient);
+		ClientSetGhostModeState(iClient, true);
+		HandlePlayerHUD(iClient);
 	
-		CPrintToChat(client, "{olive}%T", "SF2 Ghost Mode Enabled", client);
+		CPrintToChat(iClient, "{olive}%T", "SF2 Ghost Mode Enabled", iClient);
 	}
 	else
 	{
-		ClientSetGhostModeState(client, false);
-		TF2_RespawnPlayer(client);
+		ClientSetGhostModeState(iClient, false);
+		TF2_RespawnPlayer(iClient);
 		
-		CPrintToChat(client, "{olive}%T", "SF2 Ghost Mode Disabled", client);
+		CPrintToChat(iClient, "{olive}%T", "SF2 Ghost Mode Disabled", iClient);
 	}
 	return Plugin_Handled;
 }
 
-public Action Hook_CommandSay(int client, const char[] command,int argc)
+public Action Hook_CommandSay(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled || GetConVarBool(g_cvAllChat)) return Plugin_Continue;
 	
 	if (!IsRoundEnding())
 	{
-		if (g_bPlayerEliminated[client])
+		if (g_bPlayerEliminated[iClient])
 		{
-			if(!IsPlayerAlive(client) && GetClientTeam(client) == TFTeam_Red)
+			if(!IsPlayerAlive(iClient) && GetClientTeam(iClient) == TFTeam_Red)
 				return Plugin_Handled;
 			char sMessage[256];
 			GetCmdArgString(sMessage, sizeof(sMessage));
-			FakeClientCommand(client, "say_team %s", sMessage);
+			FakeClientCommand(iClient, "say_team %s", sMessage);
 			return Plugin_Handled;
 		}
 	}
 	
 	return Plugin_Continue;
 }
-public Action Hook_CommandSayTeam(int client, const char[] command,int argc)
+public Action Hook_CommandSayTeam(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled || GetConVarBool(g_cvAllChat)) return Plugin_Continue;
 	
 	if (!IsRoundEnding())
 	{
-		if (g_bPlayerEliminated[client])
+		if (g_bPlayerEliminated[iClient])
 		{
-			if(!IsPlayerAlive(client) && GetClientTeam(client) == TFTeam_Red)
+			if(!IsPlayerAlive(iClient) && GetClientTeam(iClient) == TFTeam_Red)
 				return Plugin_Handled;
 		}
 	}
 	
 	return Plugin_Continue;
 }
-public Action Hook_CommandSuicideAttempt(int client, const char[] command,int argc)
+public Action Hook_CommandSuicideAttempt(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if (IsClientInGhostMode(client)) return Plugin_Handled;
+	if (IsClientInGhostMode(iClient)) return Plugin_Handled;
 	
-	if (IsRoundInIntro() && !g_bPlayerEliminated[client]) return Plugin_Handled;
+	if (IsRoundInIntro() && !g_bPlayerEliminated[iClient]) return Plugin_Handled;
 	
 	if (GetConVarBool(g_cvBlockSuicideDuringRound))
 	{
-		if (!g_bRoundGrace && !g_bPlayerEliminated[client] && !DidClientEscape(client))
+		if (!g_bRoundGrace && !g_bPlayerEliminated[iClient] && !DidClientEscape(iClient))
 		{
 			return Plugin_Handled;
 		}
@@ -1830,27 +1831,27 @@ public Action Hook_CommandSuicideAttempt(int client, const char[] command,int ar
 	return Plugin_Continue;
 }
 
-public Action Hook_CommandBlockInGhostMode(int client, const char[] command,int argc)
+public Action Hook_CommandBlockInGhostMode(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if (IsClientInGhostMode(client)) return Plugin_Handled;
-	if (IsRoundInIntro() && !g_bPlayerEliminated[client]) return Plugin_Handled;
+	if (IsClientInGhostMode(iClient)) return Plugin_Handled;
+	if (IsRoundInIntro() && !g_bPlayerEliminated[iClient]) return Plugin_Handled;
 	
 	return Plugin_Continue;
 }
 
-public Action Hook_CommandVoiceMenu(int client, const char[] command,int argc)
+public Action Hook_CommandVoiceMenu(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if (IsClientInGhostMode(client))
+	if (IsClientInGhostMode(iClient))
 	{
-		ClientGhostModeNextTarget(client);
+		ClientGhostModeNextTarget(iClient);
 		return Plugin_Handled;
 	}
 	
-	if (g_bPlayerProxy[client])
+	if (g_bPlayerProxy[iClient])
 	{
-		int iMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[client]);
+		int iMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[iClient]);
 		if (iMaster != -1)
 		{
 			char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
@@ -1866,13 +1867,13 @@ public Action Hook_CommandVoiceMenu(int client, const char[] command,int argc)
 	return Plugin_Continue;
 }
 
-public Action Command_ClientPerformScare(int client,int args)
+public Action Command_ClientPerformScare(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 2)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_scare <name|#userid> <bossindex 0-%d>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_scare <name|#userid> <bossindex 0-%d>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
@@ -1886,7 +1887,7 @@ public Action Command_ClientPerformScare(int client,int args)
 	
 	if ((target_count = ProcessTargetString(
 			arg1,
-			client,
+			iClient,
 			target_list,
 			MAXPLAYERS,
 			COMMAND_FILTER_ALIVE,
@@ -1894,7 +1895,7 @@ public Action Command_ClientPerformScare(int client,int args)
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
 	{
-		ReplyToTargetError(client, target_count);
+		ReplyToTargetError(iClient, target_count);
 		return Plugin_Handled;
 	}
 	
@@ -1907,13 +1908,13 @@ public Action Command_ClientPerformScare(int client,int args)
 	return Plugin_Handled;
 }
 
-public Action Command_SpawnSlender(int client,int args)
+public Action Command_SpawnSlender(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args == 0)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_spawn_boss <bossindex 0-%d>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_spawn_boss <bossindex 0-%d>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
@@ -1924,10 +1925,10 @@ public Action Command_SpawnSlender(int client,int args)
 	if (NPCGetUniqueID(Npc.Index) == -1) return Plugin_Handled;
 	
 	float eyePos[3], eyeAng[3], endPos[3];
-	GetClientEyePosition(client, eyePos);
-	GetClientEyeAngles(client, eyeAng);
+	GetClientEyePosition(iClient, eyePos);
+	GetClientEyeAngles(iClient, eyeAng);
 	
-	Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, client);
+	Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, iClient);
 	TR_GetEndPosition(endPos, hTrace);
 	CloseHandle(hTrace);
 	
@@ -1936,19 +1937,19 @@ public Action Command_SpawnSlender(int client,int args)
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	Npc.GetProfile(sProfile, sizeof(sProfile));
 	
-	CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Spawned Boss", client);
-	LogAction(client, -1, "%N spawned boss %d! (%s)", client, Npc.Index, sProfile);
+	CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Spawned Boss", iClient);
+	LogAction(iClient, -1, "%N spawned boss %d! (%s)", iClient, Npc.Index, sProfile);
 	
 	return Plugin_Handled;
 }
 
-public Action Command_RemoveSlender(int client,int args)
+public Action Command_RemoveSlender(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args == 0)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_remove_boss <bossindex 0-%d>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_remove_boss <bossindex 0-%d>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
@@ -1963,21 +1964,21 @@ public Action Command_RemoveSlender(int client,int args)
 	
 	NPCRemove(iBossIndex);
 	
-	CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Removed Boss", client);
-	LogAction(client, -1, "%N removed boss %d! (%s)", client, iBossIndex, sProfile);
+	CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Removed Boss", iClient);
+	LogAction(iClient, -1, "%N removed boss %d! (%s)", iClient, iBossIndex, sProfile);
 	
 	return Plugin_Handled;
 }
 
-public Action Command_GetBossIndexes(int client,int args)
+public Action Command_GetBossIndexes(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
 	char sMessage[512];
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	
-	ClientCommand(client, "echo Active Boss Indexes:");
-	ClientCommand(client, "echo ----------------------------");
+	ClientCommand(iClient, "echo Active Boss Indexes:");
+	ClientCommand(iClient, "echo ----------------------------");
 	
 	for (int i = 0; i < MAX_BOSSES; i++)
 	{
@@ -1998,23 +1999,23 @@ public Action Command_GetBossIndexes(int client,int args)
 			StrCat(sMessage, sizeof(sMessage), sCat);
 		}
 		
-		ClientCommand(client, "echo %s", sMessage);
+		ClientCommand(iClient, "echo %s", sMessage);
 	}
 	
-	ClientCommand(client, "echo ----------------------------");
+	ClientCommand(iClient, "echo ----------------------------");
 	
-	ReplyToCommand(client, "Printed active boss indexes to your console!");
+	ReplyToCommand(iClient, "Printed active boss indexes to your console!");
 	
 	return Plugin_Handled;
 }
 
-public Action Command_SlenderAttackWaiters(int client,int args)
+public Action Command_SlenderAttackWaiters(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 2)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_boss_attack_waiters <bossindex 0-%d> <0/1>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_boss_attack_waiters <bossindex 0-%d> <0/1>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
@@ -2040,8 +2041,8 @@ public Action Command_SlenderAttackWaiters(int client,int args)
 		if (!bOldState)
 		{
 			NPCSetFlags(iBossIndex, iBossFlags | SFF_ATTACKWAITERS);
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Boss Attack Waiters", client);
-			LogAction(client, -1, "%N forced boss %d to attack waiters! (%s)", client, iBossIndex, sProfile);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Boss Attack Waiters", iClient);
+			LogAction(iClient, -1, "%N forced boss %d to attack waiters! (%s)", iClient, iBossIndex, sProfile);
 		}
 	}
 	else
@@ -2049,21 +2050,21 @@ public Action Command_SlenderAttackWaiters(int client,int args)
 		if (bOldState)
 		{
 			NPCSetFlags(iBossIndex, iBossFlags & ~SFF_ATTACKWAITERS);
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Boss Do Not Attack Waiters", client);
-			LogAction(client, -1, "%N forced boss %d to not attack waiters! (%s)", client, iBossIndex, sProfile);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Boss Do Not Attack Waiters", iClient);
+			LogAction(iClient, -1, "%N forced boss %d to not attack waiters! (%s)", iClient, iBossIndex, sProfile);
 		}
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_SlenderNoTeleport(int client,int args)
+public Action Command_SlenderNoTeleport(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 2)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_boss_no_teleport <bossindex 0-%d> <0/1>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_boss_no_teleport <bossindex 0-%d> <0/1>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
@@ -2089,8 +2090,8 @@ public Action Command_SlenderNoTeleport(int client,int args)
 		if (!bOldState)
 		{
 			NPCSetFlags(iBossIndex, iBossFlags | SFF_NOTELEPORT);
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Boss Should Not Teleport", client);
-			LogAction(client, -1, "%N disabled teleportation of boss %d! (%s)", client, iBossIndex, sProfile);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Boss Should Not Teleport", iClient);
+			LogAction(iClient, -1, "%N disabled teleportation of boss %d! (%s)", iClient, iBossIndex, sProfile);
 		}
 	}
 	else
@@ -2098,27 +2099,27 @@ public Action Command_SlenderNoTeleport(int client,int args)
 		if (bOldState)
 		{
 			NPCSetFlags(iBossIndex, iBossFlags & ~SFF_NOTELEPORT);
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Boss Should Teleport", client);
-			LogAction(client, -1, "%N enabled teleportation of boss %d! (%s)", client, iBossIndex, sProfile);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Boss Should Teleport", iClient);
+			LogAction(iClient, -1, "%N enabled teleportation of boss %d! (%s)", iClient, iBossIndex, sProfile);
 		}
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_ForceProxy(int client,int args)
+public Action Command_ForceProxy(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
 	if (args < 1)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_force_proxy <name|#userid> <bossindex 0-%d>", MAX_BOSSES - 1);
+		ReplyToCommand(iClient, "Usage: sm_sf2_force_proxy <name|#userid> <bossindex 0-%d>", MAX_BOSSES - 1);
 		return Plugin_Handled;
 	}
 	
 	if (IsRoundEnding() || IsRoundInWarmup())
 	{
-		CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Cannot Use Command", client);
+		CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Cannot Use Command", iClient);
 		return Plugin_Handled;
 	}
 	
@@ -2131,7 +2132,7 @@ public Action Command_ForceProxy(int client,int args)
 	
 	if ((target_count = ProcessTargetString(
 			arg1,
-			client,
+			iClient,
 			target_list,
 			MAXPLAYERS,
 			0,
@@ -2139,7 +2140,7 @@ public Action Command_ForceProxy(int client,int args)
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
 	{
-		ReplyToTargetError(client, target_count);
+		ReplyToTargetError(iClient, target_count);
 		return Plugin_Handled;
 	}
 	
@@ -2149,12 +2150,12 @@ public Action Command_ForceProxy(int client,int args)
 	int iBossIndex = StringToInt(arg2);
 	if (iBossIndex < 0 || iBossIndex >= MAX_BOSSES)
 	{
-		ReplyToCommand(client, "Boss index is out of range!");
+		ReplyToCommand(iClient, "Boss index is out of range!");
 		return Plugin_Handled;
 	}
 	else if (NPCGetUniqueID(iBossIndex) == -1)
 	{
-		ReplyToCommand(client, "Boss index is invalid! Boss index not active!");
+		ReplyToCommand(iClient, "Boss index is invalid! Boss index not active!");
 		return Plugin_Handled;
 	}
 	
@@ -2167,7 +2168,7 @@ public Action Command_ForceProxy(int client,int args)
 		
 		if (!g_bPlayerEliminated[iTarget])
 		{
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Unable To Perform Action On Player In Round", client, sName);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Unable To Perform Action On Player In Round", iClient, sName);
 			continue;
 		}
 		
@@ -2175,28 +2176,28 @@ public Action Command_ForceProxy(int client,int args)
 		
 		float flintPos[3];
 		
-		if (!SpawnProxy(client,iBossIndex,flintPos)) 
+		if (!SpawnProxy(iClient,iBossIndex,flintPos)) 
 		{
-			CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Player No Place For Proxy", client, sName);
+			CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Player No Place For Proxy", iClient, sName);
 			continue;
 		}
 		
 		ClientEnableProxy(iTarget, iBossIndex);
 		TeleportEntity(iTarget, flintPos, NULL_VECTOR, view_as<float>({ 0.0, 0.0, 0.0 }));
 		
-		LogAction(client, iTarget, "%N forced %N to be a Proxy!", client, iTarget);
+		LogAction(iClient, iTarget, "%N forced %N to be a Proxy!", iClient, iTarget);
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_ForceEscape(int client,int args)
+public Action Command_ForceEscape(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_force_escape <name|#userid>");
+		ReplyToCommand(iClient, "Usage: sm_sf2_force_escape <name|#userid>");
 		return Plugin_Handled;
 	}
 	
@@ -2209,7 +2210,7 @@ public Action Command_ForceEscape(int client,int args)
 	
 	if ((target_count = ProcessTargetString(
 			arg1,
-			client,
+			iClient,
 			target_list,
 			MAXPLAYERS,
 			COMMAND_FILTER_ALIVE,
@@ -2217,7 +2218,7 @@ public Action Command_ForceEscape(int client,int args)
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
 	{
-		ReplyToTargetError(client, target_count);
+		ReplyToTargetError(iClient, target_count);
 		return Plugin_Handled;
 	}
 	
@@ -2229,20 +2230,20 @@ public Action Command_ForceEscape(int client,int args)
 			ClientEscape(target);
 			TeleportClientToEscapePoint(target);
 			
-			LogAction(client, target, "%N forced %N to escape!", client, target);
+			LogAction(iClient, target, "%N forced %N to escape!", iClient, target);
 		}
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_AddSlender(int client,int args)
+public Action Command_AddSlender(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_add_boss <name>");
+		ReplyToCommand(iClient, "Usage: sm_sf2_add_boss <name>");
 		return Plugin_Handled;
 	}
 	
@@ -2252,7 +2253,7 @@ public Action Command_AddSlender(int client,int args)
 	KvRewind(g_hConfig);
 	if (!KvJumpToKey(g_hConfig, sProfile)) 
 	{
-		ReplyToCommand(client, "That boss does not exist!");
+		ReplyToCommand(iClient, "That boss does not exist!");
 		return Plugin_Handled;
 	}
 	
@@ -2260,16 +2261,16 @@ public Action Command_AddSlender(int client,int args)
 	if (Npc.IsValid())
 	{
 		float eyePos[3], eyeAng[3], flPos[3];
-		GetClientEyePosition(client, eyePos);
-		GetClientEyeAngles(client, eyeAng);
+		GetClientEyePosition(iClient, eyePos);
+		GetClientEyeAngles(iClient, eyeAng);
 		
-		Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, client);
+		Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, iClient);
 		TR_GetEndPosition(flPos, hTrace);
 		CloseHandle(hTrace);
 	
 		SpawnSlender(Npc, flPos);
 		
-		LogAction(client, -1, "%N added a boss! (%s)", client, sProfile);
+		LogAction(iClient, -1, "%N added a boss! (%s)", iClient, sProfile);
 	}
 	
 	return Plugin_Handled;
@@ -2302,13 +2303,13 @@ public void NPCSpawn(const char[] output,int iEnt,int activator, float delay)
 	return;
 }
 
-public Action Command_AddSlenderFake(int client,int args)
+public Action Command_AddSlenderFake(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_add_boss_fake <name>");
+		ReplyToCommand(iClient, "Usage: sm_sf2_add_boss_fake <name>");
 		return Plugin_Handled;
 	}
 	
@@ -2318,7 +2319,7 @@ public Action Command_AddSlenderFake(int client,int args)
 	KvRewind(g_hConfig);
 	if (!KvJumpToKey(g_hConfig, sProfile)) 
 	{
-		ReplyToCommand(client, "That boss does not exist!");
+		ReplyToCommand(iClient, "That boss does not exist!");
 		return Plugin_Handled;
 	}
 	
@@ -2326,34 +2327,34 @@ public Action Command_AddSlenderFake(int client,int args)
 	if (Npc.IsValid())
 	{
 		float eyePos[3], eyeAng[3], flPos[3];
-		GetClientEyePosition(client, eyePos);
-		GetClientEyeAngles(client, eyeAng);
+		GetClientEyePosition(iClient, eyePos);
+		GetClientEyeAngles(iClient, eyeAng);
 		
-		Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, client);
+		Handle hTrace = TR_TraceRayFilterEx(eyePos, eyeAng, MASK_NPCSOLID, RayType_Infinite, TraceRayDontHitEntity, iClient);
 		TR_GetEndPosition(flPos, hTrace);
 		CloseHandle(hTrace);
 	
 		SpawnSlender(Npc, flPos);
 		
-		LogAction(client, -1, "%N added a fake boss! (%s)", client, sProfile);
+		LogAction(iClient, -1, "%N added a fake boss! (%s)", iClient, sProfile);
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_ForceState(int client,int args)
+public Action Command_ForceState(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
 	if (args < 2)
 	{
-		ReplyToCommand(client, "Usage: sm_sf2_setplaystate <name|#userid> <0/1>");
+		ReplyToCommand(iClient, "Usage: sm_sf2_setplaystate <name|#userid> <0/1>");
 		return Plugin_Handled;
 	}
 	
 	if (IsRoundEnding() || IsRoundInWarmup())
 	{
-		CPrintToChat(client, "%t%T", "SF2 Prefix", "SF2 Cannot Use Command", client);
+		CPrintToChat(iClient, "%t%T", "SF2 Prefix", "SF2 Cannot Use Command", iClient);
 		return Plugin_Handled;
 	}
 	
@@ -2366,7 +2367,7 @@ public Action Command_ForceState(int client,int args)
 	
 	if ((target_count = ProcessTargetString(
 			arg1,
-			client,
+			iClient,
 			target_list,
 			MAXPLAYERS,
 			0,
@@ -2374,7 +2375,7 @@ public Action Command_ForceState(int client,int args)
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
 	{
-		ReplyToTargetError(client, target_count);
+		ReplyToTargetError(iClient, target_count);
 		return Plugin_Handled;
 	}
 	
@@ -2394,25 +2395,25 @@ public Action Command_ForceState(int client,int args)
 		{
 			SetClientPlayState(target, true);
 			
-			CPrintToChatAll("%t %N: %t", "SF2 Prefix", client, "SF2 Player Forced In Game", sName);
-			LogAction(client, target, "%N forced %N into the game.", client, target);
+			CPrintToChatAll("%t %N: %t", "SF2 Prefix", iClient, "SF2 Player Forced In Game", sName);
+			LogAction(iClient, target, "%N forced %N into the game.", iClient, target);
 		}
 		else if (!iState && !g_bPlayerEliminated[target])
 		{
 			SetClientPlayState(target, false);
 			
-			CPrintToChatAll("%t %N: %t", "SF2 Prefix", client, "SF2 Player Forced Out Of Game", sName);
-			LogAction(client, target, "%N took %N out of the game.", client, target);
+			CPrintToChatAll("%t %N: %t", "SF2 Prefix", iClient, "SF2 Player Forced Out Of Game", sName);
+			LogAction(iClient, target, "%N took %N out of the game.", iClient, target);
 		}
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Hook_CommandBuild(int client, const char[] command,int argc)
+public Action Hook_CommandBuild(int iClient, const char[] command,int argc)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if (!IsClientInPvP(client)) return Plugin_Handled;
+	if (!IsClientInPvP(iClient)) return Plugin_Handled;
 	
 	return Plugin_Continue;
 }
@@ -2624,10 +2625,10 @@ public Action Timer_RoundMessages(Handle timer)
 
 public Action Timer_WelcomeMessage(Handle timer, any userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0) return;
 	
-	CPrintToChat(client, "%T", "SF2 Welcome Message", client);
+	CPrintToChat(iClient, "%T", "SF2 Welcome Message", iClient);
 }
 
 int GetMaxPlayersForRound()
@@ -3015,15 +3016,15 @@ static void CollectPage(int page,int activator)
 }
 
 //	==========================================================
-//	GENERIC CLIENT HOOKS AND FUNCTIONS
+//	GENERIC iClient HOOKS AND FUNCTIONS
 //	==========================================================
 
 
-public Action OnPlayerRunCmd(int client,int &buttons,int &impulse, float vel[3], float angles[3],int &weapon,int &subtype,int &cmdnum,int &tickcount,int &seed,int mouse[2])
+public Action OnPlayerRunCmd(int iClient,int &buttons,int &impulse, float vel[3], float angles[3],int &weapon,int &subtype,int &cmdnum,int &tickcount,int &seed,int mouse[2])
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
-	ClientDisableFakeLagCompensation(client);
+	ClientDisableFakeLagCompensation(iClient);
 	
 	// Check impulse (block spraying and built-in flashlight)
 	switch (impulse)
@@ -3034,7 +3035,7 @@ public Action OnPlayerRunCmd(int client,int &buttons,int &impulse, float vel[3],
 		}
 		case 201:
 		{
-			if (IsClientInGhostMode(client))
+			if (IsClientInGhostMode(iClient))
 			{
 				impulse = 0;
 			}
@@ -3047,16 +3048,16 @@ public Action OnPlayerRunCmd(int client,int &buttons,int &impulse, float vel[3],
 		
 		if ((buttons & button))
 		{
-			if (!(g_iPlayerLastButtons[client] & button))
+			if (!(g_iPlayerLastButtons[iClient] & button))
 			{
-				ClientOnButtonPress(client, button);
+				ClientOnButtonPress(iClient, button);
 			}
 			if(button==IN_ATTACK2)
 			{
-				if(!g_bPlayerEliminated[client])
+				if(!g_bPlayerEliminated[iClient])
 				{
-					g_iPlayerLastButtons[client] = buttons;
-					int iWeaponActive = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+					g_iPlayerLastButtons[iClient] = buttons;
+					int iWeaponActive = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
 					if(iWeaponActive > MaxClients && IsTauntWep(iWeaponActive))
 					{
 						buttons &= ~IN_ATTACK2;	//Tough break update made players able to taunt with secondary attack.Disabled.
@@ -3066,30 +3067,30 @@ public Action OnPlayerRunCmd(int client,int &buttons,int &impulse, float vel[3],
 				}
 			}
 		}
-		else if ((g_iPlayerLastButtons[client] & button))
+		else if ((g_iPlayerLastButtons[iClient] & button))
 		{
-			ClientOnButtonRelease(client, button);
+			ClientOnButtonRelease(iClient, button);
 		}
 	}
-	g_iPlayerLastButtons[client] = buttons;
+	g_iPlayerLastButtons[iClient] = buttons;
 	return Plugin_Continue;
 }
 
-public void OnClientCookiesCached(int client)
+public void OnClientCookiesCached(int iClient)
 {
 	if (!g_bEnabled) return;
 	
 	// Load our saved settings.
 	char sCookie[64];
-	GetClientCookie(client, g_hCookie, sCookie, sizeof(sCookie));
+	GetClientCookie(iClient, g_hCookie, sCookie, sizeof(sCookie));
 	
-	g_iPlayerQueuePoints[client] = 0;
+	g_iPlayerQueuePoints[iClient] = 0;
 	
-	g_iPlayerPreferences[client][PlayerPreference_ShowHints] = true;
-	g_iPlayerPreferences[client][PlayerPreference_MuteMode] = MuteMode_Normal;
-	g_iPlayerPreferences[client][PlayerPreference_FilmGrain] = true;
-	g_iPlayerPreferences[client][PlayerPreference_EnableProxySelection] = true;
-	g_iPlayerPreferences[client][PlayerPreference_GhostOverlay] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_ShowHints] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_MuteMode] = MuteMode_Normal;
+	g_iPlayerPreferences[iClient][PlayerPreference_FilmGrain] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_EnableProxySelection] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_GhostOverlay] = true;
 	
 	if (sCookie[0])
 	{
@@ -3097,167 +3098,168 @@ public void OnClientCookiesCached(int client)
 		int count = ExplodeString(sCookie, " ; ", s2, 12, 32);
 		
 		if (count > 0)
-			g_iPlayerQueuePoints[client] = StringToInt(s2[0]);
+			g_iPlayerQueuePoints[iClient] = StringToInt(s2[0]);
 		if (count > 1)
-			g_iPlayerPreferences[client][PlayerPreference_ShowHints] = view_as<bool>(StringToInt(s2[1]));
+			g_iPlayerPreferences[iClient][PlayerPreference_ShowHints] = view_as<bool>(StringToInt(s2[1]));
 		if (count > 2)
-			g_iPlayerPreferences[client][PlayerPreference_MuteMode] = view_as<MuteMode>(StringToInt(s2[2]));
+			g_iPlayerPreferences[iClient][PlayerPreference_MuteMode] = view_as<MuteMode>(StringToInt(s2[2]));
 		if (count > 3)
-			g_iPlayerPreferences[client][PlayerPreference_FilmGrain] = view_as<bool>(StringToInt(s2[3]));
+			g_iPlayerPreferences[iClient][PlayerPreference_FilmGrain] = view_as<bool>(StringToInt(s2[3]));
 		if (count > 4)
-			g_iPlayerPreferences[client][PlayerPreference_EnableProxySelection] = view_as<bool>(StringToInt(s2[4]));
+			g_iPlayerPreferences[iClient][PlayerPreference_EnableProxySelection] = view_as<bool>(StringToInt(s2[4]));
 		if (count > 5)
-			g_iPlayerPreferences[client][PlayerPreference_GhostOverlay] = view_as<bool>(StringToInt(s2[5]));
+			g_iPlayerPreferences[iClient][PlayerPreference_GhostOverlay] = view_as<bool>(StringToInt(s2[5]));
 	}
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientPutInServer(int iClient)
 {
 	if (!g_bEnabled) return;
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START OnClientPutInServer(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START OnClientPutInServer(%d)", iClient);
 #endif
 	
-	ClientSetPlayerGroup(client, -1);
+	ClientSetPlayerGroup(iClient, -1);
 	
-	g_bPlayerEscaped[client] = false;
-	g_bPlayerEliminated[client] = true;
-	g_bPlayerChoseTeam[client] = false;
-	g_bPlayerPlayedSpecialRound[client] = true;
-	g_bPlayerPlayedNewBossRound[client] = true;
+	g_bPlayerEscaped[iClient] = false;
+	g_bPlayerEliminated[iClient] = true;
+	g_bPlayerChoseTeam[iClient] = false;
+	g_bPlayerPlayedSpecialRound[iClient] = true;
+	g_bPlayerPlayedNewBossRound[iClient] = true;
 	
-	g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn] = false;
-	g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight] = false;
+	g_iPlayerPreferences[iClient][PlayerPreference_PvPAutoSpawn] = false;
+	g_iPlayerPreferences[iClient][PlayerPreference_ProjectedFlashlight] = false;
 	
-	g_iPlayerPageCount[client] = 0;
-	g_iPlayerDesiredFOV[client] = 90;
+	g_iPlayerPageCount[iClient] = 0;
+	g_iPlayerDesiredFOV[iClient] = 90;
 	
-	SDKHook(client, SDKHook_PreThink, Hook_ClientPreThink);
-	SDKHook(client, SDKHook_SetTransmit, Hook_ClientSetTransmit);
-	SDKHook(client, SDKHook_OnTakeDamage, Hook_ClientOnTakeDamage);
+	SDKHook(iClient, SDKHook_PreThink, Hook_ClientPreThink);
+	SDKHook(iClient, SDKHook_SetTransmit, Hook_ClientSetTransmit);
+	SDKHook(iClient, SDKHook_TraceAttack, Hook_PvPPlayerTraceAttack);
+	SDKHook(iClient, SDKHook_OnTakeDamage, Hook_ClientOnTakeDamage);
 	
-	DHookEntity(g_hSDKWantsLagCompensationOnEntity, true, client); 
-	DHookEntity(g_hSDKShouldTransmit, true, client);
+	DHookEntity(g_hSDKWantsLagCompensationOnEntity, true, iClient); 
+	DHookEntity(g_hSDKShouldTransmit, true, iClient);
 	
 	for (int i = 0; i < SF2_MAX_PLAYER_GROUPS; i++)
 	{
 		if (!IsPlayerGroupActive(i)) continue;
 		
-		SetPlayerGroupInvitedPlayer(i, client, false);
-		SetPlayerGroupInvitedPlayerCount(i, client, 0);
-		SetPlayerGroupInvitedPlayerTime(i, client, 0.0);
+		SetPlayerGroupInvitedPlayer(i, iClient, false);
+		SetPlayerGroupInvitedPlayerCount(i, iClient, 0);
+		SetPlayerGroupInvitedPlayerTime(i, iClient, 0.0);
 	}
 	
-	ClientDisableFakeLagCompensation(client);
+	ClientDisableFakeLagCompensation(iClient);
 	
-	ClientResetStatic(client);
-	ClientResetSlenderStats(client);
-	ClientResetCampingStats(client);
-	ClientResetOverlay(client);
-	ClientResetJumpScare(client);
-	ClientUpdateListeningFlags(client);
-	ClientUpdateMusicSystem(client);
-	ClientChaseMusicReset(client);
-	ClientChaseMusicSeeReset(client);
-	ClientAlertMusicReset(client);
-	Client20DollarsMusicReset(client);
-	ClientMusicReset(client);
-	ClientResetProxy(client);
-	ClientResetHints(client);
-	ClientResetScare(client);
+	ClientResetStatic(iClient);
+	ClientResetSlenderStats(iClient);
+	ClientResetCampingStats(iClient);
+	ClientResetOverlay(iClient);
+	ClientResetJumpScare(iClient);
+	ClientUpdateListeningFlags(iClient);
+	ClientUpdateMusicSystem(iClient);
+	ClientChaseMusicReset(iClient);
+	ClientChaseMusicSeeReset(iClient);
+	ClientAlertMusicReset(iClient);
+	Client20DollarsMusicReset(iClient);
+	ClientMusicReset(iClient);
+	ClientResetProxy(iClient);
+	ClientResetHints(iClient);
+	ClientResetScare(iClient);
 	
-	ClientResetDeathCam(client);
-	ClientResetFlashlight(client);
-	ClientDeactivateUltravision(client);
-	ClientResetSprint(client);
-	ClientResetBreathing(client);
-	ClientResetBlink(client);
-	ClientResetInteractiveGlow(client);
-	ClientDisableConstantGlow(client);
+	ClientResetDeathCam(iClient);
+	ClientResetFlashlight(iClient);
+	ClientDeactivateUltravision(iClient);
+	ClientResetSprint(iClient);
+	ClientResetBreathing(iClient);
+	ClientResetBlink(iClient);
+	ClientResetInteractiveGlow(iClient);
+	ClientDisableConstantGlow(iClient);
 	
-	ClientSetScareBoostEndTime(client, -1.0);
+	ClientSetScareBoostEndTime(iClient, -1.0);
 	
-	ClientStartProxyAvailableTimer(client);
+	ClientStartProxyAvailableTimer(iClient);
 	
-	if (!IsFakeClient(client))
+	if (!IsFakeClient(iClient))
 	{
 		// See if the player is using the projected flashlight.
-		QueryClientConVar(client, "mat_supportflashlight", OnClientGetProjectedFlashlightSetting);
+		QueryClientConVar(iClient, "mat_supportflashlight", OnClientGetProjectedFlashlightSetting);
 		
 		// Get desired FOV.
-		QueryClientConVar(client, "fov_desired", OnClientGetDesiredFOV);
+		QueryClientConVar(iClient, "fov_desired", OnClientGetDesiredFOV);
 	}
 	
-	PvP_OnClientPutInServer(client);
+	PvP_OnClientPutInServer(iClient);
 	
 #if defined DEBUG
-	g_iPlayerDebugFlags[client] = 0;
+	g_iPlayerDebugFlags[iClient] = 0;
 
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END OnClientPutInServer(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END OnClientPutInServer(%d)", iClient);
 #endif
 }
 
-public void OnClientGetProjectedFlashlightSetting(QueryCookie cookie,int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue)
+public void OnClientGetProjectedFlashlightSetting(QueryCookie cookie,int iClient, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue)
 {
 	if (result != ConVarQuery_Okay) 
 	{
-		LogError("Warning: Player %N failed to query for ConVar mat_supportflashlight", client);
+		LogError("Warning: Player %N failed to query for ConVar mat_supportflashlight", iClient);
 		return;
 	}
 	
 	if (StringToInt(cvarValue))
 	{
 		char sAuth[64];
-		GetClientAuthId(client,AuthId_Engine, sAuth, sizeof(sAuth));
+		GetClientAuthId(iClient,AuthId_Engine, sAuth, sizeof(sAuth));
 		
-		g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight] = true;
-		LogSF2Message("Player %N (%s) has mat_supportflashlight enabled, projected flashlight will be used", client, sAuth);
+		g_iPlayerPreferences[iClient][PlayerPreference_ProjectedFlashlight] = true;
+		LogSF2Message("Player %N (%s) has mat_supportflashlight enabled, projected flashlight will be used", iClient, sAuth);
 	}
 }
 
-public void OnClientGetDesiredFOV(QueryCookie cookie,int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue)
+public void OnClientGetDesiredFOV(QueryCookie cookie,int iClient, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue)
 {
-	if (!IsValidClient(client)) return;
+	if (!IsValidClient(iClient)) return;
 	
-	g_iPlayerDesiredFOV[client] = StringToInt(cvarValue);
+	g_iPlayerDesiredFOV[iClient] = StringToInt(cvarValue);
 }
 
-public void OnClientDisconnect(int client)
+public void OnClientDisconnect(int iClient)
 {
 	if (!g_bEnabled) return;
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START OnClientDisconnect(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START OnClientDisconnect(%d)", iClient);
 #endif
-	g_bSeeUpdateMenu[client] = false;
-	g_bPlayerEscaped[client] = false;
-	g_bAdminNoPoints[client] = false;
+	g_bSeeUpdateMenu[iClient] = false;
+	g_bPlayerEscaped[iClient] = false;
+	g_bAdminNoPoints[iClient] = false;
 	
-	// Save and reset settings for the next client.
-	ClientSaveCookies(client);
-	ClientSetPlayerGroup(client, -1);
+	// Save and reset settings for the next iClient.
+	ClientSaveCookies(iClient);
+	ClientSetPlayerGroup(iClient, -1);
 	
 	// Reset variables.
-	g_iPlayerPreferences[client][PlayerPreference_ShowHints] = true;
-	g_iPlayerPreferences[client][PlayerPreference_MuteMode] = MuteMode_Normal;
-	g_iPlayerPreferences[client][PlayerPreference_FilmGrain] = true;
-	g_iPlayerPreferences[client][PlayerPreference_EnableProxySelection] = true;
-	g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight] = false;
+	g_iPlayerPreferences[iClient][PlayerPreference_ShowHints] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_MuteMode] = MuteMode_Normal;
+	g_iPlayerPreferences[iClient][PlayerPreference_FilmGrain] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_EnableProxySelection] = true;
+	g_iPlayerPreferences[iClient][PlayerPreference_ProjectedFlashlight] = false;
 	
-	// Reset any client functions that may be still active.
-	ClientResetOverlay(client);
-	ClientResetFlashlight(client);
-	ClientDeactivateUltravision(client);
-	ClientSetGhostModeState(client, false);
-	ClientResetInteractiveGlow(client);
-	ClientDisableConstantGlow(client);
+	// Reset any iClient functions that may be still active.
+	ClientResetOverlay(iClient);
+	ClientResetFlashlight(iClient);
+	ClientDeactivateUltravision(iClient);
+	ClientSetGhostModeState(iClient, false);
+	ClientResetInteractiveGlow(iClient);
+	ClientDisableConstantGlow(iClient);
 	
-	ClientStopProxyForce(client);
+	ClientStopProxyForce(iClient);
 	
 	if (!IsRoundInWarmup())
 	{
-		if (g_bPlayerPlaying[client] && !g_bPlayerEliminated[client])
+		if (g_bPlayerPlaying[iClient] && !g_bPlayerEliminated[iClient])
 		{
 			if (g_bRoundGrace)
 			{
@@ -3275,18 +3277,18 @@ public void OnClientDisconnect(int client)
 	}
 	
 	// Reset queue points global variable.
-	g_iPlayerQueuePoints[client] = 0;
+	g_iPlayerQueuePoints[iClient] = 0;
 	
-	PvP_OnClientDisconnect(client);
+	PvP_OnClientDisconnect(iClient);
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END OnClientDisconnect(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END OnClientDisconnect(%d)", iClient);
 #endif
 }
 
-public void OnClientDisconnect_Post(int client)
+public void OnClientDisconnect_Post(int iClient)
 {
-    g_iPlayerLastButtons[client] = 0;
+    g_iPlayerLastButtons[iClient] = 0;
 }
 
 public void TF2_OnWaitingForPlayersStart()
@@ -3657,21 +3659,21 @@ public Action Timer_ClientAverageUpdate(Handle timer)
 	return Plugin_Continue;
 }
 
-stock bool IsClientParticipating(int client)
+stock bool IsClientParticipating(int iClient)
 {
-	if (!IsValidClient(client)) return false;
+	if (!IsValidClient(iClient)) return false;
 	
-	if (view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsCoaching"))) 
+	if (view_as<bool>(GetEntProp(iClient, Prop_Send, "m_bIsCoaching"))) 
 	{
 		// Who would coach in this game?
 		return false;
 	}
 	
-	int iTeam = GetClientTeam(client);
+	int iTeam = GetClientTeam(iClient);
 	
-	if (g_bPlayerLagCompensation[client]) 
+	if (g_bPlayerLagCompensation[iClient]) 
 	{
-		iTeam = g_iPlayerLagCompensationTeam[client];
+		iTeam = g_iPlayerLagCompensationTeam[iClient];
 	}
 	
 	switch (iTeam)
@@ -3679,7 +3681,7 @@ stock bool IsClientParticipating(int client)
 		case TFTeam_Unassigned, TFTeam_Spectator: return false;
 	}
 	
-	if (view_as<int>(TF2_GetPlayerClass(client)) == 0)
+	if (view_as<int>(TF2_GetPlayerClass(iClient)) == 0)
 	{
 		// Player hasn't chosen a class? What.
 		return false;
@@ -3713,72 +3715,72 @@ Handle GetQueueList()
 	return hArray;
 }
 
-void SetClientPlayState(int client, bool bState, bool bEnablePlay=true)
+void SetClientPlayState(int iClient, bool bState, bool bEnablePlay=true)
 {
 	if (bState)
 	{
-		if (!g_bPlayerEliminated[client]) return;
+		if (!g_bPlayerEliminated[iClient]) return;
 		
-		g_bPlayerEliminated[client] = false;
-		g_bPlayerPlaying[client] = bEnablePlay;
-		g_hPlayerSwitchBlueTimer[client] = INVALID_HANDLE;
+		g_bPlayerEliminated[iClient] = false;
+		g_bPlayerPlaying[iClient] = bEnablePlay;
+		g_hPlayerSwitchBlueTimer[iClient] = INVALID_HANDLE;
 		
-		ClientSetGhostModeState(client, false);
+		ClientSetGhostModeState(iClient, false);
 		
-		PvP_SetPlayerPvPState(client, false, false, false);
+		PvP_SetPlayerPvPState(iClient, false, false, false);
 		
 		if (g_bSpecialRound) 
 		{
-			SetClientPlaySpecialRoundState(client, true);
+			SetClientPlaySpecialRoundState(iClient, true);
 		}
 		
 		if (g_bNewBossRound) 
 		{
-			SetClientPlayintBossRoundState(client, true);
+			SetClientPlayintBossRoundState(iClient, true);
 		}
 		
-		if (TF2_GetPlayerClass(client) == view_as<TFClassType>(0))
+		if (TF2_GetPlayerClass(iClient) == view_as<TFClassType>(0))
 		{
 			// Player hasn't chosen a class for some reason. Choose one for him.
-			TF2_SetPlayerClass(client, view_as<TFClassType>(GetRandomInt(1, 9)), true, true);
+			TF2_SetPlayerClass(iClient, view_as<TFClassType>(GetRandomInt(1, 9)), true, true);
 		}
 		
-		ChangeClientTeamNoSuicide(client, TFTeam_Red);
+		ChangeClientTeamNoSuicide(iClient, TFTeam_Red);
 	}
 	else
 	{
-		if (g_bPlayerEliminated[client]) return;
+		if (g_bPlayerEliminated[iClient]) return;
 		
-		g_bPlayerEliminated[client] = true;
-		g_bPlayerPlaying[client] = false;
+		g_bPlayerEliminated[iClient] = true;
+		g_bPlayerPlaying[iClient] = false;
 		
-		ChangeClientTeamNoSuicide(client, TFTeam_Blue);
+		ChangeClientTeamNoSuicide(iClient, TFTeam_Blue);
 	}
 }
 
-bool DidClientPlayintBossRound(int client)
+bool DidClientPlayintBossRound(int iClient)
 {
-	return g_bPlayerPlayedNewBossRound[client];
+	return g_bPlayerPlayedNewBossRound[iClient];
 }
 
-void SetClientPlayintBossRoundState(int client, bool bState)
+void SetClientPlayintBossRoundState(int iClient, bool bState)
 {
-	g_bPlayerPlayedNewBossRound[client] = bState;
+	g_bPlayerPlayedNewBossRound[iClient] = bState;
 }
 
-bool DidClientPlaySpecialRound(int client)
+bool DidClientPlaySpecialRound(int iClient)
 {
-	return g_bPlayerPlayedNewBossRound[client];
+	return g_bPlayerPlayedNewBossRound[iClient];
 }
 
-void SetClientPlaySpecialRoundState(int client, bool bState)
+void SetClientPlaySpecialRoundState(int iClient, bool bState)
 {
-	g_bPlayerPlayedSpecialRound[client] = bState;
+	g_bPlayerPlayedSpecialRound[iClient] = bState;
 }
 
-void TeleportClientToEscapePoint(int client)
+void TeleportClientToEscapePoint(int iClient)
 {
-	if (!IsClientInGame(client)) return;
+	if (!IsClientInGame(iClient)) return;
 	
 	int ent = EntRefToEntIndex(g_iRoundEscapePointEntity);
 	if (ent && ent != -1)
@@ -3787,8 +3789,8 @@ void TeleportClientToEscapePoint(int client)
 		GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", flPos);
 		GetEntPropVector(ent, Prop_Data, "m_angAbsRotation", flAng);
 		
-		TeleportEntity(client, flPos, flAng, view_as<float>({ 0.0, 0.0, 0.0 }));
-		AcceptEntityInput(ent, "FireUser1", client);
+		TeleportEntity(iClient, flPos, flAng, view_as<float>({ 0.0, 0.0, 0.0 }));
+		AcceptEntityInput(ent, "FireUser1", iClient);
 	}
 }
 
@@ -4030,9 +4032,9 @@ public Action Timer_SlenderBlinkBossThink(Handle timer, any entref)
 }
 
 
-void SlenderOnClientStressUpdate(int client)
+void SlenderOnClientStressUpdate(int iClient)
 {
-	float flStress = g_flPlayerStress[client];
+	float flStress = g_flPlayerStress[iClient];
 	
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	
@@ -4270,8 +4272,8 @@ void SetPageCount(int iNum)
 					// Default escape message.
 					for (int i = 0; i < iClientsNum; i++)
 					{
-						int client = iClients[i];
-						ClientShowMainMessage(client, "%d/%d\n%T", g_iPageCount, g_iPageMax, "SF2 Default Escape Message", i);
+						int iClient = iClients[i];
+						ClientShowMainMessage(iClient, "%d/%d\n%T", g_iPageCount, g_iPageMax, "SF2 Default Escape Message", i);
 					}
 				}
 			}
@@ -4293,8 +4295,8 @@ void SetPageCount(int iNum)
 					// Default page message.
 					for (int i = 0; i < iClientsNum; i++)
 					{
-						int client = iClients[i];
-						ClientShowMainMessage(client, "%d/%d", g_iPageCount, g_iPageMax);
+						int iClient = iClients[i];
+						ClientShowMainMessage(iClient, "%d/%d", g_iPageCount, g_iPageMax);
 					}
 				}
 			}
@@ -4448,11 +4450,11 @@ public Action Event_WinPanel(Event event, const char[] name, bool dontBroadcast)
 	
 	char cappers[7];
 	int i=0;
-	for(int client;client<=MaxClients;client++)
+	for(int iClient;iClient<=MaxClients;iClient++)
 	{
-		if(IsValidClient(client) && DidClientEscape(client) && i<7)
+		if(IsValidClient(iClient) && DidClientEscape(iClient) && i<7)
 		{
-			cappers[i] = client;
+			cappers[i] = iClient;
 			event.SetString("cappers", cappers);
 			i+=1;
 		}
@@ -4564,8 +4566,8 @@ public Action Event_PlayerTeamPre(Handle event, const char[] name, bool dB)
 	if (GetConVarInt(g_cvDebugDetail) > 1) DebugMessage("EVENT START: Event_PlayerTeamPre");
 #endif
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client > 0)
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient > 0)
 	{
 		if (GetEventInt(event, "team") > 1 || GetEventInt(event, "oldteam") > 1) SetEventBroadcast(event, true);
 	}
@@ -4585,61 +4587,61 @@ public Action Event_PlayerTeam(Handle event, const char[] name, bool dB)
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerTeam");
 #endif
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client > 0)
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient > 0)
 	{
 		int iintTeam = GetEventInt(event, "team");
 		if (iintTeam <= TFTeam_Spectator)
 		{
 			if (g_bRoundGrace)
 			{
-				if (g_bPlayerPlaying[client] && !g_bPlayerEliminated[client])
+				if (g_bPlayerPlaying[iClient] && !g_bPlayerEliminated[iClient])
 				{
 					ForceInNextPlayersInQueue(1, true);
 				}
 			}
 			
 			// You're not playing anymore.
-			if (g_bPlayerPlaying[client])
+			if (g_bPlayerPlaying[iClient])
 			{
-				ClientSetQueuePoints(client, 0);
+				ClientSetQueuePoints(iClient, 0);
 			}
 			
-			g_bPlayerPlaying[client] = false;
-			g_bPlayerEliminated[client] = true;
-			g_bPlayerEscaped[client] = false;
+			g_bPlayerPlaying[iClient] = false;
+			g_bPlayerEliminated[iClient] = true;
+			g_bPlayerEscaped[iClient] = false;
 			
-			ClientSetGhostModeState(client, false);
+			ClientSetGhostModeState(iClient, false);
 			
-			if (!view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsCoaching")))
+			if (!view_as<bool>(GetEntProp(iClient, Prop_Send, "m_bIsCoaching")))
 			{
 				// This is to prevent player spawn spam when someone is coaching. Who coaches in SF2, anyway?
-				TF2_RespawnPlayer(client);
+				TF2_RespawnPlayer(iClient);
 			}
 			
 			// Special round.
-			if (g_bSpecialRound) g_bPlayerPlayedSpecialRound[client] = true;
+			if (g_bSpecialRound) g_bPlayerPlayedSpecialRound[iClient] = true;
 			
 			// Boss round.
-			if (g_bNewBossRound) g_bPlayerPlayedNewBossRound[client] = true;
+			if (g_bNewBossRound) g_bPlayerPlayedNewBossRound[iClient] = true;
 		}
 		else
 		{
-			if (!g_bPlayerChoseTeam[client])
+			if (!g_bPlayerChoseTeam[iClient])
 			{
-				g_bPlayerChoseTeam[client] = true;
+				g_bPlayerChoseTeam[iClient] = true;
 				
-				if (g_iPlayerPreferences[client][PlayerPreference_ProjectedFlashlight])
+				if (g_iPlayerPreferences[iClient][PlayerPreference_ProjectedFlashlight])
 				{
-					EmitSoundToClient(client, SF2_PROJECTED_FLASHLIGHT_CONFIRM_SOUND);
-					CPrintToChat(client, "%T", "SF2 Projected Flashlight", client);
+					EmitSoundToClient(iClient, SF2_PROJECTED_FLASHLIGHT_CONFIRM_SOUND);
+					CPrintToChat(iClient, "%T", "SF2 Projected Flashlight", iClient);
 				}
 				else
 				{
-					CPrintToChat(client, "%T", "SF2 Normal Flashlight", client);
+					CPrintToChat(iClient, "%T", "SF2 Normal Flashlight", iClient);
 				}
 				
-				CreateTimer(5.0, Timer_WelcomeMessage, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(5.0, Timer_WelcomeMessage, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
 	}
@@ -4663,36 +4665,36 @@ public Action Event_PlayerTeam(Handle event, const char[] name, bool dB)
 /**
  *	Sets the player to the correct team if needed. Returns true if a change was necessary, false if no change occurred.
  */
-static bool HandlePlayerTeam(int client, bool bRespawn=true)
+static bool HandlePlayerTeam(int iClient, bool bRespawn=true)
 {
-	if (!IsClientInGame(client) || !IsClientParticipating(client)) return false;
+	if (!IsClientInGame(iClient) || !IsClientParticipating(iClient)) return false;
 	
-	if (!g_bPlayerEliminated[client])
+	if (!g_bPlayerEliminated[iClient])
 	{
-		if (GetClientTeam(client) != TFTeam_Red)
+		if (GetClientTeam(iClient) != TFTeam_Red)
 		{
 			if (bRespawn)
 			{
-				TF2_RemoveCondition(client, view_as<TFCond>(82));
-				ChangeClientTeamNoSuicide(client, TFTeam_Red);
+				TF2_RemoveCondition(iClient, view_as<TFCond>(82));
+				ChangeClientTeamNoSuicide(iClient, TFTeam_Red);
 			}
 			else
-				ChangeClientTeam(client, TFTeam_Red);
+				ChangeClientTeam(iClient, TFTeam_Red);
 				
 			return true;
 		}
 	}
 	else
 	{
-		if (GetClientTeam(client) != TFTeam_Blue)
+		if (GetClientTeam(iClient) != TFTeam_Blue)
 		{
 			if (bRespawn)
 			{
-				TF2_RemoveCondition(client, view_as<TFCond>(82));
-				ChangeClientTeamNoSuicide(client, TFTeam_Blue);
+				TF2_RemoveCondition(iClient, view_as<TFCond>(82));
+				ChangeClientTeamNoSuicide(iClient, TFTeam_Blue);
 			}
 			else
-				ChangeClientTeam(client, TFTeam_Blue);
+				ChangeClientTeam(iClient, TFTeam_Blue);
 				
 			return true;
 		}
@@ -4701,64 +4703,64 @@ static bool HandlePlayerTeam(int client, bool bRespawn=true)
 	return false;
 }
 
-static void HandlePlayerIntroState(int client)
+static void HandlePlayerIntroState(int iClient)
 {
-	if (!IsClientInGame(client) || !IsPlayerAlive(client) || !IsClientParticipating(client)) return;
+	if (!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || !IsClientParticipating(iClient)) return;
 	
 	if (!IsRoundInIntro()) return;
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START HandlePlayerIntroState(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START HandlePlayerIntroState(%d)", iClient);
 #endif
 	
 	// Disable movement on player.
-	SetEntityFlags(client, GetEntityFlags(client) | FL_FROZEN);
+	SetEntityFlags(iClient, GetEntityFlags(iClient) | FL_FROZEN);
 	
 	float flDelay = 0.0;
-	if (!IsFakeClient(client))
+	if (!IsFakeClient(iClient))
 	{
-		flDelay = GetClientLatency(client, NetFlow_Outgoing);
+		flDelay = GetClientLatency(iClient, NetFlow_Outgoing);
 	}
 	
-	CreateTimer(flDelay * 4.0, Timer_IntroBlackOut, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(flDelay * 4.0, Timer_IntroBlackOut, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("END HandlePlayerIntroState(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("END HandlePlayerIntroState(%d)", iClient);
 #endif
 }
 
-void HandlePlayerHUD(int client)
+void HandlePlayerHUD(int iClient)
 {
-	if (IsRoundInWarmup() || IsClientInGhostMode(client))
+	if (IsRoundInWarmup() || IsClientInGhostMode(iClient))
 	{
-		SetEntProp(client, Prop_Send, "m_iHideHUD", 0);
+		SetEntProp(iClient, Prop_Send, "m_iHideHUD", 0);
 	}
 	else
 	{
-		if (!g_bPlayerEliminated[client])
+		if (!g_bPlayerEliminated[iClient])
 		{
-			if (!DidClientEscape(client))
+			if (!DidClientEscape(iClient))
 			{
 				// Player is in the game; disable normal HUD.
-				SetEntProp(client, Prop_Send, "m_iHideHUD", HIDEHUD_CROSSHAIR | HIDEHUD_HEALTH);
+				SetEntProp(iClient, Prop_Send, "m_iHideHUD", HIDEHUD_CROSSHAIR | HIDEHUD_HEALTH);
 			}
 			else
 			{
 				// Player isn't in the game; enable normal HUD behavior.
-				SetEntProp(client, Prop_Send, "m_iHideHUD", 0);
+				SetEntProp(iClient, Prop_Send, "m_iHideHUD", 0);
 			}
 		}
 		else
 		{
-			if (g_bPlayerProxy[client])
+			if (g_bPlayerProxy[iClient])
 			{
 				// Player is in the game; disable normal HUD.
-				SetEntProp(client, Prop_Send, "m_iHideHUD", HIDEHUD_CROSSHAIR | HIDEHUD_HEALTH);
+				SetEntProp(iClient, Prop_Send, "m_iHideHUD", HIDEHUD_CROSSHAIR | HIDEHUD_HEALTH);
 			}
 			else
 			{
 				// Player isn't in the game; enable normal HUD behavior.
-				SetEntProp(client, Prop_Send, "m_iHideHUD", 0);
+				SetEntProp(iClient, Prop_Send, "m_iHideHUD", 0);
 			}
 		}
 	}
@@ -4768,163 +4770,163 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return;
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient <= 0) return;
 #if defined DEBUG
 	PrintToChatAll("(SPAWN) Spawn event called.");
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerSpawn(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerSpawn(%d)", iClient);
 #endif
-	if(GetClientTeam(client) > 1)
+	if(GetClientTeam(iClient) > 1)
 	{
-		if(!g_bSeeUpdateMenu[client])
+		if(!g_bSeeUpdateMenu[iClient])
 		{
-			g_bSeeUpdateMenu[client] = true;
-			DisplayMenu(g_hMenuUpdate, client, 30);
+			g_bSeeUpdateMenu[iClient] = true;
+			DisplayMenu(g_hMenuUpdate, iClient, 30);
 		}
 	}
-	if (!IsClientParticipating(client))
+	if (!IsClientParticipating(iClient))
 	{
-		TF2Attrib_SetByName(client, "increased jump height", 1.0);
+		TF2Attrib_SetByName(iClient, "increased jump height", 1.0);
 		
-		ClientSetGhostModeState(client, false);
-		g_iPlayerPageCount[client] = 0;
-		ClientDisableFakeLagCompensation(client);
+		ClientSetGhostModeState(iClient, false);
+		g_iPlayerPageCount[iClient] = 0;
+		ClientDisableFakeLagCompensation(iClient);
 	
-		ClientResetStatic(client);
-		ClientResetSlenderStats(client);
-		ClientResetCampingStats(client);
-		ClientResetOverlay(client);
-		ClientResetJumpScare(client);
-		ClientUpdateListeningFlags(client);
-		ClientUpdateMusicSystem(client);
-		ClientChaseMusicReset(client);
-		ClientChaseMusicSeeReset(client);
-		ClientAlertMusicReset(client);
-		Client20DollarsMusicReset(client);
-		ClientMusicReset(client);
-		ClientResetProxy(client);
-		ClientResetHints(client);
-		ClientResetScare(client);
+		ClientResetStatic(iClient);
+		ClientResetSlenderStats(iClient);
+		ClientResetCampingStats(iClient);
+		ClientResetOverlay(iClient);
+		ClientResetJumpScare(iClient);
+		ClientUpdateListeningFlags(iClient);
+		ClientUpdateMusicSystem(iClient);
+		ClientChaseMusicReset(iClient);
+		ClientChaseMusicSeeReset(iClient);
+		ClientAlertMusicReset(iClient);
+		Client20DollarsMusicReset(iClient);
+		ClientMusicReset(iClient);
+		ClientResetProxy(iClient);
+		ClientResetHints(iClient);
+		ClientResetScare(iClient);
 		
-		ClientResetDeathCam(client);
-		ClientResetFlashlight(client);
-		ClientDeactivateUltravision(client);
-		ClientResetSprint(client);
-		ClientResetBreathing(client);
-		ClientResetBlink(client);
-		ClientResetInteractiveGlow(client);
-		ClientDisableConstantGlow(client);
+		ClientResetDeathCam(iClient);
+		ClientResetFlashlight(iClient);
+		ClientDeactivateUltravision(iClient);
+		ClientResetSprint(iClient);
+		ClientResetBreathing(iClient);
+		ClientResetBlink(iClient);
+		ClientResetInteractiveGlow(iClient);
+		ClientDisableConstantGlow(iClient);
 		
-		ClientHandleGhostMode(client);
+		ClientHandleGhostMode(iClient);
 	}
 	
-	g_hPlayerPostWeaponsTimer[client] = INVALID_HANDLE;
+	g_hPlayerPostWeaponsTimer[iClient] = INVALID_HANDLE;
 	
-	if (IsPlayerAlive(client) && IsClientParticipating(client))
+	if (IsPlayerAlive(iClient) && IsClientParticipating(iClient))
 	{
 		if(MusicActive())//A boss is overriding the music.
 		{
 			char sPath[PLATFORM_MAX_PATH];
 			GetBossMusic(sPath,sizeof(sPath));
-			StopSound(client, MUSIC_CHAN, sPath);
+			StopSound(iClient, MUSIC_CHAN, sPath);
 		}
-		TF2_RemoveCondition(client, view_as<TFCond>(82));
-		TF2_RemoveCondition(client, TFCond_SpawnOutline);
-		if (HandlePlayerTeam(client))
+		TF2_RemoveCondition(iClient, view_as<TFCond>(82));
+		TF2_RemoveCondition(iClient, TFCond_SpawnOutline);
+		if (HandlePlayerTeam(iClient))
 		{
 #if defined DEBUG
-		if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("client->HandlePlayerTeam()");
+		if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("iClient->HandlePlayerTeam()");
 #endif
 		}
 		else
 		{
-			g_iPlayerPageCount[client] = 0;
+			g_iPlayerPageCount[iClient] = 0;
 			
-			ClientDisableFakeLagCompensation(client);
+			ClientDisableFakeLagCompensation(iClient);
 			
-			ClientResetStatic(client);
-			ClientResetSlenderStats(client);
-			ClientResetCampingStats(client);
-			ClientResetOverlay(client);
-			ClientResetJumpScare(client);
-			ClientUpdateListeningFlags(client);
-			ClientUpdateMusicSystem(client);
-			ClientChaseMusicReset(client);
-			ClientChaseMusicSeeReset(client);
-			ClientAlertMusicReset(client);
-			Client20DollarsMusicReset(client);
-			ClientMusicReset(client);
-			ClientResetProxy(client);
-			ClientResetHints(client);
-			ClientResetScare(client);
+			ClientResetStatic(iClient);
+			ClientResetSlenderStats(iClient);
+			ClientResetCampingStats(iClient);
+			ClientResetOverlay(iClient);
+			ClientResetJumpScare(iClient);
+			ClientUpdateListeningFlags(iClient);
+			ClientUpdateMusicSystem(iClient);
+			ClientChaseMusicReset(iClient);
+			ClientChaseMusicSeeReset(iClient);
+			ClientAlertMusicReset(iClient);
+			Client20DollarsMusicReset(iClient);
+			ClientMusicReset(iClient);
+			ClientResetProxy(iClient);
+			ClientResetHints(iClient);
+			ClientResetScare(iClient);
 			
-			ClientResetDeathCam(client);
-			ClientResetFlashlight(client);
-			ClientDeactivateUltravision(client);
-			ClientResetSprint(client);
-			ClientResetBreathing(client);
-			ClientResetBlink(client);
-			ClientResetInteractiveGlow(client);
-			ClientDisableConstantGlow(client);
+			ClientResetDeathCam(iClient);
+			ClientResetFlashlight(iClient);
+			ClientDeactivateUltravision(iClient);
+			ClientResetSprint(iClient);
+			ClientResetBreathing(iClient);
+			ClientResetBlink(iClient);
+			ClientResetInteractiveGlow(iClient);
+			ClientDisableConstantGlow(iClient);
 			
-			ClientHandleGhostMode(client);
+			ClientHandleGhostMode(iClient);
 			
-			TF2Attrib_SetByName(client, "increased jump height", 1.0);
+			TF2Attrib_SetByName(iClient, "increased jump height", 1.0);
 			
-			if (!g_bPlayerEliminated[client])
+			if (!g_bPlayerEliminated[iClient])
 			{
-				ClientStartDrainingBlinkMeter(client);
-				ClientSetScareBoostEndTime(client, -1.0);
+				ClientStartDrainingBlinkMeter(iClient);
+				ClientSetScareBoostEndTime(iClient, -1.0);
 				
-				ClientStartCampingTimer(client);
+				ClientStartCampingTimer(iClient);
 				
-				HandlePlayerIntroState(client);
+				HandlePlayerIntroState(iClient);
 				
 				// screen overlay timer
-				g_hPlayerOverlayCheck[client] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				TriggerTimer(g_hPlayerOverlayCheck[client], true);
+				g_hPlayerOverlayCheck[iClient] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(iClient), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+				TriggerTimer(g_hPlayerOverlayCheck[iClient], true);
 				
-				if (DidClientEscape(client))
+				if (DidClientEscape(iClient))
 				{
-					CreateTimer(0.1, Timer_TeleportPlayerToEscapePoint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					CreateTimer(0.1, Timer_TeleportPlayerToEscapePoint, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 				}
 				else
 				{
-					ClientEnableConstantGlow(client, "head");
-					CreateTimer(0.5,DelayClientGlow,client);//It's a very very bad thing thing but the only safe way to change the model if the player got a custom one
-					ClientActivateUltravision(client);
+					ClientEnableConstantGlow(iClient, "head");
+					CreateTimer(0.5,DelayClientGlow,iClient);//It's a very very bad thing thing but the only safe way to change the model if the player got a custom one
+					ClientActivateUltravision(iClient);
 				}
 			}
 			else
 			{
-				g_hPlayerOverlayCheck[client] = INVALID_HANDLE;
+				g_hPlayerOverlayCheck[iClient] = INVALID_HANDLE;
 			}
 			
-			g_hPlayerPostWeaponsTimer[client] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+			g_hPlayerPostWeaponsTimer[iClient] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 			
-			HandlePlayerHUD(client);
+			HandlePlayerHUD(iClient);
 		}
 	}
 	
-	PvP_OnPlayerSpawn(client);
+	PvP_OnPlayerSpawn(iClient);
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_PlayerSpawn(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_PlayerSpawn(%d)", iClient);
 #endif
 }
 
 public Action Timer_IntroBlackOut(Handle timer, any userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0) return;
 	
 	if (!IsRoundInIntro()) return;
 	
-	if (!IsPlayerAlive(client) || g_bPlayerEliminated[client]) return;
+	if (!IsPlayerAlive(iClient) || g_bPlayerEliminated[iClient]) return;
 	
 	// Black out the player's screen.
 	int iFadeFlags = FFADE_OUT | FFADE_STAYOUT | FFADE_PURGE;
-	UTIL_ScreenFade(client, 0, FixedUnsigned16(90.0, 1 << 12), iFadeFlags, g_iRoundIntroFadeColor[0], g_iRoundIntroFadeColor[1], g_iRoundIntroFadeColor[2], g_iRoundIntroFadeColor[3]);
+	UTIL_ScreenFade(iClient, 0, FixedUnsigned16(90.0, 1 << 12), iFadeFlags, g_iRoundIntroFadeColor[0], g_iRoundIntroFadeColor[1], g_iRoundIntroFadeColor[2], g_iRoundIntroFadeColor[3]);
 }
 
 public Action Event_PostInventoryApplication(Handle event, const char[] name, bool dB)
@@ -4935,10 +4937,10 @@ public Action Event_PostInventoryApplication(Handle event, const char[] name, bo
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PostInventoryApplication");
 #endif
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client > 0)
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient > 0)
 	{
-		g_hPlayerPostWeaponsTimer[client] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+		g_hPlayerPostWeaponsTimer[iClient] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 	}
 	
 #if defined DEBUG
@@ -4964,12 +4966,12 @@ public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
 	
 	if (!IsRoundInWarmup())
 	{
-		int client = GetClientOfUserId(GetEventInt(event, "userid"));
-		if (client > 0)
+		int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+		if (iClient > 0)
 		{
 			if (!IsRoundEnding())
 			{
-				if (g_bRoundGrace || g_bPlayerEliminated[client] || IsClientInGhostMode(client))
+				if (g_bRoundGrace || g_bPlayerEliminated[iClient] || IsClientInGhostMode(iClient))
 				{
 					SetEventBroadcast(event, true);
 				}
@@ -4988,14 +4990,14 @@ public Action Event_PlayerHurt(Handle event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return;
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient <= 0) return;
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerHurt");
 #endif
 	
-	ClientDisableFakeLagCompensation(client);
+	ClientDisableFakeLagCompensation(iClient);
 	
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	if (attacker > 0)
@@ -5007,9 +5009,9 @@ public Action Event_PlayerHurt(Handle event, const char[] name, bool dB)
 	}
 	
 	// Play any sounds, if any.
-	if (g_bPlayerProxy[client])
+	if (g_bPlayerProxy[iClient])
 	{
-		int iProxyMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[client]);
+		int iProxyMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[iClient]);
 		if (iProxyMaster != -1)
 		{
 			char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
@@ -5024,7 +5026,7 @@ public Action Event_PlayerHurt(Handle event, const char[] name, bool dB)
 				float flVolume = GetProfileFloat(sProfile, "sound_proxy_hurt_volume", SNDVOL_NORMAL);
 				int iPitch = GetProfileNum(sProfile, "sound_proxy_hurt_pitch", SNDPITCH_NORMAL);
 				
-				EmitSoundToAll(sBuffer, client, iChannel, iLevel, iFlags, flVolume, iPitch);
+				EmitSoundToAll(sBuffer, iClient, iChannel, iLevel, iFlags, flVolume, iPitch);
 			}
 		}
 	}
@@ -5038,11 +5040,11 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return;
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (iClient <= 0) return;
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerDeath(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerDeath(%d)", iClient);
 #endif
 	
 	bool bFake = view_as<bool>(GetEventInt(event, "death_flags") & TF_DEATHFLAG_DEADRINGER);
@@ -5054,49 +5056,49 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 	
 	if (!bFake)
 	{
-		ClientDisableFakeLagCompensation(client);
+		ClientDisableFakeLagCompensation(iClient);
 		
-		ClientResetStatic(client);
-		ClientResetSlenderStats(client);
-		ClientResetCampingStats(client);
-		ClientResetOverlay(client);
-		ClientResetJumpScare(client);
-		ClientResetInteractiveGlow(client);
-		ClientDisableConstantGlow(client);
-		ClientChaseMusicReset(client);
-		ClientChaseMusicSeeReset(client);
-		ClientAlertMusicReset(client);
-		Client20DollarsMusicReset(client);
-		ClientMusicReset(client);
+		ClientResetStatic(iClient);
+		ClientResetSlenderStats(iClient);
+		ClientResetCampingStats(iClient);
+		ClientResetOverlay(iClient);
+		ClientResetJumpScare(iClient);
+		ClientResetInteractiveGlow(iClient);
+		ClientDisableConstantGlow(iClient);
+		ClientChaseMusicReset(iClient);
+		ClientChaseMusicSeeReset(iClient);
+		ClientAlertMusicReset(iClient);
+		Client20DollarsMusicReset(iClient);
+		ClientMusicReset(iClient);
 		
-		ClientResetFlashlight(client);
-		ClientDeactivateUltravision(client);
-		ClientResetSprint(client);
-		ClientResetBreathing(client);
-		ClientResetBlink(client);
-		ClientResetDeathCam(client);
+		ClientResetFlashlight(iClient);
+		ClientDeactivateUltravision(iClient);
+		ClientResetSprint(iClient);
+		ClientResetBreathing(iClient);
+		ClientResetBlink(iClient);
+		ClientResetDeathCam(iClient);
 		
-		ClientUpdateMusicSystem(client);
+		ClientUpdateMusicSystem(iClient);
 		
-		PvP_SetPlayerPvPState(client, false, false, false);
+		PvP_SetPlayerPvPState(iClient, false, false, false);
 		
 		if (IsRoundInWarmup())
 		{
-			CreateTimer(0.3, Timer_RespawnPlayer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer(0.3, Timer_RespawnPlayer, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 		}
 		else
 		{
-			if (!g_bPlayerEliminated[client])
+			if (!g_bPlayerEliminated[iClient])
 			{
-				if (IsRoundInIntro() || g_bRoundGrace || DidClientEscape(client))
+				if (IsRoundInIntro() || g_bRoundGrace || DidClientEscape(iClient))
 				{
-					CreateTimer(0.3, Timer_RespawnPlayer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					CreateTimer(0.3, Timer_RespawnPlayer, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 				}
 				else
 				{
-					g_bPlayerEliminated[client] = true;
-					g_bPlayerEscaped[client] = false;
-					g_hPlayerSwitchBlueTimer[client] = CreateTimer(0.5, Timer_PlayerSwitchToBlue, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					g_bPlayerEliminated[iClient] = true;
+					g_bPlayerEscaped[iClient] = false;
+					g_hPlayerSwitchBlueTimer[iClient] = CreateTimer(0.5, Timer_PlayerSwitchToBlue, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
 				}
 			}
 			else
@@ -5113,7 +5115,7 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 					
 					if (GetRandomStringFromProfile(npcProfile, "sound_attack_killed_all", buffer, sizeof(buffer)) && strlen(buffer) > 0)
 					{
-						if (!g_bPlayerEliminated[client])
+						if (!g_bPlayerEliminated[iClient])
 						{
 							EmitSoundToAll(buffer, _, MUSIC_CHAN, SNDLEVEL_HELICOPTER);
 						}
@@ -5130,19 +5132,19 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 			{
 				if (NPCGetUniqueID(i) == -1) continue;
 				
-				if (EntRefToEntIndex(g_iSlenderTarget[i]) == client)
+				if (EntRefToEntIndex(g_iSlenderTarget[i]) == iClient)
 				{
 					g_iSlenderInterruptConditions[i] |= COND_CHASETARGETINVALIDATED;
-					GetClientAbsOrigin(client, g_flSlenderChaseDeathPosition[i]);
+					GetClientAbsOrigin(iClient, g_flSlenderChaseDeathPosition[i]);
 				}
 			}
 		}
 		
-		if (g_bPlayerProxy[client])
+		if (g_bPlayerProxy[iClient])
 		{
 			// We're a proxy, so play some sounds.
 		
-			int iProxyMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[client]);
+			int iProxyMaster = NPCGetFromUniqueID(g_iPlayerProxyMaster[iClient]);
 			if (iProxyMaster != -1)
 			{
 				char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
@@ -5157,13 +5159,13 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 					float flVolume = GetProfileFloat(sProfile, "sound_proxy_death_volume", SNDVOL_NORMAL);
 					int iPitch = GetProfileNum(sProfile, "sound_proxy_death_pitch", SNDPITCH_NORMAL);
 					
-					EmitSoundToAll(sBuffer, client, iChannel, iLevel, iFlags, flVolume, iPitch);
+					EmitSoundToAll(sBuffer, iClient, iChannel, iLevel, iFlags, flVolume, iPitch);
 				}
 			}
 		}
 		
-		ClientResetProxy(client, false);
-		ClientUpdateListeningFlags(client);
+		ClientResetProxy(iClient, false);
+		ClientUpdateListeningFlags(iClient);
 		
 		// Half-Zatoichi nerf code.
 		int iKatanaHealthGain = GetConVarInt(g_cvHalfZatoichiHealthGain);
@@ -5190,13 +5192,13 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 			}
 		}
 		
-		g_hPlayerPostWeaponsTimer[client] = INVALID_HANDLE;
+		g_hPlayerPostWeaponsTimer[iClient] = INVALID_HANDLE;
 	}
 	
-	PvP_OnPlayerDeath(client, bFake);
+	PvP_OnPlayerDeath(iClient, bFake);
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_PlayerDeath(%d)", client);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_PlayerDeath(%d)", iClient);
 #endif
 }
 
@@ -5216,12 +5218,12 @@ public Action Timer_SetPlayerHealth(Handle timer, any data)
 
 public Action Timer_PlayerSwitchToBlue(Handle timer, any userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0) return;
 	
-	if (timer != g_hPlayerSwitchBlueTimer[client]) return;
+	if (timer != g_hPlayerSwitchBlueTimer[iClient]) return;
 	
-	ChangeClientTeam(client, TFTeam_Blue);
+	ChangeClientTeam(iClient, TFTeam_Blue);
 }
 
 public Action Timer_RoundStart(Handle timer)
@@ -6260,14 +6262,14 @@ void InitializeNewGame()
 
 public Action Timer_PlayIntroMusicToPlayer(Handle timer, any userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (client <= 0) return;
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0) return;
 	
-	if (timer != g_hPlayerIntroMusicTimer[client]) return;
+	if (timer != g_hPlayerIntroMusicTimer[iClient]) return;
 	
-	g_hPlayerIntroMusicTimer[client] = INVALID_HANDLE;
+	g_hPlayerIntroMusicTimer[iClient] = INVALID_HANDLE;
 	
-	EmitSoundToClient(client, g_strRoundIntroMusic, _, MUSIC_CHAN, SNDLEVEL_NONE);
+	EmitSoundToClient(iClient, g_strRoundIntroMusic, _, MUSIC_CHAN, SNDLEVEL_NONE);
 }
 
 public Action Timer_IntroTextSequence(Handle timer)
