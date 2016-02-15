@@ -505,6 +505,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	if (flAirSpeed < flOriginalAirSpeed) flAirSpeed = flOriginalAirSpeed;
 	if (flAirSpeed > flMaxAirSpeed) flAirSpeed = flMaxAirSpeed;
 	
+	//It seems change air speed on difficulty level is a bad idea
+	flAirSpeed = NPCChaserGetAirSpeed(iBossIndex, iDifficulty);
+	
 	if (PeopleCanSeeSlender(iBossIndex, _, false))
 	{
 		if (NPCHasAttribute(iBossIndex, "reduced speed on look"))
