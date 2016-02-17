@@ -94,7 +94,16 @@ void ReloadSpecialRounds()
 		SpecialRoundGetDescriptionHud(SPECIALROUND_NOPAGEBONUS, sBuffer, sizeof(sBuffer));
 		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
 		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_DUCKS, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
 		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_1UP, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_NOULTRAVISION, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		//I think it's time to make a loop for that
 		
 		KvRewind(kv);
 		if (KvJumpToKey(kv, "jokes"))
@@ -188,7 +197,7 @@ public Action Timer_SpecialRoundCycle(Handle timer)
 	char sBuffer[128];
 	GetArrayString(g_hSpecialRoundCycleNames, g_iSpecialRoundCycleNum, sBuffer, sizeof(sBuffer));
 	
-	GameTextTFMessage(sBuffer);
+	SpecialRoundGameText(sBuffer);
 	
 	g_iSpecialRoundCycleNum++;
 	if (g_iSpecialRoundCycleNum >= GetArraySize(g_hSpecialRoundCycleNames))
@@ -324,7 +333,7 @@ void SpecialRoundCycleFinish()
 		*/
 		if(!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INSANEDIFFICULTY);
-		if(!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+		if(!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_LIGHTSOUT);
 			
 		if(!SF_SpecialRound(SPECIALROUND_BEACON))
@@ -335,13 +344,13 @@ void SpecialRoundCycleFinish()
 		if(!SF_SpecialRound(SPECIALROUND_NOGRACE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
 			
-		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NIGHTVISION);
 			
 		if(!bDoubleRoulette)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);
 			
-		if(!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+		if(!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INFINITEFLASHLIGHT);
 			
 		if(!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
@@ -352,6 +361,16 @@ void SpecialRoundCycleFinish()
 		
 		if(!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOPAGEBONUS);
+		
+		//Disabled
+		/*if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_DUCKS))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_DUCKS);*/
+		
+		if(!SF_SpecialRound(SPECIALROUND_1UP))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_1UP);
+		
+		if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_NOULTRAVISION);
 			
 		g_iSpecialRoundType = GetArrayCell(hEnabledRounds, GetRandomInt(0, GetArraySize(hEnabledRounds) - 1));
 		
@@ -369,7 +388,7 @@ void SpecialRoundCycleFinish()
 	char sDescChat[64];
 	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
 	
-	GameTextTFMessage(sDescHud, sIconHud);
+	SpecialRoundGameText(sDescHud, sIconHud);
 	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
 	
 	g_hSpecialRoundTimer = CreateTimer(SR_STARTDELAY, Timer_SpecialRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
@@ -480,6 +499,48 @@ void SpecialRoundStart()
 		{
 			CreateTimer(2.0,Timer_SpecialRoundFakeBosses,_,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 		}
+		case SPECIALROUND_1UP:
+		{
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (!IsClientInGame(i)) continue;
+				
+				if (!g_bPlayerEliminated[i])
+				{
+					TF2_AddCondition(i,TFCond_PreventDeath,-1.0);
+				}
+			}
+		}
+		case SPECIALROUND_NOULTRAVISION:
+		{
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (!IsClientInGame(i)) continue;
+				
+				if (!g_bPlayerEliminated[i])
+				{
+					ClientDeactivateUltravision(i);
+				}
+			}
+		}
+		case SPECIALROUND_DUCKS:
+		{
+			PrecacheModel("models/items/target_duck.mdl");
+			char targetName[64];
+			int ent = -1;
+			while ((ent = FindEntityByClassname(ent, "prop_dynamic_override")) != -1)
+			{
+				GetEntPropString(ent, Prop_Data, "m_iName", targetName, sizeof(targetName));
+				if (targetName[0])
+				{
+					if(!StrContains(targetName, "sf2_page_", false))
+					{
+						SetEntityModel(ent, "models/items/target_duck.mdl");
+						SetEntPropFloat(ent, Prop_Send, "m_flModelScale", 1.0);
+					}
+				}
+			}
+		}	
 	}
 	if(doubleroulettecount==2)
 	{
@@ -501,7 +562,7 @@ public Action Timer_DisplaySpecialRound(Handle timer)
 	char sDescChat[64];
 	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
 	
-	GameTextTFMessage(sDescHud, sIconHud);
+	SpecialRoundGameText(sDescHud, sIconHud);
 	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
 }
 

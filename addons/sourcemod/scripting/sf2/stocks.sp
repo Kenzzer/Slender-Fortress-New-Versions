@@ -52,7 +52,7 @@
 
 #define vec3_origin { 0.0, 0.0, 0.0 }
 
-//I told alliedmodders to add this cond in their enum list but my message got removed.
+//My pull request for this cond is accepted I define it there until sourcemod release a new version.
 TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
 
 // hull defines, mostly used for space checking.
@@ -311,6 +311,19 @@ stock bool IsTauntWep(int iWeapon)
 		return true;
 	return false;
 }
+stock void FindHealthBar()
+{
+	g_ihealthBar = FindEntityByClassname(-1, "monster_resource");
+	
+	if (g_ihealthBar == -1)
+	{
+		g_ihealthBar = CreateEntityByName("monster_resource");
+		if (g_ihealthBar != -1)
+		{
+			DispatchSpawn(g_ihealthBar);
+		}
+	}
+}
 stock void ForceTeamWin(int team)
 {
 	int ent = FindEntityByClassname(-1, "team_control_point_master");
@@ -446,7 +459,18 @@ stock Handle PrepareItemHandle(char[] classname,int index,int level,int quality,
 	
 	return hItem;
 }
-
+stock void SpecialRoundGameText(const char[] strMessage, const char strIcon[]="")
+{
+	int iEntity = CreateEntityByName("game_text_tf");
+	DispatchKeyValue(iEntity,"message", strMessage);
+	DispatchKeyValue(iEntity,"display_to_team", "0");
+	DispatchKeyValue(iEntity,"icon", strIcon);
+	DispatchKeyValue(iEntity,"targetname", "game_text1");
+	DispatchKeyValue(iEntity,"background", "0");
+	DispatchSpawn(iEntity);
+	AcceptEntityInput(iEntity, "Display", iEntity, iEntity);
+	CreateTimer(2.0, Timer_KillEntity, EntIndexToEntRef(iEntity));
+}
 // Removes wearables such as botkillers from weapons.
 stock void TF2_RemoveWeaponSlotAndWearables(int client,int iSlot)
 {

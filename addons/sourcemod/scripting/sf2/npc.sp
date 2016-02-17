@@ -1102,6 +1102,14 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			
 			float flModelScale = NPCGetModelScale(iBossIndex);
 			Slender_HitboxScale(g_iSlenderHitbox[iBossIndex],flModelScale);
+			
+			//(Experimental)
+			if (view_as<bool>(GetProfileNum(sProfile,"healthbar",0)))
+			{
+				//The boss spawned for the 1st time, block now its teleportation ability to prevent healthbar conflict.
+				NPCSetFlags(iBossIndex,NPCGetFlags(iBossIndex)|SFF_NOTELEPORT);
+				UpdateHealthBar(iBossIndex);
+			}
 		}
 		/*
 		default:
@@ -1269,6 +1277,12 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 				
 				NPCChaserAddStunHealth(iBossIndex, -damage);
 				
+				//(Experimental)
+				if (view_as<bool>(GetProfileNum(sProfile,"healthbar",0)))
+				{
+					UpdateHealthBar(iBossIndex);
+				}
+				
 				if (damagetype & DMG_ACID) damage /= 2.0; // 2x damage for critical hits.
 			}
 			if ((damagetype & DMG_CRIT))
@@ -1287,6 +1301,27 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 		}
 	}
 	return damage;
+}
+void UpdateHealthBar(int iBossIndex)
+{
+	float fMaxHealth = NPCChaserGetStunInitialHealth(iBossIndex);
+	float fHealth = NPCChaserGetStunHealth(iBossIndex);
+	if (g_ihealthBar == -1)
+	{
+		return;
+	}
+	int healthPercent;
+	SetEntProp(g_ihealthBar, Prop_Send, "m_iBossState", 0);
+	healthPercent=RoundToCeil((fHealth/fMaxHealth)*float(255));
+	if(healthPercent>255)
+	{
+		healthPercent=255;
+	}
+	else if(healthPercent<=0)
+	{
+		healthPercent=0;
+	}
+	SetEntProp(g_ihealthBar, Prop_Send, "m_iBossHealthPercentageByte", healthPercent);
 }
 public bool Hook_HitBoxShouldCollide(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {

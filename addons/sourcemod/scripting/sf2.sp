@@ -38,8 +38,8 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.2.9-v9b"
-#define PLUGIN_VERSION_DISPLAY "0.2.9"
+#define PLUGIN_VERSION "0.3.0"
+#define PLUGIN_VERSION_DISPLAY "0.3.0"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2
@@ -100,6 +100,8 @@ enum MuteMode
 bool g_bSeeUpdateMenu[MAXPLAYERS+1] = false;
 //Command
 bool g_bAdminNoPoints[MAXPLAYERS+1] = false;
+//Snd_Restart anti-cheat
+float g_fLastTimeSndRestart[MAXPLAYERS+1]; 
 
 // Offsets.
 int g_offsPlayerFOV = -1;
@@ -205,7 +207,8 @@ float g_flSlenderTimeUntilNextProxy[MAX_BOSSES] = { -1.0, ... };
 
 bool g_bSlenderInBacon[MAX_BOSSES];
 
-
+//Healthbar
+int g_ihealthBar;
 
 // Page data.
 int g_iPageCount;
@@ -806,7 +809,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_flashlight", Command_ToggleFlashlight);
 	RegConsoleCmd("+sprint", Command_SprintOn);
 	RegConsoleCmd("-sprint", Command_SprintOff);
-
+	
+	
 	RegAdminCmd("sm_sf2_bosspack_vote", DevCommand_BossPackVote, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_nopoints", Command_NoPoints, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_scare", Command_ClientPerformScare, ADMFLAG_SLAY);
@@ -834,6 +838,7 @@ public void OnPluginStart()
 	AddCommandListener(Hook_CommandVoiceMenu, "voicemenu");
 	AddCommandListener(Hook_CommandSay, "say");
 	AddCommandListener(Hook_CommandSayTeam, "say_team");
+	AddCommandListener(Hook_CommandBuild, "build");
 	// Hook events.
 	HookEvent("teamplay_round_start", Event_RoundStart);
 	HookEvent("teamplay_round_win", Event_RoundEnd);
@@ -1066,6 +1071,7 @@ static void SetupClassDefaultWeapons()
 public void OnMapStart()
 {
 	PvP_OnMapStart();
+	FindHealthBar();
 }
 
 public void OnConfigsExecuted()
@@ -1751,7 +1757,6 @@ public Action Command_GroupName(int iClient,int args)
 	
 	return Plugin_Handled;
 }
-
 public Action Command_GhostMode(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
@@ -4830,6 +4835,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			GetBossMusic(sPath,sizeof(sPath));
 			StopSound(iClient, MUSIC_CHAN, sPath);
 		}
+		g_fLastTimeSndRestart[iClient] = GetGameTime();
 		TF2_RemoveCondition(iClient, view_as<TFCond>(82));
 		TF2_RemoveCondition(iClient, TFCond_SpawnOutline);
 		if (HandlePlayerTeam(iClient))
@@ -4895,6 +4901,10 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 					ClientEnableConstantGlow(iClient, "head");
 					CreateTimer(0.5,DelayClientGlow,iClient);//It's a very very bad thing thing but the only safe way to change the model if the player got a custom one
 					ClientActivateUltravision(iClient);
+				}
+				if(SF_SpecialRound(SPECIALROUND_1UP))
+				{
+					TF2_AddCondition(iClient,TFCond_PreventDeath,-1.0);
 				}
 			}
 			else
@@ -5457,14 +5467,6 @@ static void InitializeMapEntities()
 	g_iTimeEscape = GetConVarInt(g_cvTimeEscapeSurvival);
 	g_iRoundTimeGainFromPage = GetConVarInt(g_cvTimeGainFromPageGrab);
 	
-	// Reset page reference.
-	g_bPageRef = false;
-	strcopy(g_strPageRefModel, sizeof(g_strPageRefModel), "");
-	g_flPageRefModelScale = 1.0;
-	
-	Handle hArray = CreateArray(2);
-	Handle hPageTrie = CreateTrie();
-	
 	char targetName[64];
 	int ent = -1;
 	while ((ent = FindEntityByClassname(ent, "info_target")) != -1)
@@ -5476,41 +5478,6 @@ static void InitializeMapEntities()
 			{
 				ReplaceString(targetName, sizeof(targetName), "sf2_maxpages_", "", false);
 				g_iPageMax = StringToInt(targetName);
-			}
-			else if (!StrContains(targetName, "sf2_page_spawnpoint", false))
-			{
-				if (!StrContains(targetName, "sf2_page_spawnpoint_", false))
-				{
-					ReplaceString(targetName, sizeof(targetName), "sf2_page_spawnpoint_", "", false);
-					if (targetName[0])
-					{
-						Handle hButtStallion = INVALID_HANDLE;
-						if (!GetTrieValue(hPageTrie, targetName, hButtStallion))
-						{
-							hButtStallion = CreateArray();
-							SetTrieValue(hPageTrie, targetName, hButtStallion);
-						}
-						
-						int iIndex = FindValueInArray(hArray, hButtStallion);
-						if (iIndex == -1)
-						{
-							iIndex = PushArrayCell(hArray, hButtStallion);
-						}
-						
-						PushArrayCell(hButtStallion, ent);
-						SetArrayCell(hArray, iIndex, true, 1);
-					}
-					else
-					{
-						int iIndex = PushArrayCell(hArray, ent);
-						SetArrayCell(hArray, iIndex, false, 1);
-					}
-				}
-				else
-				{
-					int iIndex = PushArrayCell(hArray, ent);
-					SetArrayCell(hArray, iIndex, false, 1);
-				}
 			}
 			else if (!StrContains(targetName, "sf2_logic_escape", false))
 			{
@@ -5577,9 +5544,68 @@ static void InitializeMapEntities()
 		}
 	}
 	
+	SpawnPages();
+	
+#if defined DEBUG
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END InitializeMapEntities()");
+#endif
+}
+void SpawnPages()
+{
+	g_bPageRef = false;
+	strcopy(g_strPageRefModel, sizeof(g_strPageRefModel),"");
+	g_flPageRefModelScale = 1.0;
+	
+	Handle hArray = CreateArray(2);
+	Handle hPageTrie = CreateTrie();
+	
+	char targetName[64];
+	int ent = -1;
+	while ((ent = FindEntityByClassname(ent, "info_target")) != -1)
+	{
+		GetEntPropString(ent, Prop_Data, "m_iName", targetName, sizeof(targetName));
+		if (targetName[0])
+		{
+			if (!StrContains(targetName, "sf2_page_spawnpoint", false))
+			{
+				if (!StrContains(targetName, "sf2_page_spawnpoint_", false))
+				{
+					ReplaceString(targetName, sizeof(targetName), "sf2_page_spawnpoint_", "", false);
+					if (targetName[0])
+					{
+						Handle hButtStallion = INVALID_HANDLE;
+						if (!GetTrieValue(hPageTrie, targetName, hButtStallion))
+						{
+							hButtStallion = CreateArray();
+							SetTrieValue(hPageTrie, targetName, hButtStallion);
+						}
+						
+						int iIndex = FindValueInArray(hArray, hButtStallion);
+						if (iIndex == -1)
+						{
+							iIndex = PushArrayCell(hArray, hButtStallion);
+						}
+						
+						PushArrayCell(hButtStallion, ent);
+						SetArrayCell(hArray, iIndex, true, 1);
+					}
+					else
+					{
+						int iIndex = PushArrayCell(hArray, ent);
+						SetArrayCell(hArray, iIndex, false, 1);
+					}
+				}
+				else
+				{
+					int iIndex = PushArrayCell(hArray, ent);
+					SetArrayCell(hArray, iIndex, false, 1);
+				}
+			}
+		}
+	}
+	
 	// Get a reference entity, if any.
-	
-	
+				
 	ent = -1;
 	while ((ent = FindEntityByClassname(ent, "prop_dynamic")) != -1)
 	{
@@ -5715,12 +5741,7 @@ static void InitializeMapEntities()
 	
 	CloseHandle(hPageTrie);
 	CloseHandle(hArray);
-	
-#if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END InitializeMapEntities()");
-#endif
 }
-
 static bool HandleSpecialRoundState()
 {
 #if defined DEBUG

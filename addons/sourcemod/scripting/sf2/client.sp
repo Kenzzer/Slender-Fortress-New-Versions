@@ -80,9 +80,11 @@ static float g_flPlayerScareBoostEndTime[MAXPLAYERS + 1] = { -1.0, ... };
 
 // Anti-camping data.
 static int g_iPlayerCampingStrikes[MAXPLAYERS + 1] = { 0, ... };
+static float g_fPlayerExitCampingPoints[MAXPLAYERS + 1];
 static Handle g_hPlayerCampingTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static float g_flPlayerCampingLastPosition[MAXPLAYERS + 1][3];
 static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1] = { true, ... };
+static bool g_bPlayerIsExitCamping[MAXPLAYERS + 1] = { true, ...};
 
 // Frame data
 static int g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
@@ -126,6 +128,7 @@ public void Hook_ClientPreThink(int client)
 	ClientProcessViewAngles(client);
 	ClientProcessVisibility(client);
 	ClientProcessStaticShake(client);
+	ClientProcessExitCampingStaticShake(client);
 	ClientProcessFlashlightAngles(client);
 	ClientProcessInteractiveGlow(client);
 	
@@ -133,6 +136,13 @@ public void Hook_ClientPreThink(int client)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flNextAttack", GetGameTime() + 2.0);
 		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 520.0);
+		if(TF2_IsPlayerInCondition(client,TFCond_HalloweenKart))
+		{
+			TF2_RemoveCondition(client,TFCond_HalloweenKart);
+			ClientSetGhostModeState(client, false);
+			TF2_RespawnPlayer(client);
+			PrintToChat(client,"\x08FF4040FFToo bad, you tried to glitch the game, nice try >:)");
+		}
 	}
 	else if (!g_bPlayerEliminated[client] || g_bPlayerProxy[client])
 	{
@@ -1399,6 +1409,8 @@ void ClientActivateUltravision(int client)
 {
 	if (!IsClientInGame(client) || IsClientUsingUltravision(client)) return;
 	
+	if(SF_SpecialRound(SPECIALROUND_NOULTRAVISION)) return;
+	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START ClientActivateUltravision(%d)", client);
 #endif
@@ -1734,7 +1746,46 @@ void ClientProcessStaticShake(int client)
 		SetEntDataVector(client, g_offsPlayerPunchAngleVel, flNewPunchAngVel, true);
 	}
 }
-
+//This is a custom static it doesn't respect any rules, it's here to kill the exit campers!
+void ClientProcessExitCampingStaticShake(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client) || g_bPlayerEliminated[client]) return;
+	
+	if(g_bPlayerIsExitCamping[client])
+	{
+		float flOldPunchAng[3], flOldPunchAngVel[3];
+		GetEntDataVector(client, g_offsPlayerPunchAngle, flOldPunchAng);
+		GetEntDataVector(client, g_offsPlayerPunchAngleVel, flOldPunchAngVel);
+		
+		float flNewPunchAng[3], flNewPunchAngVel[3];
+		
+		for (int i = 0; i < 3; i++)
+		{
+			flNewPunchAng[i] = flOldPunchAng[i];
+			flNewPunchAngVel[i] = flOldPunchAngVel[i];
+		}
+		for (int i = 0; i < 2; i++) flNewPunchAng[i] = AngleNormalize(GetRandomFloat(0.0, 360.0));
+		NormalizeVector(flNewPunchAng, flNewPunchAng);
+		
+		//The more the player camp the more the static shake will increase
+		float flAngVelocityScalar = 5.0  * g_fPlayerExitCampingPoints[client];
+		if (flAngVelocityScalar < 1.0) flAngVelocityScalar = 1.0;
+		ScaleVector(flNewPunchAng, flAngVelocityScalar);
+		
+		SetEntDataVector(client, g_offsPlayerPunchAngle, flNewPunchAng, true);
+		SetEntDataVector(client, g_offsPlayerPunchAngleVel, flNewPunchAngVel, true);
+		
+		g_fPlayerExitCampingPoints[client] += 0.003;
+		//PrintToChat(client,"Exit camping points: %0.0f",g_fPlayerExitCampingPoints[client]);
+		
+		if(g_fPlayerExitCampingPoints[client]>1)//We were nice too long... DIE!
+			KillClient(client);
+	}
+	else
+	{
+		if(g_fPlayerExitCampingPoints[client]>0.01) g_fPlayerExitCampingPoints[client] -= 0.001;
+	}
+}
 void ClientProcessVisibility(int client)
 {
 	if (!IsClientInGame(client) || !IsPlayerAlive(client)) return;
@@ -2670,7 +2721,7 @@ public Action Timer_ClientRechargeSprint(Handle timer, any userid)
 		g_hPlayerSprintTimer[client] = INVALID_HANDLE;
 		return;
 	}
-	if (g_iPlayerSprintPoints[client] > 7)
+	if (g_iPlayerSprintPoints[client] > 10)
 	{
 		TF2Attrib_SetByName(client, "increased jump height", 1.0);
 	}
@@ -3859,6 +3910,8 @@ stock void ClientResetCampingStats(int client)
 #endif
 
 	g_iPlayerCampingStrikes[client] = 0;
+	g_fPlayerExitCampingPoints[client] = 0.0;
+	g_bPlayerIsExitCamping[client] = false;
 	g_hPlayerCampingTimer[client] = INVALID_HANDLE;
 	g_bPlayerCampingFirstTime[client] = true;
 	g_flPlayerCampingLastPosition[client][0] = 0.0;
@@ -3888,6 +3941,7 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 	
 	if (!g_bPlayerCampingFirstTime[client])
 	{
+		bool bCamping = false;
 		float flPos[3], flMaxs[3], flMins[3];
 		GetClientAbsOrigin(client, flPos);
 		GetEntPropVector(client, Prop_Send, "m_vecMins", flMins);
@@ -3922,6 +3976,25 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 			g_flPlayerStaticAmount[client] <= GetConVarFloat(g_cvCampingNoStrikeSanity) && 
 			(iClosestBoss == -1 || flDistFromClosestBoss >= GetConVarFloat(g_cvCampingNoStrikeBossDistance)) &&
 			flDistFromLastPosition <= GetConVarFloat(g_cvCampingMinDistance))
+		{
+			bCamping = true;
+		}
+		if(!g_bRoundGrace)
+		{
+			flPos[2]+=1.0;
+			int iTargetAreaIndex = NavMesh_GetNearestArea(flPos);
+			if (iTargetAreaIndex != -1)
+			{
+				if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_DONT_HIDE)
+				{
+					//EXIT CAMPER!
+					g_bPlayerIsExitCamping[client] = true;
+				}
+				else
+					g_bPlayerIsExitCamping[client] = false;
+			}
+		}
+		if(bCamping)
 		{
 			g_iPlayerCampingStrikes[client]++;
 			if (g_iPlayerCampingStrikes[client] < GetConVarInt(g_cvCampingMaxStrikes))

@@ -1127,6 +1127,6 @@
 	
 	"SF2 Change Log"
 	{
-		"en"	"-Added a new boss attribute (reduced air speed on look).\n-Fixed an issue where hitting non pvp blu players could create blood decals on walls/entities.\n-Fixed an issue where an escaped player could keep camera overlay.\n-Fixed an issue where proxies's models were showing an error model."
+		"en"	"-Added 2 new special rounds.\n-Added a healthbar for bosses.\n-Fixed an issue where ghosts could be revived in a bumper car."
 	}
 }
