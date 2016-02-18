@@ -370,6 +370,14 @@ int NPCChaserOnSelectProfile(int iNPCIndex)
 	g_flNPCStunFlashlightDamage[iNPCIndex] = GetChaserProfileStunFlashlightDamage(iUniqueProfileIndex);
 	g_flNPCStunInitialHealth[iNPCIndex] = GetChaserProfileStunHealth(iUniqueProfileIndex);
 	
+	float fStunHealthPerPlayer = GetChaserProfileStunHealthPerPlayer(iUniqueProfileIndex);
+	int count;
+	for(int iClient;iClient<=MaxClients;iClient++)
+		if(IsValidClient(iClient) && g_bPlayerEliminated[iClient])
+			count++;
+	fStunHealthPerPlayer *= float(count);
+	g_flNPCStunInitialHealth[iNPCIndex] += fStunHealthPerPlayer;
+	
 	NPCChaserSetStunHealth(iNPCIndex, NPCChaserGetStunInitialHealth(iNPCIndex));
 }
 

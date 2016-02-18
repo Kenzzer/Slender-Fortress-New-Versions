@@ -50,6 +50,7 @@ enum
 	ChaserProfileData_CanBeStunned,
 	ChaserProfileData_StunDuration,
 	ChaserProfileData_StunHealth,
+	ChaserProfileData_StunHealthPerPlayer,
 	ChaserProfileData_CanBeStunnedByFlashlight,
 	ChaserProfileData_StunFlashlightDamage,
 	
@@ -175,6 +176,8 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	
 	float flStunHealth = KvGetFloat(kv, "stun_health");
 	if (flStunHealth < 0.0) flStunHealth = 0.0;
+	float flStunHealthPerPlayer = KvGetFloat(kv, "stun_health_per_player");
+	if (flStunHealthPerPlayer < 0.0) flStunHealthPerPlayer = 0.0;
 	
 	bool bStunTakeDamageFromFlashlight = view_as<bool>(KvGetNum(kv, "stun_damage_flashlight_enabled"));
 	
@@ -207,6 +210,7 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bCanBeStunned, ChaserProfileData_CanBeStunned);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunDuration, ChaserProfileData_StunDuration);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunHealth, ChaserProfileData_StunHealth);
+	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunHealthPerPlayer, ChaserProfileData_StunHealthPerPlayer);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bStunTakeDamageFromFlashlight, ChaserProfileData_CanBeStunnedByFlashlight);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunFlashlightDamage, ChaserProfileData_StunFlashlightDamage);
 	
@@ -543,6 +547,11 @@ float GetChaserProfileStunFlashlightDamage(int iChaserProfileIndex)
 float GetChaserProfileStunHealth(int iChaserProfileIndex)
 {
 	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunHealth));
+}
+
+float GetChaserProfileStunHealthPerPlayer(int iChaserProfileIndex)
+{
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunHealthPerPlayer));
 }
 
 stock float GetChaserProfileAwarenessIncreaseRate(int iChaserProfileIndex,int difficulty)
