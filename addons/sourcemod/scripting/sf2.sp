@@ -2296,12 +2296,23 @@ public void NPCSpawn(const char[] output,int iEnt,int activator, float delay)
 				PrintToServer("Entity: %i.That boss does not exist!",iEnt);
 				return;
 			}
-			SF2NPC_BaseNPC Npc = AddProfile(targetName);
-			if (Npc.IsValid())
+			char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+			SF2NPC_BaseNPC Npc;
+			for(int iNpc;iNpc<=MAX_BOSSES;iNpc++)
 			{
-				float flPos[3];
-				GetEntPropVector(iEnt, Prop_Data, "m_vecOrigin", flPos);
-				SpawnSlender(Npc, flPos);
+				Npc = view_as<SF2NPC_BaseNPC>(iNpc);
+				if(Npc.IsValid())
+				{
+					Npc.GetProfile(sProfile,sizeof(sProfile));
+					if(StrEqual(sProfile,targetName))
+					{
+						Npc.UnSpawn();
+						float flPos[3];
+						GetEntPropVector(iEnt, Prop_Data, "m_vecOrigin", flPos);
+						SpawnSlender(Npc, flPos);
+						break;
+					}
+				}
 			}
 		}
 	}
