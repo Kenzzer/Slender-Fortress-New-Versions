@@ -150,6 +150,7 @@ bool g_bSlenderFeelerReflexAdjustment[MAX_BOSSES];
 float g_flSlenderFeelerReflexAdjustmentPos[MAX_BOSSES][3];
 
 int g_iSlenderTeleportTarget[MAX_BOSSES] = { INVALID_ENT_REFERENCE, ... };
+bool g_bSlenderTeleportTargetIsCamping[MAX_BOSSES] = false;
 
 float g_flSlenderNextTeleportTime[MAX_BOSSES] = { -1.0, ... };
 float g_flSlenderTeleportTargetTime[MAX_BOSSES] = { -1.0, ... };
@@ -4120,6 +4121,14 @@ void SlenderOnClientStressUpdate(int iClient)
 						flPreferredTeleportTargetStress = g_flPlayerStress[i];
 					}
 				}
+				if (g_bPlayerIsExitCamping[i])
+				{
+					if((iTeleportTarget != INVALID_ENT_REFERENCE && g_bPlayerEliminated[iTeleportTarget]) || (iTeleportTarget != INVALID_ENT_REFERENCE && !g_bPlayerIsExitCamping[iTeleportTarget]))
+					{
+						iPreferredTeleportTarget = i;
+						break;
+					}
+				}
 			}
 			
 			if (iPreferredTeleportTarget && iPreferredTeleportTarget != INVALID_ENT_REFERENCE)
@@ -4134,6 +4143,12 @@ void SlenderOnClientStressUpdate(int iClient)
 				g_flSlenderTeleportMaxTargetTime[iBossIndex] = GetGameTime() + flTargetDuration;
 				g_flSlenderTeleportTargetTime[iBossIndex] = GetGameTime();
 				g_flSlenderTeleportMaxTargetStress[iBossIndex] = flTargetStress;
+				if(g_bPlayerIsExitCamping[iPreferredTeleportTarget])
+				{
+					g_bSlenderTeleportTargetIsCamping[iBossIndex]=true;
+				}
+				else
+					g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 				
 				iTeleportTarget = iPreferredTeleportTarget;
 				

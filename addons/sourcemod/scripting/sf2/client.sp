@@ -84,7 +84,7 @@ static float g_fPlayerExitCampingPoints[MAXPLAYERS + 1];
 static Handle g_hPlayerCampingTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static float g_flPlayerCampingLastPosition[MAXPLAYERS + 1][3];
 static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1] = { true, ... };
-static bool g_bPlayerIsExitCamping[MAXPLAYERS + 1] = { true, ...};
+bool g_bPlayerIsExitCamping[MAXPLAYERS + 1] = { true, ...};
 
 // Frame data
 static int g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
@@ -1753,6 +1753,9 @@ void ClientProcessExitCampingStaticShake(int client)
 	
 	if(g_bPlayerIsExitCamping[client])
 	{
+		//PrintToChat(client,"camper");
+	}
+		/*
 		float flOldPunchAng[3], flOldPunchAngVel[3];
 		GetEntDataVector(client, g_offsPlayerPunchAngle, flOldPunchAng);
 		GetEntDataVector(client, g_offsPlayerPunchAngleVel, flOldPunchAngVel);
@@ -1784,7 +1787,7 @@ void ClientProcessExitCampingStaticShake(int client)
 	else
 	{
 		if(g_fPlayerExitCampingPoints[client]>0.01) g_fPlayerExitCampingPoints[client] -= 0.001;
-	}
+	}*/
 }
 void ClientProcessVisibility(int client)
 {

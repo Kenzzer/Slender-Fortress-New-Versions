@@ -739,7 +739,21 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	
 	int iInterruptConditions = g_iSlenderInterruptConditions[iBossIndex];
 	bool bQueueForNewPath = false;
-	
+	bool bDoChasePersistencyInit = false;
+	bool bCamper = false;
+	if(g_bSlenderTeleportTargetIsCamping[iBossIndex] && EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]) != INVALID_ENT_REFERENCE)
+	{
+		int iCamper=EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
+		if(!g_bPlayerEliminated[iCamper])
+		{
+			iTarget = iCamper;
+			g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(iCamper);
+			iState=STATE_CHASE;
+			bDoChasePersistencyInit = true;
+			bCamper=true;
+		}
+		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
+	}
 	// Process which state we should be in.
 	switch (iState)
 	{
@@ -1070,7 +1084,6 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			}
 		}
 	}
-	bool bDoChasePersistencyInit = false;
 	
 	if (iState != STATE_STUN)
 	{
@@ -1088,7 +1101,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			}
 		}
 	}
-	
+	if (bCamper && iState != STATE_ATTACK)
+		iState = STATE_CHASE;
 	// Finally, set our new state.
 	g_iSlenderState[iBossIndex] = iState;
 	
