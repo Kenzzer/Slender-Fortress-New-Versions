@@ -754,6 +754,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 	}
+	
+	if(IsValidClient(iTarget) && g_bPlayerIsExitCamping[iTarget])
+		bCamper=true;
 	// Process which state we should be in.
 	switch (iState)
 	{

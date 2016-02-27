@@ -291,6 +291,7 @@ enum
 int g_iParticle[MaxParticle] = -1;
 
 // Player data.
+bool g_bPlayerIsExitCamping[MAXPLAYERS + 1];
 int g_iPlayerLastButtons[MAXPLAYERS + 1];
 bool g_bPlayerChoseTeam[MAXPLAYERS + 1];
 bool g_bPlayerEliminated[MAXPLAYERS + 1];

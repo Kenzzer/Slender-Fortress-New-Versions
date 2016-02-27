@@ -83,8 +83,7 @@ static int g_iPlayerCampingStrikes[MAXPLAYERS + 1] = { 0, ... };
 static float g_fPlayerExitCampingPoints[MAXPLAYERS + 1];
 static Handle g_hPlayerCampingTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static float g_flPlayerCampingLastPosition[MAXPLAYERS + 1][3];
-static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1] = { true, ... };
-bool g_bPlayerIsExitCamping[MAXPLAYERS + 1] = { true, ...};
+static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1];
 
 // Frame data
 static int g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
