@@ -433,6 +433,7 @@ Handle g_cvMaxPlayersOverride;
 Handle g_cvCampingEnabled;
 Handle g_cvCampingMaxStrikes;
 Handle g_cvCampingStrikesWarn;
+Handle g_cvExitCampingStrikes;
 Handle g_cvCampingMinDistance;
 Handle g_cvCampingNoStrikeSanity;
 Handle g_cvCampingNoStrikeBossDistance;
@@ -750,6 +751,7 @@ public void OnPluginStart()
 	g_cvCampingEnabled = CreateConVar("sf2_anticamping_enabled", "1", "Enable/Disable anti-camping system for RED.", _, true, 0.0, true, 1.0);
 	g_cvCampingMaxStrikes = CreateConVar("sf2_anticamping_maxstrikes", "4", "How many 5-second intervals players are allowed to stay in one spot before he/she is forced to suicide.", _, true, 0.0);
 	g_cvCampingStrikesWarn = CreateConVar("sf2_anticamping_strikeswarn", "2", "The amount of strikes left where the player will be warned of camping.");
+	g_cvExitCampingStrikes = CreateConVar("sf2_exit_anticamping_strikes", "3", "The amount of strikes left where the player will be set as exit camper.");
 	g_cvCampingMinDistance = CreateConVar("sf2_anticamping_mindistance", "128.0", "Every 5 seconds the player has to be at least this far away from his last position 5 seconds ago or else he'll get a strike.");
 	g_cvCampingNoStrikeSanity = CreateConVar("sf2_anticamping_no_strike_sanity", "0.1", "The camping system will NOT give any strikes under any circumstances if the players's Sanity is missing at least this much of his maximum Sanity (max is 1.0).");
 	g_cvCampingNoStrikeBossDistance = CreateConVar("sf2_anticamping_no_strike_boss_distance", "512.0", "The camping system will NOT give any strikes under any circumstances if the player is this close to a boss (ignoring LOS).");

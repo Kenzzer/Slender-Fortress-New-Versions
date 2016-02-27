@@ -128,7 +128,6 @@ public void Hook_ClientPreThink(int client)
 	ClientProcessViewAngles(client);
 	ClientProcessVisibility(client);
 	ClientProcessStaticShake(client);
-	ClientProcessExitCampingStaticShake(client);
 	ClientProcessFlashlightAngles(client);
 	ClientProcessInteractiveGlow(client);
 	
@@ -1745,49 +1744,6 @@ void ClientProcessStaticShake(int client)
 		SetEntDataVector(client, g_offsPlayerPunchAngle, flNewPunchAng, true);
 		SetEntDataVector(client, g_offsPlayerPunchAngleVel, flNewPunchAngVel, true);
 	}
-}
-//This is a custom static it doesn't respect any rules, it's here to kill the exit campers!
-void ClientProcessExitCampingStaticShake(int client)
-{
-	if (!IsClientInGame(client) || !IsPlayerAlive(client) || g_bPlayerEliminated[client]) return;
-	
-	if(g_bPlayerIsExitCamping[client])
-	{
-		//PrintToChat(client,"camper");
-	}
-		/*
-		float flOldPunchAng[3], flOldPunchAngVel[3];
-		GetEntDataVector(client, g_offsPlayerPunchAngle, flOldPunchAng);
-		GetEntDataVector(client, g_offsPlayerPunchAngleVel, flOldPunchAngVel);
-		
-		float flNewPunchAng[3], flNewPunchAngVel[3];
-		
-		for (int i = 0; i < 3; i++)
-		{
-			flNewPunchAng[i] = flOldPunchAng[i];
-			flNewPunchAngVel[i] = flOldPunchAngVel[i];
-		}
-		for (int i = 0; i < 2; i++) flNewPunchAng[i] = AngleNormalize(GetRandomFloat(0.0, 360.0));
-		NormalizeVector(flNewPunchAng, flNewPunchAng);
-		
-		//The more the player camp the more the static shake will increase
-		float flAngVelocityScalar = 5.0  * g_fPlayerExitCampingPoints[client];
-		if (flAngVelocityScalar < 1.0) flAngVelocityScalar = 1.0;
-		ScaleVector(flNewPunchAng, flAngVelocityScalar);
-		
-		SetEntDataVector(client, g_offsPlayerPunchAngle, flNewPunchAng, true);
-		SetEntDataVector(client, g_offsPlayerPunchAngleVel, flNewPunchAngVel, true);
-		
-		g_fPlayerExitCampingPoints[client] += 0.003;
-		//PrintToChat(client,"Exit camping points: %0.0f",g_fPlayerExitCampingPoints[client]);
-		
-		if(g_fPlayerExitCampingPoints[client]>1)//We were nice too long... DIE!
-			KillClient(client);
-	}
-	else
-	{
-		if(g_fPlayerExitCampingPoints[client]>0.01) g_fPlayerExitCampingPoints[client] -= 0.001;
-	}*/
 }
 void ClientProcessVisibility(int client)
 {
@@ -3988,7 +3944,7 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 			int iTargetAreaIndex = NavMesh_GetNearestArea(flPos);
 			if (iTargetAreaIndex != -1)
 			{
-				if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_DONT_HIDE)
+				if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_DONT_HIDE && g_iPlayerCampingStrikes[client]>GetConVarInt(g_cvExitCampingStrikes))
 				{
 					//EXIT CAMPER!
 					g_bPlayerIsExitCamping[client] = true;
