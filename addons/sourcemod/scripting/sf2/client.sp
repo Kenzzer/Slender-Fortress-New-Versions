@@ -2949,7 +2949,7 @@ void ClientEnableProxy(int client,int iBossIndex)
 	ClientStopProxyForce(client);
 	
 	ChangeClientTeamNoSuicide(client, TFTeam_Blue);
-	if (!IsPlayerAlive(client)) TF2_RespawnPlayer(client);
+	TF2_RespawnPlayer(client);
 	// Speed recalculation. Props to the creators of FF2/VSH for this snippet.
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
 	
@@ -3576,6 +3576,9 @@ void ClientSetGhostModeState(int client, bool bState)
 	
 	if (bState)
 	{
+		//Call the spawn event.
+		TF2_RespawnPlayer(client);
+		
 		TFClassType iDesiredClass = TF2_GetPlayerClass(client);
 		if(iDesiredClass == TFClass_Unknown) iDesiredClass = TFClass_Scout;
 		
