@@ -2935,6 +2935,8 @@ void ClientEnableProxy(int client,int iBossIndex)
 	if (!(NPCGetFlags(iBossIndex) & SFF_PROXIES)) return;
 	if (g_bPlayerProxy[client]) return;
 	
+	g_bPlayerProxy[client] = true;
+	
 	TF2_RemoveCondition(client, view_as<TFCond>(82));
 	
 	TF2_RemovePlayerDisguise(client);
@@ -2942,18 +2944,18 @@ void ClientEnableProxy(int client,int iBossIndex)
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	
-	PvP_SetPlayerPvPState(client, false, false, false);
-	
 	ClientSetGhostModeState(client, false);
 	
 	ClientStopProxyForce(client);
 	
 	ChangeClientTeamNoSuicide(client, TFTeam_Blue);
 	TF2_RespawnPlayer(client);
+	
+	PvP_SetPlayerPvPState(client, false, false, false);
+	
 	// Speed recalculation. Props to the creators of FF2/VSH for this snippet.
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
 	
-	g_bPlayerProxy[client] = true;
 	g_iPlayerProxyMaster[client] = NPCGetUniqueID(iBossIndex);
 	g_iPlayerProxyControl[client] = 100;
 	g_flPlayerProxyControlRate[client] = GetProfileFloat(sProfile, "proxies_controldrainrate");
