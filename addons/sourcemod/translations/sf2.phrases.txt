@@ -1127,6 +1127,7 @@
 	
 	"SF2 Change Log"
 	{
-		"en"	"-Added 2 new special rounds.\n-Added a healthbar for bosses.\n-Fixed an issue where ghosts could be revived in a bumper car."
+		//"en"	"-Fixed an exploit that allowed LAMOBOX users to see sf2 boss via wallhack."
+		"en" "-Fixed an issue where proxies could spawn in pvp area.\n-Fixed a bug where proxies couldn't damage the boss.\n-The spawn game event is now called for sub plugins when a ghost/proxy spawns."
 	}
 }

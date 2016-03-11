@@ -38,8 +38,8 @@ bool steamworks=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.3.0"
-#define PLUGIN_VERSION_DISPLAY "0.3.0"
+#define PLUGIN_VERSION "0.3.1"
+#define PLUGIN_VERSION_DISPLAY "0.3.1"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2

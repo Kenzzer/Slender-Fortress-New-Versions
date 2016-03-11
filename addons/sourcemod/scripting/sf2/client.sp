@@ -2935,8 +2935,6 @@ void ClientEnableProxy(int client,int iBossIndex)
 	if (!(NPCGetFlags(iBossIndex) & SFF_PROXIES)) return;
 	if (g_bPlayerProxy[client]) return;
 	
-	g_bPlayerProxy[client] = true;
-	
 	TF2_RemoveCondition(client, view_as<TFCond>(82));
 	
 	TF2_RemovePlayerDisguise(client);
@@ -2948,6 +2946,7 @@ void ClientEnableProxy(int client,int iBossIndex)
 	
 	ClientStopProxyForce(client);
 	
+	g_bPlayerProxy[client] = true;
 	ChangeClientTeamNoSuicide(client, TFTeam_Blue);
 	TF2_RespawnPlayer(client);
 	

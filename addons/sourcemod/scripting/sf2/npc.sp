@@ -1075,6 +1075,8 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			SDKHook(iBoss, SDKHook_OnTakeDamage, Hook_SlenderOnTakeDamage);
 			DHookEntity(g_hSDKShouldTransmit, true, iBoss);
 			
+			
+			//Because base_boss is used by tank_boss in MvM, valve accidently made an update that allows LMAOBOX users to see the sf2 boss/mvm tank. (A sf2 fix is comming soon).
 			g_iSlenderHitbox[iBossIndex] = CreateEntityByName("base_boss");
 			
 			SetEntityModel(g_iSlenderHitbox[iBossIndex], sBuffer);
@@ -1238,7 +1240,7 @@ public Action Hook_SlenderOnTakeDamage(int slender,int &attacker,int &inflictor,
 	
 	int iBossIndex = NPCGetFromEntIndex(slender);
 	if (iBossIndex == -1) return Plugin_Continue;
-	if(IsValidEntity(attacker))
+	if(IsValidEntity(attacker) && IsValidEntity(g_iSlenderHitbox[iBossIndex]))
 	{
 		if(attacker <= MaxClients && !IsValidClient(attacker)) return Plugin_Continue;
 		SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
@@ -1300,6 +1302,10 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 			}
 		}
 	}
+	//Under Alpha stage can cause server crash.
+	/*if(damage > 0.0)
+		SF2_ANTILMAOBOX_HitBoxDoDamage(iBossIndex, attacker, damage, damagetype);
+	*/
 	return damage;
 }
 void UpdateHealthBar(int iBossIndex)
