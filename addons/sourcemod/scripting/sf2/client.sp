@@ -2955,6 +2955,7 @@ void ClientEnableProxy(int client,int iBossIndex)
 	// Speed recalculation. Props to the creators of FF2/VSH for this snippet.
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
 	
+	g_bPlayerProxy[client] = true;
 	g_iPlayerProxyMaster[client] = NPCGetUniqueID(iBossIndex);
 	g_iPlayerProxyControl[client] = 100;
 	g_flPlayerProxyControlRate[client] = GetProfileFloat(sProfile, "proxies_controldrainrate");
