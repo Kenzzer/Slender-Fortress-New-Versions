@@ -22,7 +22,7 @@ static float g_flNPCFieldOfView[MAX_BOSSES] = { 0.0, ... };
 static float g_flNPCTurnRate[MAX_BOSSES] = { 0.0, ... };
 
 static int g_iSlender[MAX_BOSSES] = { INVALID_ENT_REFERENCE, ... };
-static int g_iSlenderHitboxOwner[2049] = { INVALID_ENT_REFERENCE, ... };
+int g_iSlenderHitboxOwner[2049] = { INVALID_ENT_REFERENCE, ... };
 
 static float g_flNPCSpeed[MAX_BOSSES][Difficulty_Max];
 static float g_flNPCMaxSpeed[MAX_BOSSES][Difficulty_Max];
@@ -1105,6 +1105,14 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			float flModelScale = NPCGetModelScale(iBossIndex);
 			Slender_HitboxScale(g_iSlenderHitbox[iBossIndex],flModelScale);
 			
+			if(sendproxymanager)
+			{
+#if defined _SENDPROXYMANAGER_INC_
+				SendProxy_Hook(g_iSlenderHitbox[iBossIndex], "m_CollisionGroup", Prop_Int, SendProxy_NoColision);
+				SendProxy_Hook(g_iSlenderHitbox[iBossIndex], "m_usSolidFlags", Prop_Int, SendProxy_NoColision);
+#endif
+			}
+			
 			//(Experimental)
 			if (view_as<bool>(GetProfileNum(sProfile,"healthbar",0)))
 			{
@@ -1163,6 +1171,18 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 	Call_PushCell(iBossIndex);
 	Call_Finish();
 }
+
+#if defined _SENDPROXYMANAGER_INC_
+public Action SendProxy_NoColision(int entity, char[] propName, int &value, int element)
+{
+	//trick the client into thinking the entity isn't solid, and remove the jelly movements.
+	if(StrEqual(propName,"m_CollisionGroup"))	
+		value = 1;
+	else if(StrEqual(propName,"m_usSolidFlags"))
+		value = 22;	
+	return Plugin_Changed;
+}
+#endif
 void Slender_HitboxScale(int iHitbox,float flScale)
 {
 	SetEntPropFloat(iHitbox, Prop_Send, "m_flModelScale", flScale);

@@ -21,14 +21,12 @@
 #undef REQUIRE_EXTENSIONS
 #tryinclude <steamtools>
 #tryinclude <steamworks>
+#tryinclude <sendproxy>
 #define REQUIRE_EXTENSIONS
 
-#if defined _steamtools_included
 bool steamtools=false;
-#endif
-#if defined _SteamWorks_Included
 bool steamworks=false;
-#endif
+bool sendproxymanager=false;
 
 //#define DEBUG
 
@@ -873,12 +871,11 @@ public void OnPluginStart()
 	
 	AddTempEntHook("Fire Bullets", Hook_TEFireBullets);
 	
-	#if defined _steamtools_included
-	steamtools=LibraryExists("SteamTools");
-	#endif
-	#if defined _SteamWorks_Included
-	steamworks=LibraryExists("SteamWorks");
-	#endif
+	steamtools = LibraryExists("SteamTools");
+	
+	steamworks = LibraryExists("SteamWorks");
+	
+	sendproxymanager = LibraryExists("sendproxy");
 	
 	InitializeBossProfiles();
 	
@@ -912,33 +909,41 @@ public void OnPluginEnd()
 }
 public void OnLibraryAdded(const char[] name)
 {
-	#if defined _steamtools_included
+	
 	if(!strcmp(name, "SteamTools", false))
 	{
-		steamtools=true;
+		steamtools = true;
 	}
-	#endif
-	#if defined _steamtools_included
+	
 	if(!strcmp(name, "SteamWorks", false))
 	{
-		steamworks=true;
+		steamworks = true;
 	}
-	#endif
+	
+	if(!strcmp(name, "sendproxy", false))
+	{
+		sendproxymanager = true;
+	}
+	
 }
 public void OnLibraryRemoved(const char[] name)
 {
-	#if defined _steamtools_included
+	
 	if(!strcmp(name, "SteamTools", false))
 	{
-		steamtools=false;
+		steamtools = false;
 	}
-	#endif
-	#if defined _steamtools_included
+	
 	if(!strcmp(name, "SteamWorks", false))
 	{
-		steamworks=false;
+		steamworks = false;
 	}
-	#endif
+	
+	if(!strcmp(name, "sendproxy", false))
+	{
+		sendproxymanager = false;
+	}
+	
 }
 static void SetupHooks()
 {
@@ -2758,6 +2763,7 @@ public void OnEntityDestroyed(int ent)
 			}
 		}
 	}
+	g_iSlenderHitboxOwner[ent]=-1;
 	
 	PvP_OnEntityDestroyed(ent, sClassname);
 }
@@ -2976,6 +2982,11 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 	if(activator>MaxClients)
 	{
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
+		if(g_iSlenderHitboxOwner[activator] != -1)
+		{
+			PrintToChatAll("Hitbox!");
+			Npc = view_as<SF2NPC_BaseNPC>(activator);
+		}
 		if(Npc.IsValid())//Turn off colisions.
 		{
 			SetEntData(g_iSlenderHitbox[Npc.Index], g_offsCollisionGroup, 2, 4, true);
