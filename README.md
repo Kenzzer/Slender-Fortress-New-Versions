@@ -1,8 +1,7 @@
 Coder/Developer: Benoist3012
 
-Russian translations: x3m77rus
-
-French translations(soon): Benoist3012
+Special thanks to:
+x3m77rus for making russian translations, and updating some part of the code to support more translation.
 
 # Slender-Fortress-New-Versions
 
