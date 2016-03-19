@@ -2,7 +2,7 @@ Coder/Developer: Benoist3012
 
 Special thanks to:
 
-- x3m77rus for making russian translations, and updating some part of the code to support more translation.
+- x3m77rus for making russian translations, and updating some part of the code to support more translation text.
 
 # Slender-Fortress-New-Versions
 
