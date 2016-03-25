@@ -5992,7 +5992,8 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 			}
 		}
 	}
-	if (DidClientEscape(client) && IsClientInPvP(client))
+	//Remove the teleport ability
+	if (IsClientInPvP(client)) //DidClientEscape(client)
 	{
 		int iWeapon = INVALID_ENT_REFERENCE;
 		Handle hWeapon;
