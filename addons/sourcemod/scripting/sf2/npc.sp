@@ -1015,6 +1015,75 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			AcceptEntityInput(iBoss, "DisableShadow");
 			SetEntPropFloat(iBoss, Prop_Data, "m_flFriction", 0.0);
 			
+			//COMMING WHEN ITS DONE!
+			/*char sPathName[255];
+			Format(sPathName,sizeof(sPathName),"BossPath%i",iBossIndex);
+
+			int iPath = CreateEntityByName("path_track");
+			DispatchKeyValue(iPath,"targetname",sPathName);
+			Format(sPathName,sizeof(sPathName),"BossPathNext%i",iBossIndex);
+			
+			int iPath2 = CreateEntityByName("path_track");
+			DispatchKeyValue(iPath2,"targetname",sPathName);
+			
+			DispatchKeyValue(iPath,"target",sPathName);
+			TeleportEntity(iPath, flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(iPath);
+			ActivateEntity(iPath);
+
+			g_iGoalPath[iBossIndex][1] = iPath;
+			
+			Format(sPathName,sizeof(sPathName),"BossPath%i",iBossIndex);
+			DispatchKeyValue(iPath2,"target",sPathName);
+			TeleportEntity(iPath2, flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(iPath2);
+			ActivateEntity(iPath2);
+
+			g_iGoalPath[iBossIndex][0] = iPath2;
+
+			GetProfileString(sProfile, "model", sBuffer, sizeof(sBuffer));
+			
+			int iBossManager = CreateEntityByName("tf_robot_destruction_spawn_group");
+			DispatchKeyValue(iBossManager,"targetname","BossManager");
+			DispatchKeyValue(iBossManager,"team_number","2");
+			DispatchKeyValue(iBossManager,"group_number","0");
+			DispatchKeyValue(iBossManager,"hud_icon","../HUD/hud_bot_worker_outline_blue");
+			DispatchKeyValue(iBossManager,"respawn_time","0");
+			DispatchKeyValue(iBossManager,"respawn_reduction_scale","0");
+			TeleportEntity(iBossManager, flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(iBossManager);
+			ActivateEntity(iBossManager);
+			
+			int iBoss = CreateEntityByName("tf_robot_destruction_robot_spawn");
+			DispatchKeyValue(iBoss,"startpath",sPathName);
+			DispatchKeyValue(iBoss,"health","99999");
+			DispatchKeyValue(iBoss,"gibs","0");
+			DispatchKeyValue(iBoss,"spawngroup","BossManager");
+			SetEntityModel(iBoss, sBuffer);
+			TeleportEntity(iBoss, flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(iBoss);
+			ActivateEntity(iBoss);
+			
+			AcceptEntityInput(iBossManager, "SpawnRobot");
+			AcceptEntityInput(iBossManager, "Kill");
+			iBoss = CreateEntityByName("tf_robot_destruction_robot");
+			DispatchKeyValue(iBoss,"startpath",sPathName);
+			DispatchKeyValue(iBoss,"health","99999");
+			DispatchKeyValue(iBoss,"gibs","0");
+			DispatchKeyValue(iBoss,"spawngroup","BossManager");
+			SetEntityModel(iBoss, sBuffer);
+			TeleportEntity(iBoss, flTruePos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(iBoss);
+			ActivateEntity(iBoss);
+			//SetEntityRenderMode(iBoss, RENDER_TRANSCOLOR);
+			//SetEntityRenderColor(iBoss, 0, 0, 0, 1);
+			SetVariantString("!activator");
+			AcceptEntityInput(iSlenderModel, "SetParent", iBoss);
+			AcceptEntityInput(iSlenderModel, "EnableShadow");
+			SetEntProp(iSlenderModel, Prop_Send, "m_usSolidFlags", FSOLID_NOT_SOLID | FSOLID_TRIGGER);
+			//AcceptEntityInput(iBoss, "DisableShadow");
+			//SetEntPropFloat(iBoss, Prop_Data, "m_flFriction", 0.0);*/
+			
 			
 			NPCChaserSetStunHealth(iBossIndex, NPCChaserGetStunInitialHealth(iBossIndex));
 			

@@ -1983,6 +1983,15 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	
 	float flTraceEndPos[3];
 	Handle hTrace;
+	bool bCanJump = true;
+	int iTargetAreaIndex = NavMesh_GetNearestArea(flMyPos);
+	if (iTargetAreaIndex != -1)
+	{
+		if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_NO_JUMP)
+		{
+			bCanJump = false;
+		}
+	}
 	
 	// Determine speed behavior.
 	if (bSlenderOnGround)
@@ -2184,7 +2193,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 		}
 	}
 	
-	if (bSlenderOnGround && bSlenderShouldJump && flMyPos[2]<flGoalPosition[2])
+	if (bSlenderOnGround && bSlenderShouldJump && flMyPos[2]<flGoalPosition[2] && bCanJump)
 	{
 		g_flSlenderNextJump[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "jump_cooldown", 2.0);
 		

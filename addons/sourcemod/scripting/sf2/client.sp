@@ -1748,6 +1748,10 @@ void ClientProcessVisibility(int client)
 {
 	if (!IsClientInGame(client) || !IsPlayerAlive(client)) return;
 	
+	if(g_flLastVisibilityProcess[client]+0.11>=GetGameTime()) return;
+	
+	g_flLastVisibilityProcess[client] = GetGameTime();
+	
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	
 	bool bWasSeeingSlender[MAX_BOSSES];
@@ -5787,7 +5791,7 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 	int client = GetClientOfUserId(userid);
 	if (client <= 0) return;
 	
-	if (!IsPlayerAlive(client)) return;
+	if (IsClientInGame(client) && !IsPlayerAlive(client)) return;
 	
 	if (timer != g_hPlayerPostWeaponsTimer[client]) return;
 	

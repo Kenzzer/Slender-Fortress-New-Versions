@@ -162,6 +162,7 @@ float g_flSlenderTeleportPlayersRestTime[MAX_BOSSES][MAXPLAYERS + 1];
 // General variables
 int g_iSlenderHealth[MAX_BOSSES];
 Handle g_hSlenderPath[MAX_BOSSES];
+//int g_iGoalPath[MAX_BOSSES][2];
 int g_iSlenderCurrentPathNode[MAX_BOSSES] = { -1, ... };
 bool g_bSlenderAttacking[MAX_BOSSES];
 Handle g_hSlenderAttackTimer[MAX_BOSSES];
@@ -220,6 +221,8 @@ float g_flPageRefModelScale;
 static Handle g_hPlayerIntroMusicTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 
 // Seeing Mr. Slendy data.
+
+float g_flLastVisibilityProcess[MAXPLAYERS + 1];
 bool g_bPlayerSeesSlender[MAXPLAYERS + 1][MAX_BOSSES];
 float g_flPlayerSeesSlenderLastTime[MAXPLAYERS + 1][MAX_BOSSES];
 
@@ -4821,8 +4824,10 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 	PrintToChatAll("(SPAWN) Spawn event called.");
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerSpawn(%d)", iClient);
 #endif
+	
 	if(GetClientTeam(iClient) > 1)
 	{
+		g_flLastVisibilityProcess[iClient]=GetGameTime();
 		if(!g_bSeeUpdateMenu[iClient])
 		{
 			g_bSeeUpdateMenu[iClient] = true;
