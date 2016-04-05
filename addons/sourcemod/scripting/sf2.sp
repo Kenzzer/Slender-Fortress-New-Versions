@@ -2793,6 +2793,8 @@ public Action Hook_BlockUserMessage(UserMsg msg_id, Handle bf, const int[] playe
 public Action Hook_NormalSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
 	if (!g_bEnabled) return Plugin_Continue;
+	if (StrContains(sample, "halloween_boo", false) != -1) return Plugin_Handled;
+	
 	if (IsValidClient(entity))
 	{
 		if (IsClientInGhostMode(entity))
@@ -4110,6 +4112,7 @@ void SlenderOnClientStressUpdate(int iClient)
 		}
 		else if (!g_bRoundGrace)
 		{
+			bool bRaidTeleport = view_as<bool>(GetProfileNum(sProfile, "experimental_raid_teleport", 0));
 			int iPreferredTeleportTarget = INVALID_ENT_REFERENCE;
 			
 			float flTargetStressMin = GetProfileFloat(sProfile, "teleport_target_stress_min", 0.2);
@@ -4118,6 +4121,8 @@ void SlenderOnClientStressUpdate(int iClient)
 			float flTargetStress = flTargetStressMax - ((flTargetStressMax - flTargetStressMin) / (g_flRoundDifficultyModifier * NPCGetAnger(iBossIndex)));
 			
 			float flPreferredTeleportTargetStress = flTargetStress;
+			
+			Handle hArrayRaidTargets = CreateArray();
 			
 			for (int i = 1; i <= MaxClients; i++)
 			{
@@ -4129,7 +4134,13 @@ void SlenderOnClientStressUpdate(int iClient)
 				{
 					continue;
 				}
-				
+				if(bRaidTeleport)
+				{
+					if (g_flSlenderTeleportPlayersRestTime[iBossIndex][i] <= GetGameTime())
+					{
+						PushArrayCell(hArrayRaidTargets, i);
+					}
+				}
 				if (g_flPlayerStress[i] < flPreferredTeleportTargetStress)
 				{
 					if (g_flSlenderTeleportPlayersRestTime[iBossIndex][i] <= GetGameTime())
@@ -4147,7 +4158,14 @@ void SlenderOnClientStressUpdate(int iClient)
 					}
 				}
 			}
-			
+			if(bRaidTeleport)
+			{
+				if(GetArraySize(hArrayRaidTargets)>0)
+				{
+					GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1));
+				}
+			}
+			CloseHandle(hArrayRaidTargets);
 			if (iPreferredTeleportTarget && iPreferredTeleportTarget != INVALID_ENT_REFERENCE)
 			{
 				// Set our preferred target to the int guy.
