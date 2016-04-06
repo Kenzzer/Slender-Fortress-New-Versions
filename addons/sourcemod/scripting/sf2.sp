@@ -2793,16 +2793,17 @@ public Action Hook_BlockUserMessage(UserMsg msg_id, Handle bf, const int[] playe
 public Action Hook_NormalSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	if (StrContains(sample, "halloween_boo", false) != -1) return Plugin_Handled;
 	
 	if (IsValidClient(entity))
 	{
 		if (IsClientInGhostMode(entity))
 		{
-			switch (channel)
+			//It should not make sounds.
+			return Plugin_Handled;
+			/*switch (channel)
 			{
 				case SNDCHAN_VOICE, SNDCHAN_WEAPON, SNDCHAN_ITEM, SNDCHAN_BODY: return Plugin_Handled;
-			}
+			}*/
 		}
 		else if (g_bPlayerProxy[entity])
 		{
