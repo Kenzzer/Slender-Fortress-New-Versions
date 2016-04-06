@@ -2798,12 +2798,10 @@ public Action Hook_NormalSound(int clients[64], int &numClients, char sample[PLA
 	{
 		if (IsClientInGhostMode(entity))
 		{
-			//It should not make sounds.
-			return Plugin_Handled;
-			/*switch (channel)
+			switch (channel)
 			{
 				case SNDCHAN_VOICE, SNDCHAN_WEAPON, SNDCHAN_ITEM, SNDCHAN_BODY: return Plugin_Handled;
-			}*/
+			}
 		}
 		else if (g_bPlayerProxy[entity])
 		{
