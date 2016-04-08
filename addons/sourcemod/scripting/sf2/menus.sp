@@ -17,6 +17,7 @@ Handle g_hMenuHelpGhostMode;
 Handle g_hMenuSettings;
 Handle g_hMenuCredits;
 Handle g_hMenuCredits2;
+Handle g_hMenuCredits3;
 Handle g_hMenuUpdate;
 
 #include "sf2/playergroups/menus.sp"
@@ -168,7 +169,26 @@ void SetupMenus()
 	StrCat(buffer, sizeof(buffer), "Ultimatefry\n \n");
 	
 	SetMenuTitle(g_hMenuCredits2, buffer);
-	AddMenuItem(g_hMenuCredits2, "0", "Back");
+	AddMenuItem(g_hMenuCredits2, "0", "Next");
+	AddMenuItem(g_hMenuCredits2, "1", "Back");
+	
+	g_hMenuCredits3 = CreateMenu(Menu_Credits3);
+	
+	Format(buffer, sizeof(buffer), "%tCredits\n \n", "SF2 Prefix");
+	StrCat(buffer, sizeof(buffer), "And credits to all peeps who gave special round suggestions!\n \n");
+	StrCat(buffer, sizeof(buffer), "TehPlayer14\n");
+	StrCat(buffer, sizeof(buffer), "SirAnthony\n");
+	StrCat(buffer, sizeof(buffer), "DelcsXCritical\n");
+	StrCat(buffer, sizeof(buffer), "Gardevoid\n");
+	StrCat(buffer, sizeof(buffer), "Eile Mizer\n");
+	StrCat(buffer, sizeof(buffer), "DeadlyCreature\n");
+	StrCat(buffer, sizeof(buffer), "Average\n");
+	StrCat(buffer, sizeof(buffer), "FireHue\n");
+	StrCat(buffer, sizeof(buffer), "Spooky Pyro\n");
+	StrCat(buffer, sizeof(buffer), "Firedudeet\n \n");
+	
+	SetMenuTitle(g_hMenuCredits3, buffer);
+	AddMenuItem(g_hMenuCredits3, "0", "Back");
 	
 	g_hMenuUpdate = CreateMenu(Menu_Update);
 	Format(buffer, sizeof(buffer), "%tSlender Fortress\n \n", "SF2 Prefix");
@@ -635,7 +655,18 @@ public int Menu_Credits2(Handle menu, MenuAction action,int param1,int param2)
 	{
 		switch (param2)
 		{
-			case 0: DisplayMenu(g_hMenuCredits, param1, MENU_TIME_FOREVER);
+			case 0: DisplayMenu(g_hMenuCredits3, param1, MENU_TIME_FOREVER);
+			case 1: DisplayMenu(g_hMenuCredits, param1, MENU_TIME_FOREVER);
+		}
+	}
+}
+public int Menu_Credits3(Handle menu, MenuAction action,int param1,int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		switch (param2)
+		{
+			case 0: DisplayMenu(g_hMenuCredits2, param1, MENU_TIME_FOREVER);
 		}
 	}
 }

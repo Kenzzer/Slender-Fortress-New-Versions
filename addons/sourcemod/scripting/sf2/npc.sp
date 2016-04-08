@@ -1014,6 +1014,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			SetEntProp(iSlenderModel, Prop_Send, "m_usSolidFlags", FSOLID_NOT_SOLID | FSOLID_TRIGGER);
 			AcceptEntityInput(iBoss, "DisableShadow");
 			SetEntPropFloat(iBoss, Prop_Data, "m_flFriction", 0.0);
+			SDKHook(iBoss,  SDKHook_ShouldCollide, Hook_BossShouldCollide);
 			
 			//COMMING WHEN ITS DONE!
 			/*char sPathName[255];
@@ -1154,14 +1155,13 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			DispatchKeyValue(g_iSlenderHitbox[iBossIndex],"TeamNum","1");
 			DispatchSpawn(g_iSlenderHitbox[iBossIndex]);
 			ActivateEntity(g_iSlenderHitbox[iBossIndex]);
+			SetEntityMoveType(g_iSlenderHitbox[iBossIndex],MOVETYPE_NONE);
 			SetEntityRenderMode(g_iSlenderHitbox[iBossIndex], RENDER_TRANSCOLOR);
 			SetEntityRenderColor(g_iSlenderHitbox[iBossIndex], 0, 0, 0, 1);
 			SetVariantString("!activator");
-			//AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
+			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "SetParent", iBoss);
 			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "EnableShadow");
 			AcceptEntityInput(g_iSlenderHitbox[iBossIndex], "DisableShadow");
-			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"moveparent",iBoss);
-			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_iParentAttachment",iBoss);
 			//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_hOwnerEntity",iBoss);
 			//Block base_boss's ai.
 			SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Data,"m_nNextThinkTick",-1);
@@ -1432,6 +1432,12 @@ public bool Hook_HitBoxShouldCollide(int slender,int collisiongroup,int contents
 		return false;
 	}
 	return originalResult;
+}
+public bool Hook_BossShouldCollide(int slender,int collisiongroup,int contentsmask, bool originalResult)
+{
+	if ((contentsmask & CONTENTS_MONSTERCLIP))
+		return false;
+	return originalResult
 }
 public Action Hook_SlenderModelSetTransmit(int entity,int other)
 {

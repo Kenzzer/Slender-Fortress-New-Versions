@@ -16,6 +16,9 @@ static Handle g_hSpecialRoundTimer = INVALID_HANDLE;
 static int g_iSpecialRoundCycleNum = 0;
 static float g_flSpecialRoundCycleEndTime = -1.0;
 static bool bDoubleRoulette=false;
+static bool bSuprise = false;
+static bool g_bStarted = false;
+bool bRevolution = false;
 static int doubleroulettecount=0;
 
 void ReloadSpecialRounds()
@@ -101,6 +104,18 @@ void ReloadSpecialRounds()
 		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
 		
 		SpecialRoundGetDescriptionHud(SPECIALROUND_NOULTRAVISION, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_SUPRISE, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_LASTRESORT, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_ESCAPETICKETS, sBuffer, sizeof(sBuffer));
+		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		
+		SpecialRoundGetDescriptionHud(SPECIALROUND_REVOLUTION, sBuffer, sizeof(sBuffer));
 		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
 		
 		//I think it's time to make a loop for that
@@ -197,7 +212,8 @@ public Action Timer_SpecialRoundCycle(Handle timer)
 	char sBuffer[128];
 	GetArrayString(g_hSpecialRoundCycleNames, g_iSpecialRoundCycleNum, sBuffer, sizeof(sBuffer));
 	
-	SpecialRoundGameText(sBuffer);
+	if(!bSuprise)
+		SpecialRoundGameText(sBuffer);
 	
 	g_iSpecialRoundCycleNum++;
 	if (g_iSpecialRoundCycleNum >= GetArraySize(g_hSpecialRoundCycleNames))
@@ -282,6 +298,9 @@ public Action Timer_SpecialRoundAttribute(Handle timer)
 void SpecialRoundCycleStart()
 {
 	if (!g_bSpecialRound) return;
+	if(g_bStarted) return;
+	
+	g_bStarted = true;
 	if(bDoubleRoulette)
 	{
 		g_iSpecialRoundType2 = g_iSpecialRoundType;
@@ -341,7 +360,7 @@ void SpecialRoundCycleFinish()
 			
 		PushArrayCell(hEnabledRounds, SPECIALROUND_DOOMBOX);
 		
-		if(!SF_SpecialRound(SPECIALROUND_NOGRACE))
+		if(!SF_SpecialRound(SPECIALROUND_NOGRACE) && !bRevolution)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
 			
 		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
@@ -350,7 +369,7 @@ void SpecialRoundCycleFinish()
 		if(!bDoubleRoulette)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);
 			
-		if(!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+		if(!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !GetConVarBool(g_cvNightvisionEnabled))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INFINITEFLASHLIGHT);
 			
 		if(!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
@@ -359,38 +378,52 @@ void SpecialRoundCycleFinish()
 		if(!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_EYESONTHECLOACK);
 		
-		if(!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2)
+		if(!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2 && !bRevolution)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOPAGEBONUS);
 		
 		//Disabled
 		/*if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_DUCKS))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DUCKS);*/
 		
-		if(!SF_SpecialRound(SPECIALROUND_1UP))
+		if(!SF_SpecialRound(SPECIALROUND_1UP) && !bRevolution)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_1UP);
 		
 		if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOULTRAVISION);
+		
+		if(!bSuprise && !bDoubleRoulette && !bRevolution)
+			PushArrayCell(hEnabledRounds, SPECIALROUND_SUPRISE);
+		
+		if(!SF_SpecialRound(SPECIALROUND_LASTRESORT))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_LASTRESORT);
+		
+		if(!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4)
+			PushArrayCell(hEnabledRounds, SPECIALROUND_ESCAPETICKETS);
+		
+		if(!bRevolution)
+			PushArrayCell(hEnabledRounds, SPECIALROUND_REVOLUTION);
 			
 		g_iSpecialRoundType = GetArrayCell(hEnabledRounds, GetRandomInt(0, GetArraySize(hEnabledRounds) - 1));
 		
 		CloseHandle(hEnabledRounds);
 	}
-	
 	SetConVarInt(g_cvSpecialRoundOverride, -1);
 	
-	char sDescHud[64];
-	SpecialRoundGetDescriptionHud(g_iSpecialRoundType, sDescHud, sizeof(sDescHud));
-	
-	char sIconHud[64];
-	SpecialRoundGetIconHud(g_iSpecialRoundType, sIconHud, sizeof(sIconHud));
-	
-	char sDescChat[64];
-	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
-	
-	SpecialRoundGameText(sDescHud, sIconHud);
-	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
-	
+	if(!bSuprise)
+	{
+		char sDescHud[64];
+		SpecialRoundGetDescriptionHud(g_iSpecialRoundType, sDescHud, sizeof(sDescHud));
+			
+		char sIconHud[64];
+		SpecialRoundGetIconHud(g_iSpecialRoundType, sIconHud, sizeof(sIconHud));
+			
+		char sDescChat[64];
+		SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
+			
+		SpecialRoundGameText(sDescHud, sIconHud);
+		CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
+	}
+		
 	g_hSpecialRoundTimer = CreateTimer(SR_STARTDELAY, Timer_SpecialRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -398,7 +431,7 @@ void SpecialRoundStart()
 {
 	if (!g_bSpecialRound) return;
 	if (g_iSpecialRoundType < 1 || g_iSpecialRoundType >= SPECIALROUND_MAXROUNDS) return;
-	
+	g_bStarted = false;
 	// What to do with the timer...
 	switch (g_iSpecialRoundType)
 	{
@@ -476,6 +509,11 @@ void SpecialRoundStart()
 		{
 			bDoubleRoulette=true;
 		}
+		case SPECIALROUND_SUPRISE:
+		{
+			bSuprise=true;
+			SpecialRoundCycleStart();
+		}
 		case SPECIALROUND_DOUBLEMAXPLAYERS:
 		{
 			ForceInNextPlayersInQueue(GetConVarInt(g_cvMaxPlayers));
@@ -540,7 +578,11 @@ void SpecialRoundStart()
 					}
 				}
 			}
-		}	
+		}
+		case SPECIALROUND_REVOLUTION:
+		{
+			bRevolution = true;
+		}
 	}
 	if(doubleroulettecount==2)
 	{
@@ -565,7 +607,12 @@ public Action Timer_DisplaySpecialRound(Handle timer)
 	SpecialRoundGameText(sDescHud, sIconHud);
 	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
 }
-
+void SpecialRound_RoundEnd()
+{
+	bSuprise = false;
+	bRevolution = false;
+	g_bStarted = false;
+}
 void SpecialRoundReset()
 {
 	g_iSpecialRoundType = 0;

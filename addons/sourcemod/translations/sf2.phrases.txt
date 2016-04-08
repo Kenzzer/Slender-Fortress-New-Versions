@@ -1127,7 +1127,6 @@
 	
 	"SF2 Change Log"
 	{
-		//"en"	"-Fixed an exploit that allowed LAMOBOX users to see sf2 boss via wallhack."
-		"en" "-Fixed an issue where proxies could spawn in pvp area.\n-Fixed a bug where proxies couldn't damage the boss.\n-The spawn game event is now called for sub plugins when a ghost/proxy spawns."
+		"en" "-Raid maps are now using default tf2 hud.\n-NPCs are now always attacking the players on raid maps."
 	}
 }

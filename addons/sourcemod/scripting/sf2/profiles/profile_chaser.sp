@@ -54,6 +54,8 @@ enum
 	ChaserProfileData_CanBeStunnedByFlashlight,
 	ChaserProfileData_StunFlashlightDamage,
 	
+	ChaserProfileData_KeyDrop,
+	
 	ChaserProfileData_MemoryLifeTime,
 	
 	ChaserProfileData_AwarenessIncreaseRateEasy,
@@ -183,6 +185,8 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	
 	float flStunFlashlightDamage = KvGetFloat(kv, "stun_damage_flashlight");
 	
+	bool bKeyDrop = view_as<bool>(KvGetNum(kv, "keydrop_enabled"));
+	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flBossStepSize, ChaserProfileData_StepSize);
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flBossDefaultWalkSpeed, ChaserProfileData_WalkSpeedNormal);
@@ -213,6 +217,8 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunHealthPerPlayer, ChaserProfileData_StunHealthPerPlayer);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bStunTakeDamageFromFlashlight, ChaserProfileData_CanBeStunnedByFlashlight);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunFlashlightDamage, ChaserProfileData_StunFlashlightDamage);
+	
+	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bKeyDrop, ChaserProfileData_KeyDrop);
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, KvGetFloat(kv, "memory_lifetime", 10.0), ChaserProfileData_MemoryLifeTime);
 	
@@ -552,6 +558,11 @@ float GetChaserProfileStunHealth(int iChaserProfileIndex)
 float GetChaserProfileStunHealthPerPlayer(int iChaserProfileIndex)
 {
 	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunHealthPerPlayer));
+}
+
+bool GetChaserProfileKeyDrop(int iChaserProfileIndex)
+{
+	return view_as<bool>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_KeyDrop));
 }
 
 stock float GetChaserProfileAwarenessIncreaseRate(int iChaserProfileIndex,int difficulty)

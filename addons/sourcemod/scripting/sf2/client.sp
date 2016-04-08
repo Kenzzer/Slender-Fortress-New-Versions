@@ -491,7 +491,7 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 	if (!g_bEnabled) return Plugin_Continue;
 	
 	if (IsRoundInWarmup()) return Plugin_Continue;
-	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red)
+	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red && victim != attacker)
 	{
 		damage = 0.0;
 		return Plugin_Changed;
@@ -4034,6 +4034,8 @@ void ClientBlink(int client)
 	
 	if (IsClientBlinking(client)) return;
 	
+	if (SF_IsRaidMap()) return;
+	
 	g_bPlayerBlink[client] = true;
 	g_iPlayerBlinkCount[client]++;
 	g_flPlayerBlinkMeter[client] = 0.0;
@@ -5844,6 +5846,12 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		bRemoveWeapons = true;
 	}
 	
+	if (SF_IsRaidMap() && !g_bPlayerEliminated[client])
+	{
+		bRemoveWeapons = false;
+		bRestrictWeapons = false;
+	}
+	
 	if (bRemoveWeapons)
 	{
 		for (int i = 0; i <= 5; i++)
@@ -5997,7 +6005,7 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		}
 	}
 	//Remove the teleport ability
-	if (IsClientInPvP(client)) //DidClientEscape(client)
+	if (IsClientInPvP(client) || (SF_IsRaidMap() && !g_bPlayerEliminated[client])) //DidClientEscape(client)
 	{
 		int iWeapon = INVALID_ENT_REFERENCE;
 		Handle hWeapon;

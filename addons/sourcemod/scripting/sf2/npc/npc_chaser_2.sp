@@ -16,7 +16,6 @@ static float g_flNPCWakeRadius[MAX_BOSSES];
 static bool g_bNPCStunEnabled[MAX_BOSSES];
 static float g_flNPCStunDuration[MAX_BOSSES];
 static bool g_bNPCStunFlashlightEnabled[MAX_BOSSES];
-static bool g_bNPCHasKeyDrop[MAX_BOSSES];
 static float g_flNPCStunFlashlightDamage[MAX_BOSSES];
 static float g_flNPCStunInitialHealth[MAX_BOSSES];
 static float g_flNPCStunHealth[MAX_BOSSES];
@@ -277,11 +276,6 @@ bool NPCChaserIsStunByFlashlightEnabled(int iNPCIndex)
 	return g_bNPCStunFlashlightEnabled[iNPCIndex];
 }
 
-bool NPCChaseHasKeyDrop(int iNPCIndex)
-{
-	return g_bNPCHasKeyDrop[iNPCIndex];
-}
-
 float NPCChaserGetStunFlashlightDamage(int iNPCIndex)
 {
 	return g_flNPCStunFlashlightDamage[iNPCIndex];
@@ -375,9 +369,6 @@ int NPCChaserOnSelectProfile(int iNPCIndex)
 	g_bNPCStunFlashlightEnabled[iNPCIndex] = GetChaserProfileStunFlashlightState(iUniqueProfileIndex);
 	g_flNPCStunFlashlightDamage[iNPCIndex] = GetChaserProfileStunFlashlightDamage(iUniqueProfileIndex);
 	g_flNPCStunInitialHealth[iNPCIndex] = GetChaserProfileStunHealth(iUniqueProfileIndex);
-	
-	//Get Key Data
-	g_bNPCHasKeyDrop[iNPCIndex] = GetChaserProfileKeyDrop(iUniqueProfileIndex);
 	
 	float fStunHealthPerPlayer = GetChaserProfileStunHealthPerPlayer(iUniqueProfileIndex);
 	int count;
@@ -763,32 +754,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 	}
-	if(g_iSlenderTarget[iBossIndex] == INVALID_ENT_REFERENCE && SF_IsRaidMap())
-	{
-		if(iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN)
-		{
-			Handle hArrayRaidTargets = CreateArray();
-				
-			for (int i = 1; i <= MaxClients; i++)
-			{
-				if (!IsClientInGame(i) ||
-					!IsPlayerAlive(i) ||
-					g_bPlayerEliminated[i] ||
-					IsClientInGhostMode(i) ||
-					DidClientEscape(i))
-				{
-					continue;
-				}
-				PushArrayCell(hArrayRaidTargets, i);
-			}
-			if(GetArraySize(hArrayRaidTargets)>0)
-			{
-				g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1)));
-				iTarget = g_iSlenderTarget[iBossIndex];
-			}
-		}
-		
-	}
+	
 	if(IsValidClient(iTarget) && g_bPlayerIsExitCamping[iTarget])
 		bCamper=true;
 	// Process which state we should be in.
@@ -1135,16 +1101,10 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 					bDoChasePersistencyInit = true;
 				}
 				iState = STATE_STUN;
-				if (NPCChaseHasKeyDrop(iBossIndex))
-				{
-					NPC_DropKey(iBossIndex);
-				}
 			}
 		}
 	}
 	if (bCamper && iState != STATE_ATTACK)
-		iState = STATE_CHASE;
-	if (SF_IsRaidMap && g_iSlenderTarget[iBossIndex] != INVALID_ENT_REFERENCE && iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN)
 		iState = STATE_CHASE;
 	// Finally, set our new state.
 	g_iSlenderState[iBossIndex] = iState;
@@ -1464,7 +1424,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				}
 			}
 			
-			if (NavMesh_Exists())
+			/*if (NavMesh_Exists())
 			{
 				// So by now we should have calculated our master goal position.
 				// Now we use that to create a path.
@@ -1548,7 +1508,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			{
 				// The nav mesh doesn't exist? Well, that sucks.
 				ClearArray(g_hSlenderPath[iBossIndex]);
-			}
+			}*/
 			
 			if (iState == STATE_CHASE || iState == STATE_ATTACK)
 			{
@@ -1858,7 +1818,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	// Constantly set the monster_generic's NPC state to idle to prevent
 	// velocity confliction.
 	
-	SetEntProp(iBoss, Prop_Data, "m_NPCState", 0);
+	//SetEntProp(iBoss, Prop_Data, "m_NPCState", 0);
 	
 	float flWalkSpeed = g_flSlenderCalculatedWalkSpeed[iBossIndex];
 	float flSpeed = g_flSlenderCalculatedSpeed[iBossIndex];
@@ -1987,8 +1947,10 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 			flGoalPosition[i] = g_flSlenderGoalPos[iBossIndex][i];
 		}
 	}
+	//Teleport my path
+	TeleportEntity(g_iGoalPath[iBossIndex][0],flGoalPosition,NULL_VECTOR,NULL_VECTOR);
 	
-	// Process our desired velocity.
+	/*// Process our desired velocity.
 	float flDesiredVelocity[3];
 	switch (iState)
 	{
@@ -2023,15 +1985,6 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	
 	float flTraceEndPos[3];
 	Handle hTrace;
-	bool bCanJump = true;
-	int iTargetAreaIndex = NavMesh_GetNearestArea(flMyPos);
-	if (iTargetAreaIndex != -1)
-	{
-		if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_NO_JUMP)
-		{
-			bCanJump = false;
-		}
-	}
 	
 	// Determine speed behavior.
 	if (bSlenderOnGround)
@@ -2118,7 +2071,6 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 					}
 				}
 			}
-			/*
 			else if (!bSlenderHitObstacle)
 			{
 				float flTraceStartPos[3];
@@ -2165,7 +2117,6 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 					}
 				}
 			}
-			*/
 		}
 	}
 	
@@ -2233,7 +2184,7 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 		}
 	}
 	
-	if (bSlenderOnGround && bSlenderShouldJump && flMyPos[2]<flGoalPosition[2] && bCanJump)
+	if (bSlenderOnGround && bSlenderShouldJump && flMyPos[2]<flGoalPosition[2])
 	{
 		g_flSlenderNextJump[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "jump_cooldown", 2.0);
 		
@@ -2290,9 +2241,11 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	TeleportEntity(iBoss, NULL_VECTOR, bChangeAngles ? flMoveAng : NULL_VECTOR, flMoveVelocity);
 	if(g_iSlenderHitbox[iBossIndex]>MaxClients && IsValidEntity(g_iSlenderHitbox[iBossIndex]))
 	{
-		//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"moveparent",iBoss);
-		//SetEntProp(g_iSlenderHitbox[iBossIndex], Prop_Send,"m_iParentAttachment",iBoss);
-	}
+		TeleportEntity(g_iSlenderHitbox[iBossIndex], flMyPos, bChangeAngles ? flMoveAng : NULL_VECTOR, NULL_VECTOR);
+		GetEntPropVector(g_iSlenderHitbox[iBossIndex], Prop_Data, "m_vecAbsOrigin", flMyPos);
+		if(bChangeAngles)
+			GetEntPropVector(iBoss, Prop_Data, "m_angAbsRotation", flMoveAng);
+	}*/
 }
 
 // Shortest-path cost function for NavMesh_BuildPath.
@@ -2640,174 +2593,6 @@ static bool NPCPropPhysicsAttack(int iBossIndex,int prop)
 		}
 	}
 	return bFound;
-}
-stock void NPC_DropKey(int iBossIndex)
-{
-	char buffer[PLATFORM_MAX_PATH], sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
-	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
-	KvRewind(g_hConfig);
-	KvJumpToKey(g_hConfig, sProfile);
-	KvGetString(g_hConfig, "key_trigger", buffer, PLATFORM_MAX_PATH);
-	if(!StrEqual(buffer,""))
-	{
-		float flMyPos[3], flVel[3];
-		int iBoss = NPCGetEntIndex(iBossIndex);
-		GetEntPropVector(iBoss, Prop_Data, "m_vecAbsOrigin", flMyPos);
-		Format(buffer,PLATFORM_MAX_PATH,"sf2_key_%s",buffer);
-		
-		int TouchBox = CreateEntityByName("tf_halloween_pickup");
-		//To do: allow the cfg maker to change the model.
-		DispatchKeyValue(TouchBox,"targetname", buffer);
-		DispatchKeyValue(TouchBox,"powerup_model", SF_KEYMODEL);
-		DispatchKeyValue(TouchBox,"modelscale", "2.0");
-		DispatchKeyValue(TouchBox,"pickup_sound","ui/itemcrate_smash_ultrarare_short.wav");
-		DispatchKeyValue(TouchBox,"pickup_particle","utaunt_firework_teamcolor_red");
-		DispatchKeyValue(TouchBox,"TeamNum","0");
-		TeleportEntity(TouchBox, flMyPos, NULL_VECTOR, NULL_VECTOR);
-		SetEntityModel(TouchBox,SF_KEYMODEL);
-		SetEntProp(TouchBox, Prop_Data, "m_iEFlags", 12845056);
-		DispatchSpawn(TouchBox);
-		ActivateEntity(TouchBox);
-		SetEntityModel(TouchBox,SF_KEYMODEL);
-		
-		int Key = CreateEntityByName("tf_halloween_pickup");
-		//To do: allow the cfg maker to change the model.
-		DispatchKeyValue(Key,"targetname", buffer);
-		DispatchKeyValue(Key,"powerup_model", PAGE_MODEL);
-		DispatchKeyValue(Key,"modelscale", "2.0");
-		DispatchKeyValue(Key,"pickup_sound","ui/itemcrate_smash_ultrarare_short.wav");
-		DispatchKeyValue(Key,"pickup_particle","utaunt_firework_teamcolor_red");
-		DispatchKeyValue(Key,"TeamNum","0");
-		TeleportEntity(Key, flMyPos, NULL_VECTOR, NULL_VECTOR);
-		SetEntityModel(Key,PAGE_MODEL);
-		SetEntProp(Key, Prop_Data, "m_iEFlags", 12845056);
-		DispatchSpawn(Key);
-		ActivateEntity(Key);
-		
-		SetEntityRenderMode(Key, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(Key, 0, 0, 0, 1);
-		
-		int glow = CreateEntityByName("tf_taunt_prop");
-		//To do: allow the cfg maker to change the model.
-		DispatchKeyValue(glow,"targetname", buffer);
-		DispatchKeyValue(glow,"model", SF_KEYMODEL);
-		TeleportEntity(glow, flMyPos, NULL_VECTOR, NULL_VECTOR);
-		DispatchSpawn(glow);
-		ActivateEntity(glow);
-		SetEntityModel(glow,SF_KEYMODEL);
-		
-		SetEntProp(glow, Prop_Send, "m_bGlowEnabled", 1);
-		SetEntPropFloat(glow, Prop_Send, "m_flModelScale", 2.0);
-		SetEntityRenderMode(glow, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(glow, 0, 0, 0, 1);
-		
-		SetVariantString("!activator");
-		AcceptEntityInput(TouchBox, "SetParent", Key);
-		
-		SetVariantString("!activator");
-		AcceptEntityInput(glow, "SetParent", Key);
-		
-		SetEntityModel(Key,PAGE_MODEL);
-		SetEntityMoveType(Key, MOVETYPE_FLYGRAVITY);
-		
-		HookSingleEntityOutput(TouchBox,"OnRedPickup",KeyTrigger);
-		
-		flVel[0] = GetRandomFloat(-300.0, 300.0);
-		flVel[1] = GetRandomFloat(-300.0, 300.0);
-		flVel[2] = GetRandomFloat(700.0, 900.0);
-		
-		SetEntProp(Key, Prop_Data, "m_iEFlags", 12845056);
-		
-		TeleportEntity(Key, flMyPos, NULL_VECTOR, flVel);
-		SetEntPropFloat(Key, Prop_Send, "m_flModelScale", 2.0);
-		SetEntProp(Key, Prop_Data, "m_iEFlags", 12845056);
-		SetEntProp(Key, Prop_Data, "m_MoveCollide", 1);
-		
-		SDKHook(Key, SDKHook_SetTransmit, Hook_KeySetTransmit);
-		SDKHook(glow, SDKHook_SetTransmit, Hook_KeySetTransmit);
-		SDKHook(TouchBox, SDKHook_SetTransmit, Hook_KeySetTransmit);
-		
-		//The key can be stuck somewhere to prevent that, make an auto collect.
-		float flTimeLeft = float(g_iRoundTime);
-		if(flTimeLeft>60.0)
-			flTimeLeft=30.0;
-		else
-			flTimeLeft=flTimeLeft-20.0;
-		CreateTimer(flTimeLeft, CollectKey, EntIndexToEntRef(TouchBox));
-	}
-}
-public void KeyTrigger(const char[] output, int caller, int activator, float delay)
-{
-	TriggerKey(caller);
-}
-public Action Hook_KeySetTransmit(int entity,int other)
-{
-	if(!IsValidClient(other)) return Plugin_Continue;
-	
-	if(g_bPlayerEliminated[other] && IsClientInGhostMode(other)) return Plugin_Continue;
-	
-	if(!g_bPlayerEliminated[other]) return Plugin_Continue;
-	
-	return Plugin_Handled;
-}
-public Action CollectKey(Handle timer, any entref)
-{
-	int ent = EntRefToEntIndex(entref);
-	if (ent == INVALID_ENT_REFERENCE) return;
-	char sClass[64];
-	GetEntityNetClass(ent, sClass, sizeof(sClass));
-	if (!StrEqual(sClass, "CHalloweenPickup")) return;
-	
-	TriggerKey(ent);
-	return;
-}
-	
-	
-stock void TriggerKey(int caller)
-{
-	char targetName[PLATFORM_MAX_PATH];
-	GetEntPropString(caller, Prop_Data, "m_iName", targetName, sizeof(targetName));
-	
-	int	ent = -1;
-	while ((ent = FindEntityByClassname(ent, "tf_halloween_pickup")) != -1)
-	{
-		char sName[64];
-		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
-		if (StrEqual(sName, targetName, false))
-		{
-			AcceptEntityInput(ent,"KillHierarchy");
-		}
-	}
-	
-	ReplaceString(targetName, sizeof(targetName), "sf2_key_", "", false);
-	float flMyPos[3];
-	GetEntPropVector(caller, Prop_Data, "m_vecAbsOrigin", flMyPos);
-	TE_SetupTFParticleEffect(g_iParticle[FireworksRED], flMyPos, flMyPos);
-	TE_SendToAll();
-	TE_SetupTFParticleEffect(g_iParticle[FireworksBLU], flMyPos, flMyPos);
-	TE_SendToAll();
-	ent = -1;
-	while ((ent = FindEntityByClassname(ent, "logic_relay")) != -1)
-	{
-		char sName[64];
-		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
-		if (StrEqual(sName, targetName, false))
-		{
-			AcceptEntityInput(ent,"Trigger");
-		}
-	}
-	ent = -1;
-	while ((ent = FindEntityByClassname(ent, "func_door")) != -1)
-	{
-		char sName[64];
-		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
-		if (StrEqual(sName, targetName, false))
-		{
-			AcceptEntityInput(ent,"Open");
-		}
-	}
-	AcceptEntityInput(caller,"Kill");
-	EmitSoundToAll("ui/itemcrate_smash_ultrarare_short.wav", caller, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
 }
 stock bool NPC_CanAttackProps(int iBossIndex,float flAttackRange,float flAttackFOV)
 {

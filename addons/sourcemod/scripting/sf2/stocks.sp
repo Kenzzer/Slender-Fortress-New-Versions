@@ -62,6 +62,17 @@ float HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
 float HULL_TF2PLAYER_MINS[3] = { -24.5, -24.5, 0.0 }
 float HULL_TF2PLAYER_MAXS[3] = { 24.5,  24.5, 83.0 }
 
+//  ==========================================================
+//	Map Functions
+//  ==========================================================
+stock bool SF_IsSurvivalMap()
+{
+	return view_as<bool>(g_bIsSurvivalMap || (GetConVarInt(g_cvSurvivalMap) == 1));
+}
+stock bool SF_IsRaidMap()
+{
+	return view_as<bool>(g_bIsRaidMap || (GetConVarInt(g_cvRaidMap) == 1));
+}
 //	==========================================================
 //	ENTITY FUNCTIONS
 //	==========================================================
@@ -802,10 +813,6 @@ public Action Timer_KillEntity(Handle timer, any entref)
 stock bool IsInfiniteFlashlightEnabled()
 {
 	return view_as<bool>(g_bRoundInfiniteFlashlight || (GetConVarInt(g_cvPlayerInfiniteFlashlightOverride) == 1) || SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT));
-}
-stock bool SF_IsSurvivalMap()
-{
-	return view_as<bool>(g_bIsSurvivalMap || (GetConVarInt(g_cvSurvivalMap) == 1));
 }
 stock bool SF_SpecialRound(int specialround)
 {

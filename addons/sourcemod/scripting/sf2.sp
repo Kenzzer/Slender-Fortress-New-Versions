@@ -36,8 +36,8 @@ bool sendproxymanager=false;
 // If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
 //#define METHODMAPS
 
-#define PLUGIN_VERSION "0.3.1"
-#define PLUGIN_VERSION_DISPLAY "0.3.1"
+#define PLUGIN_VERSION "0.3.2"
+#define PLUGIN_VERSION_DISPLAY "0.3.2"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2
@@ -64,9 +64,13 @@ public Plugin myinfo =
 #define CRIT_PARTICLENAME "crit_text"
 #define ZAP_SOUND "weapons/barret_arm_zap.wav"
 #define ZAP_PARTICLENAME "dxhr_arm_muzzleflash"
+#define FIREWORKSBLU_PARTICLENAME "utaunt_firework_teamcolor_blue"
+#define FIREWORKSRED_PARTICLENAME "utaunt_firework_teamcolor_red"
 
 #define PAGE_MODEL "models/slender/sheet.mdl"
 #define PAGE_MODELSCALE 1.1
+
+#define SF_KEYMODEL "models/demani_sf/key_australium.mdl"
 
 #define FLASHLIGHT_CLICKSOUND "slender/newflashlight.wav"
 #define FLASHLIGHT_BREAKSOUND "ambient/energy/spark6.wav"
@@ -286,6 +290,8 @@ enum
 {
 	CriticalHit = 0,
 	ZapParticle,
+	FireworksRED,
+	FireworksBLU,
 	MaxParticle,
 };
 
@@ -361,6 +367,7 @@ bool g_bRoundGrace = false;
 float g_flRoundDifficultyModifier = DIFFICULTY_NORMAL;
 bool g_bRoundInfiniteFlashlight = false;
 bool g_bIsSurvivalMap = false;
+bool g_bIsRaidMap = false;
 bool g_bRoundInfiniteBlink = false;
 bool g_bRoundInfiniteSprint = false;
 
@@ -372,7 +379,7 @@ static char g_strRoundBossProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 static int g_iRoundCount = 0;
 static int g_iRoundEndCount = 0;
 static int g_iRoundActiveCount = 0;
-static int g_iRoundTime = 0;
+int g_iRoundTime = 0;
 static int g_iTimeEscape = 0;
 static int g_iRoundTimeLimit = 0;
 static int g_iRoundEscapeTimeLimit = 0;
@@ -477,6 +484,7 @@ Handle g_cvPlayerProxyWaitTime;
 Handle g_cvPlayerProxyAsk;
 Handle g_cvHalfZatoichiHealthGain;
 Handle g_cvBlockSuicideDuringRound;
+Handle g_cvRaidMap;
 Handle g_cvSurvivalMap;
 Handle g_cvTimeEscapeSurvival;
 
@@ -786,6 +794,8 @@ public void OnPluginStart()
 	g_cvPlayerInfiniteSprintOverride = CreateConVar("sf2_player_infinite_sprint_override", "-1", "1 = infinite sprint, 0 = never have infinite sprint, -1 = let the game choose.", _, true, -1.0, true, 1.0);
 	g_cvPlayerInfiniteFlashlightOverride = CreateConVar("sf2_player_infinite_flashlight_override", "-1", "1 = infinite flashlight, 0 = never have infinite flashlight, -1 = let the game choose.", _, true, -1.0, true, 1.0);
 	g_cvPlayerInfiniteBlinkOverride = CreateConVar("sf2_player_infinite_blink_override", "-1", "1 = infinite blink, 0 = never have infinite blink, -1 = let the game choose.", _, true, -1.0, true, 1.0);
+	
+	g_cvRaidMap = CreateConVar("sf2_israidmap", "0", "Set to 1 if the map is a raid map.", _, true, 0.0, true, 1.0);
 	
 	g_cvSurvivalMap = CreateConVar("sf2_issurvivalmap", "0", "Set to 1 if the map is a survival map.", _, true, 0.0, true, 1.0);
 	g_cvTimeEscapeSurvival = CreateConVar("sf2_survival_time_limit", "30", "when X secs left the mod will turn back the Survive! text to Escape! text", _, true, 0.0);
@@ -1222,14 +1232,18 @@ static void PrecacheStuff()
 	// Initialize particles.
 	g_iParticle[CriticalHit] = PrecacheParticleSystem(CRIT_PARTICLENAME);
 	g_iParticle[ZapParticle] = PrecacheParticleSystem(ZAP_PARTICLENAME);
+	g_iParticle[FireworksRED] = PrecacheParticleSystem(FIREWORKSRED_PARTICLENAME);
+	g_iParticle[FireworksBLU] = PrecacheParticleSystem(FIREWORKSBLU_PARTICLENAME);
 	
+	PrecacheSound2("ui/itemcrate_smash_ultrarare_short.wav");
 	PrecacheSound2(CRIT_SOUND);
 	PrecacheSound2(ZAP_SOUND);
 	
 	// simple_bot;
-	PrecacheModel("models/humans/group01/female_01.mdl", true);
+	//PrecacheModel("models/humans/group01/female_01.mdl", true);
 	
 	PrecacheModel(PAGE_MODEL, true);
+	PrecacheModel(SF_KEYMODEL, true);
 	PrecacheModel(GHOST_MODEL, true);
 	
 	PrecacheSound2(FLASHLIGHT_CLICKSOUND);
@@ -1265,6 +1279,16 @@ static void PrecacheStuff()
 	AddFileToDownloadsTable("models/slender/sheet.sw.vtx");
 	AddFileToDownloadsTable("models/slender/sheet.vvd");
 	AddFileToDownloadsTable("models/slender/sheet.xbox.vtx");
+	
+	AddFileToDownloadsTable("models/demani_sf/key_australium.mdl");
+	AddFileToDownloadsTable("models/demani_sf/key_australium.dx80.vtx");
+	AddFileToDownloadsTable("models/demani_sf/key_australium.dx90.vtx");
+	AddFileToDownloadsTable("models/demani_sf/key_australium.sw.vtx");
+	AddFileToDownloadsTable("models/demani_sf/key_australium.vvd");
+	
+	AddFileToDownloadsTable("materials/models/demani_sf/key_australium.vmt");
+	AddFileToDownloadsTable("materials/models/demani_sf/key_australium.vtf");
+	AddFileToDownloadsTable("materials/models/demani_sf/key_australium_normal.vtf");
 	
 	AddFileToDownloadsTable("materials/models/Jason278/Slender/Sheets/Sheet_1.vtf");
 	AddFileToDownloadsTable("materials/models/Jason278/Slender/Sheets/Sheet_1.vmt");
@@ -3031,6 +3055,11 @@ public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float 
 
 static void CollectPage(int page,int activator)
 {
+	if(SF_SpecialRound(SPECIALROUND_ESCAPETICKETS))
+	{
+		ClientEscape(activator);
+		TeleportClientToEscapePoint(activator);
+	}
 	SetPageCount(g_iPageCount + 1);
 	g_iPlayerPageCount[activator] += 1;
 	EmitSoundToAll(PAGE_GRABSOUND, activator, SNDCHAN_ITEM, SNDLEVEL_SCREAMING);
@@ -3559,26 +3588,30 @@ public Action Timer_ClientAverageUpdate(Handle timer)
 				if (DidClientEscape(i)) continue;
 				
 				int iMaxBars = 12;
-				int iBars = RoundToCeil(float(iMaxBars) * ClientGetBlinkMeter(i));
-				if (iBars > iMaxBars) iBars = iMaxBars;
-				
-				Format(buffer, sizeof(buffer), "%s  ", SF2_PLAYER_HUD_BLINK_SYMBOL);
-				
-				if (IsInfiniteBlinkEnabled())
+				int iBars;
+				if(!SF_IsRaidMap())
 				{
-					StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_INFINITY_SYMBOL);
-				}
-				else
-				{
-					for (int i2 = 0; i2 < iMaxBars; i2++) 
+					iBars = RoundToCeil(float(iMaxBars) * ClientGetBlinkMeter(i));
+					if (iBars > iMaxBars) iBars = iMaxBars;
+					
+					Format(buffer, sizeof(buffer), "%s  ", SF2_PLAYER_HUD_BLINK_SYMBOL);
+					
+					if (IsInfiniteBlinkEnabled())
 					{
-						if (i2 < iBars)
+						StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_INFINITY_SYMBOL);
+					}
+					else
+					{
+						for (int i2 = 0; i2 < iMaxBars; i2++) 
 						{
-							StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_BAR_SYMBOL);
-						}
-						else
-						{
-							StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_BAR_MISSING_SYMBOL);
+							if (i2 < iBars)
+							{
+								StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_BAR_SYMBOL);
+							}
+							else
+							{
+								StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_BAR_MISSING_SYMBOL);
+							}
 						}
 					}
 				}
@@ -3645,18 +3678,34 @@ public Action Timer_ClientAverageUpdate(Handle timer)
 				{
 					iColor[i2] = RoundFloat(float(iHudColorHealthy[i2]) + (float(iHudColorCritical[i2] - iHudColorHealthy[i2]) * (1.0 - flHealthRatio)));
 				}
-				
-				SetHudTextParams(0.035, 0.83,
-					0.3,
-					iColor[0],
-					iColor[1],
-					iColor[2],
-					40,
-					_,
-					1.0,
-					0.07,
-					0.5);
+				if(!SF_IsRaidMap())
+				{
+					SetHudTextParams(0.035, 0.83,
+						0.3,
+						iColor[0],
+						iColor[1],
+						iColor[2],
+						40,
+						_,
+						1.0,
+						0.07,
+						0.5);
+				}
+				else
+				{
+					SetHudTextParams(0.035, 0.43,
+						0.3,
+						iColor[0],
+						iColor[1],
+						iColor[2],
+						40,
+						_,
+						1.0,
+						0.07,
+						0.5);
+				}
 				ShowSyncHudText(i, g_hHudSync2, buffer);
+				Format(buffer, sizeof(buffer), "");
 			}
 			else
 			{
@@ -3672,7 +3721,7 @@ public Action Timer_ClientAverageUpdate(Handle timer)
 					{
 						StrCat(buffer, sizeof(buffer), SF2_PLAYER_HUD_BAR_SYMBOL);
 					}
-					
+
 					SetHudTextParams(-1.0, 0.83,
 						0.3,
 						SF2_HUD_TEXT_COLOR_R,
@@ -4161,7 +4210,7 @@ void SlenderOnClientStressUpdate(int iClient)
 			{
 				if(GetArraySize(hArrayRaidTargets)>0)
 				{
-					GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1));
+					iPreferredTeleportTarget = GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1));
 				}
 			}
 			CloseHandle(hArrayRaidTargets);
@@ -4340,6 +4389,17 @@ void SetPageCount(int iNum)
 						int iClient = iClients[i];
 						ClientShowMainMessage(iClient, "%d/%d\n%T", g_iPageCount, g_iPageMax, "SF2 Default Escape Message", i);
 					}
+				}
+			}
+			
+			if (SF_SpecialRound(SPECIALROUND_LASTRESORT))
+			{
+				char sBuffer[SF2_MAX_PROFILE_NAME_LENGTH];
+				Handle hSelectableBosses = GetSelectableBossProfileList();
+				if (GetArraySize(hSelectableBosses) > 0)
+				{
+					GetArrayString(hSelectableBosses, GetRandomInt(0, GetArraySize(hSelectableBosses) - 1), sBuffer, sizeof(sBuffer));
+					AddProfile(sBuffer);
 				}
 			}
 		}
@@ -4534,6 +4594,7 @@ public Action Event_RoundEnd(Handle event, const char[] name, bool dB)
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_RoundEnd");
 #endif
+	SpecialRound_RoundEnd();
 	
 	SetRoundState(SF2RoundState_Outro);
 	
@@ -4796,6 +4857,8 @@ static void HandlePlayerIntroState(int iClient)
 
 void HandlePlayerHUD(int iClient)
 {
+	if(SF_IsRaidMap())
+		return;
 	if (IsRoundInWarmup() || IsClientInGhostMode(iClient))
 	{
 		SetEntProp(iClient, Prop_Send, "m_iHideHUD", 0);
@@ -4951,9 +5014,11 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 				HandlePlayerIntroState(iClient);
 				
 				// screen overlay timer
-				g_hPlayerOverlayCheck[iClient] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(iClient), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				TriggerTimer(g_hPlayerOverlayCheck[iClient], true);
-				
+				if(!SF_IsRaidMap())
+				{
+					g_hPlayerOverlayCheck[iClient] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(iClient), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+					TriggerTimer(g_hPlayerOverlayCheck[iClient], true);
+				}
 				if (DidClientEscape(iClient))
 				{
 					CreateTimer(0.1, Timer_TeleportPlayerToEscapePoint, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
@@ -5401,7 +5466,16 @@ public Action Timer_RoundTime(Handle timer)
 		
 		return Plugin_Stop;
 	}
-	
+	if(bRevolution)
+	{
+		for (int i = 1; i <= 40; i++)
+		{
+			if(g_iRoundTime==(60*i))
+			{
+				SpecialRoundCycleStart();
+			}
+		}
+	}
 	g_iRoundTime--;
 	
 	int hours, minutes, seconds;
@@ -5520,6 +5594,7 @@ static void InitializeMapEntities()
 	
 	g_bRoundInfiniteFlashlight = false;
 	g_bIsSurvivalMap = false;
+	g_bIsRaidMap = false;
 	g_bRoundInfiniteBlink = false;
 	g_bRoundInfiniteSprint = false;
 	g_bRoundHasEscapeObjective = false;
@@ -5595,6 +5670,10 @@ static void InitializeMapEntities()
 			else if (!StrContains(targetName, "sf2_survival_map", false))
 			{
 				g_bIsSurvivalMap = true;
+			}
+			else if (!StrContains(targetName, "sf2_raid_map", false))
+			{
+				g_bIsRaidMap = true;
 			}
 			else if (!StrContains(targetName, "sf2_survival_time_limit_", false))
 			{
