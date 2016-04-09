@@ -1144,7 +1144,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	}
 	if (bCamper && iState != STATE_ATTACK)
 		iState = STATE_CHASE;
-	if (SF_IsRaidMap() && g_iSlenderTarget[iBossIndex] != INVALID_ENT_REFERENCE && iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN)
+	if (SF_IsRaidMap() && g_iSlenderTarget[iBossIndex] != INVALID_ENT_REFERENCE && iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget))
 		iState = STATE_CHASE;
 	// Finally, set our new state.
 	g_iSlenderState[iBossIndex] = iState;
