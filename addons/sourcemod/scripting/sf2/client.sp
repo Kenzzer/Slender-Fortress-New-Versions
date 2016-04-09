@@ -268,8 +268,8 @@ public void Hook_ClientPreThink(int client)
 					// Speed buff?
 					if (TF2_IsPlayerInCondition(client, TFCond_SpeedBuffAlly))
 					{
-						flWalkSpeed += (flWalkSpeed * 0.08);
-						flSprintSpeed += (flSprintSpeed * 0.08);
+						flWalkSpeed += (flWalkSpeed * 0.10);
+						flSprintSpeed += (flSprintSpeed * 0.10);
 					}
 					
 					if (bDanger)

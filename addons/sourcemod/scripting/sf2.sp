@@ -3447,6 +3447,7 @@ void SetRoundState(SF2RoundState iRoundState)
 			{
 				if (!IsClientInGame(i) || g_bPlayerEliminated[i]) continue;
 				SetEntityFlags(i, GetEntityFlags(i) & ~FL_FROZEN);
+				TF2Attrib_SetByDefIndex(i, 10, 7.0);
 			}
 			
 			// Fade in.
@@ -4917,6 +4918,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 	if (!IsClientParticipating(iClient))
 	{
 		TF2Attrib_SetByName(iClient, "increased jump height", 1.0);
+		TF2Attrib_RemoveByDefIndex(iClient, 10);
 		
 		ClientSetGhostModeState(iClient, false);
 		g_iPlayerPageCount[iClient] = 0;
@@ -5006,6 +5008,11 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			
 			if (!g_bPlayerEliminated[iClient])
 			{
+				if(SF_IsRaidMap() && g_bRoundGrace)
+					TF2Attrib_SetByDefIndex(iClient, 10, 7.0);
+				else
+					TF2Attrib_RemoveByDefIndex(iClient, 10);
+		
 				ClientStartDrainingBlinkMeter(iClient);
 				ClientSetScareBoostEndTime(iClient, -1.0);
 				
@@ -5433,6 +5440,11 @@ public Action Timer_RoundGrace(Handle timer)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientParticipating(i)) g_bPlayerEliminated[i] = true;
+		if(!g_bPlayerEliminated[i])
+		{
+			if(SF_IsRaidMap())
+				TF2Attrib_RemoveByDefIndex(i, 10);
+		}
 	}
 	
 	// Initialize the main round timer.

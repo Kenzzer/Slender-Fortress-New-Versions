@@ -763,28 +763,37 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 	}
-	if(g_iSlenderTarget[iBossIndex] == INVALID_ENT_REFERENCE && SF_IsRaidMap())
+	if(SF_IsRaidMap())
 	{
-		if(iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN)
+		if(!IsValidClient(iTarget) || (IsValidClient(iTarget) && g_bPlayerEliminated[iTarget]))
 		{
-			Handle hArrayRaidTargets = CreateArray();
-				
-			for (int i = 1; i <= MaxClients; i++)
+			if(iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN)
 			{
-				if (!IsClientInGame(i) ||
-					!IsPlayerAlive(i) ||
-					g_bPlayerEliminated[i] ||
-					IsClientInGhostMode(i) ||
-					DidClientEscape(i))
+				Handle hArrayRaidTargets = CreateArray();
+					
+				for (int i = 1; i <= MaxClients; i++)
 				{
-					continue;
+					if (!IsClientInGame(i) ||
+						!IsPlayerAlive(i) ||
+						g_bPlayerEliminated[i] ||
+						IsClientInGhostMode(i) ||
+						DidClientEscape(i))
+					{
+						continue;
+					}
+					PushArrayCell(hArrayRaidTargets, i);
 				}
-				PushArrayCell(hArrayRaidTargets, i);
-			}
-			if(GetArraySize(hArrayRaidTargets)>0)
-			{
-				g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1)));
-				iTarget = g_iSlenderTarget[iBossIndex];
+				if(GetArraySize(hArrayRaidTargets)>0)
+				{
+					int iRaidTarget = GetArrayCell(hArrayRaidTargets,GetRandomInt(0, GetArraySize(hArrayRaidTargets) - 1));
+					if(IsValidClient(iRaidTarget) && !g_bPlayerEliminated[iRaidTarget])
+					{
+						iBestNewTarget = iRaidTarget;
+						g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "search_chase_duration");
+						iState = STATE_CHASE;
+						iTarget = iBestNewTarget;
+					}
+				}
 			}
 		}
 		
@@ -1143,9 +1152,16 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 	}
 	if (bCamper && iState != STATE_ATTACK)
+	{
+		bDoChasePersistencyInit = true;
 		iState = STATE_CHASE;
-	if (SF_IsRaidMap() && g_iSlenderTarget[iBossIndex] != INVALID_ENT_REFERENCE && iState != STATE_CHASE && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget))
+	}
+	//In Raid maps the boss should always attack the target. 
+	if (SF_IsRaidMap() && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget))
+	{
+		g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "search_chase_duration");
 		iState = STATE_CHASE;
+	}
 	// Finally, set our new state.
 	g_iSlenderState[iBossIndex] = iState;
 	
