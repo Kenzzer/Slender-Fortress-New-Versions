@@ -1085,9 +1085,6 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			//AcceptEntityInput(iBoss, "DisableShadow");
 			//SetEntPropFloat(iBoss, Prop_Data, "m_flFriction", 0.0);*/
 			
-			
-			NPCChaserSetStunHealth(iBossIndex, NPCChaserGetStunInitialHealth(iBossIndex));
-			
 			// Reset stats.
 			g_bSlenderInBacon[iBossIndex] = false;
 			g_iSlender[iBossIndex] = EntIndexToEntRef(iBoss);
@@ -1189,6 +1186,28 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 				NPCSetFlags(iBossIndex,NPCGetFlags(iBossIndex)|SFF_NOTELEPORT);
 				UpdateHealthBar(iBossIndex);
 			}
+			
+			
+			//Stun Health
+			float fMaxHealth = NPCChaserGetStunInitialHealth(iBossIndex);
+			for(int iClient=1; iClient<=MaxClients; iClient++)
+			{
+				if(IsValidClient(iClient) && !g_bPlayerEliminated[iClient] && IsPlayerAlive(iClient))
+				{
+					char sClassName[64], sSectionName[64];
+					TF2_GetClassName(TF2_GetPlayerClass(iClient), sClassName, sizeof(sClassName));
+					Format(sSectionName, sizeof(sSectionName), "stun_health_per_%s", sClassName);
+					int iHealth = GetProfileNum(sProfile, sSectionName, 0);
+					if(iHealth>0)
+					{
+						PrintToChatAll("yes");
+						fMaxHealth += float(iHealth);
+					}
+				}
+			}
+			PrintToChatAll("fMaxHealth: %0.0f",fMaxHealth);
+			NPCChaserSetStunInitialHealth(iBossIndex, fMaxHealth);
+			NPCChaserSetStunHealth(iBossIndex, NPCChaserGetStunInitialHealth(iBossIndex));
 		}
 		/*
 		default:
@@ -1333,23 +1352,61 @@ public Action Hook_SlenderOnTakeDamage(int slender,int &attacker,int &inflictor,
 	{
 		if(attacker <= MaxClients && !IsValidClient(attacker)) return Plugin_Continue;
 		SDKHooks_TakeDamage(g_iSlenderHitbox[iBossIndex], attacker, attacker, damage, damagetype);
-		Boss_HitBox_Damage(g_iSlenderHitbox[iBossIndex], attacker, damage, damagetype);
+		//Boss_HitBox_Damage(g_iSlenderHitbox[iBossIndex], attacker, damage, damagetype);
 		SetVariantInt(30000);
 		AcceptEntityInput(g_iSlenderHitbox[iBossIndex],"SetHealth");
 	}
 	damage = 0.0;
 	return Plugin_Changed;
 }
+
 public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3],float damagePosition[3],int damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;
-	damage = Boss_HitBox_Damage(hitbox, attacker, damage, damagetype);
+	//damage = Boss_HitBox_Damage(hitbox, attacker, damage, damagetype);
+	if(NPCChaserGetState(NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]))==STATE_STUN)
+		damage = 0.0;
 	SetVariantInt(30000);
 	AcceptEntityInput(hitbox,"SetHealth");
 	
 	return Plugin_Changed;
 }
-float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
+
+public Action Event_HitBoxHurt(Handle event, const char[] name, bool dB)
+{
+	if (!g_bEnabled) return;
+	
+	int hitbox = GetEventInt(event, "entindex");
+	if(IsValidEntity(hitbox))
+	{
+		char sClass[64];
+		GetEntityNetClass(hitbox, sClass, sizeof(sClass));
+		if (StrEqual(sClass, "CTFBaseBoss"))
+		{
+			bool bMiniCrit = false;
+			int damage = GetEventInt(event, "damageamount");
+			int attacker = GetClientOfUserId(GetEventInt(event, "attacker_player"));
+			
+			if(!IsValidClient(attacker)) return;
+			
+			int damagetype = DMG_BULLET;
+			
+			//The crit boolean if for both mini crit and critical hit.
+			if(GetEventBool(event, "crit", false))
+			{
+				if(TF2_IsPlayerCritBuffed(attacker))
+					damagetype |= DMG_CRIT;
+				else if(TF2_IsMiniCritBuffed(attacker))
+					bMiniCrit = true;
+				else
+					damagetype |= DMG_CRIT;
+			}
+			Boss_HitBox_Damage(hitbox, attacker, float(damage), damagetype, bMiniCrit);
+		}
+	}
+}
+
+float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype,bool bMiniCrit=false)
 {
 	if(damage > 0.0)
 	{
@@ -1364,7 +1421,6 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 			
 			if (NPCChaserIsStunEnabled(iBossIndex))
 			{
-				if (damagetype & DMG_ACID) damage *= 2.0; // 2x damage for critical hits.
 				
 				NPCChaserAddStunHealth(iBossIndex, -damage);
 				
@@ -1373,8 +1429,6 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 				{
 					UpdateHealthBar(iBossIndex);
 				}
-				
-				if (damagetype & DMG_ACID) damage /= 2.0; // 2x damage for critical hits.
 			}
 			if ((damagetype & DMG_CRIT))
 			{
@@ -1389,6 +1443,19 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 				
 				EmitSoundToAll(CRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
 			}
+			else if(bMiniCrit)
+			{
+				float flMyEyePos[3];
+				SlenderGetAbsOrigin(iBossIndex, flMyEyePos);
+				float flMyEyePosEx[3];
+				GetEntPropVector(hitbox, Prop_Send, "m_vecMaxs", flMyEyePosEx);
+				flMyEyePos[2]+=flMyEyePosEx[2];
+				
+				TE_SetupTFParticleEffect(g_iParticle[MiniCritHit], flMyEyePos, flMyEyePos);
+				TE_SendToAll();
+				
+				EmitSoundToAll(MINICRIT_SOUND, hitbox, SNDCHAN_AUTO, SNDLEVEL_SCREAMING);
+			}
 		}
 	}
 	//Under Alpha stage can cause server crash.
@@ -1397,6 +1464,7 @@ float Boss_HitBox_Damage(int hitbox,int attacker,float damage,int damagetype)
 	*/
 	return damage;
 }
+
 void UpdateHealthBar(int iBossIndex)
 {
 	float fMaxHealth = NPCChaserGetStunInitialHealth(iBossIndex);
@@ -1418,6 +1486,7 @@ void UpdateHealthBar(int iBossIndex)
 	}
 	SetEntProp(g_ihealthBar, Prop_Send, "m_iBossHealthPercentageByte", healthPercent);
 }
+
 public bool Hook_HitBoxShouldCollide(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
 #if defined DEBUG
@@ -1433,12 +1502,14 @@ public bool Hook_HitBoxShouldCollide(int slender,int collisiongroup,int contents
 	}
 	return originalResult;
 }
+
 public bool Hook_BossShouldCollide(int slender,int collisiongroup,int contentsmask, bool originalResult)
 {
 	if ((contentsmask & CONTENTS_MONSTERCLIP))
 		return false;
 	return originalResult
 }
+
 public Action Hook_SlenderModelSetTransmit(int entity,int other)
 {
 	if (!g_bEnabled) return Plugin_Continue;

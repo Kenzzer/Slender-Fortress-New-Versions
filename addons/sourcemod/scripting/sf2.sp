@@ -62,6 +62,8 @@ public Plugin myinfo =
 
 #define CRIT_SOUND "player/crit_hit.wav"
 #define CRIT_PARTICLENAME "crit_text"
+#define MINICRIT_SOUND "player/crit_hit_mini.wav"
+#define MINICRIT_PARTICLENAME "minicrit_text"
 #define ZAP_SOUND "weapons/barret_arm_zap.wav"
 #define ZAP_PARTICLENAME "dxhr_arm_muzzleflash"
 #define FIREWORKSBLU_PARTICLENAME "utaunt_firework_teamcolor_blue"
@@ -289,6 +291,7 @@ int g_iPlayerPreferences[MAXPLAYERS + 1][PlayerPreferences];
 enum
 {
 	CriticalHit = 0,
+	MiniCritHit,
 	ZapParticle,
 	FireworksRED,
 	FireworksBLU,
@@ -862,6 +865,7 @@ public void OnPluginStart()
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	HookEvent("player_hurt", Event_PlayerHurt);
+	HookEvent("npc_hurt", Event_HitBoxHurt);
 	HookEvent("post_inventory_application", Event_PostInventoryApplication);
 	HookEvent("item_found", Event_DontBroadcastToClients, EventHookMode_Pre);
 	HookEvent("teamplay_teambalanced_player", Event_DontBroadcastToClients, EventHookMode_Pre);
@@ -1231,11 +1235,13 @@ static void PrecacheStuff()
 {
 	// Initialize particles.
 	g_iParticle[CriticalHit] = PrecacheParticleSystem(CRIT_PARTICLENAME);
+	g_iParticle[MiniCritHit] = PrecacheParticleSystem(MINICRIT_PARTICLENAME);
 	g_iParticle[ZapParticle] = PrecacheParticleSystem(ZAP_PARTICLENAME);
 	g_iParticle[FireworksRED] = PrecacheParticleSystem(FIREWORKSRED_PARTICLENAME);
 	g_iParticle[FireworksBLU] = PrecacheParticleSystem(FIREWORKSBLU_PARTICLENAME);
 	
 	PrecacheSound2("ui/itemcrate_smash_ultrarare_short.wav");
+	PrecacheSound2(MINICRIT_SOUND);
 	PrecacheSound2(CRIT_SOUND);
 	PrecacheSound2(ZAP_SOUND);
 	

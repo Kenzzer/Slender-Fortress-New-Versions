@@ -315,6 +315,27 @@ stock bool IsValidClient(int client)
 //	==========================================================
 //	TF2-SPECIFIC FUNCTIONS
 //	==========================================================
+stock bool TF2_IsMiniCritBuffed(int iClient)
+{
+	return (TF2_IsPlayerInCondition(iClient, TFCond_CritCola)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritHype)
+        || TF2_IsPlayerInCondition(iClient, TFCond_Buffed)
+    );
+}
+stock bool TF2_IsPlayerCritBuffed(int iClient)
+{
+    return (TF2_IsPlayerInCondition(iClient, TFCond_Kritzkrieged)
+        || TF2_IsPlayerInCondition(iClient, TFCond_HalloweenCritCandy)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritCanteen)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritDemoCharge)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritOnFirstBlood)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritOnWin)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritOnFlagCapture)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritOnKill)
+        || TF2_IsPlayerInCondition(iClient, TFCond_CritMmmph)
+		|| TF2_IsPlayerInCondition(iClient, TFCond_CritOnDamage)
+    );
+}
 stock bool IsTauntWep(int iWeapon)
 {
 	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");

@@ -88,6 +88,7 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 	property float StunInitialHealth
 	{
 		public get() { return NPCChaserGetStunInitialHealth(this.Index); }
+		public set(float amount) { NPCChaserSetStunInitialHealth(this.Index, amount); }
 	}
 	
 	property int State
@@ -300,6 +301,11 @@ float NPCChaserGetStunHealth(int iNPCIndex)
 void NPCChaserSetStunHealth(int iNPCIndex, float flAmount)
 {
 	g_flNPCStunHealth[iNPCIndex] = flAmount;
+}
+
+void NPCChaserSetStunInitialHealth(int iNPCIndex, float flAmount)
+{
+	g_flNPCStunInitialHealth[iNPCIndex] = flAmount;
 }
 
 void NPCChaserAddStunHealth(int iNPCIndex, float flAmount)
@@ -1358,7 +1364,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				}
 			}
 		}
-		
+		NPCChaserSetState(iBossIndex, iState);
 		// Call our forward.
 		Call_StartForward(fOnBossChangeState);
 		Call_PushCell(iBossIndex);
