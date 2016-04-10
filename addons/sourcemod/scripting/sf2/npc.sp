@@ -1200,12 +1200,15 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 					int iHealth = GetProfileNum(sProfile, sSectionName, 0);
 					if(iHealth>0)
 					{
-						PrintToChatAll("yes");
+						fMaxHealth += float(iHealth);
+					}
+					else
+					{
+						iHealth = GetProfileNum(sProfile, "stun_health_per_player", 150);
 						fMaxHealth += float(iHealth);
 					}
 				}
 			}
-			PrintToChatAll("fMaxHealth: %0.0f",fMaxHealth);
 			NPCChaserSetStunInitialHealth(iBossIndex, fMaxHealth);
 			NPCChaserSetStunHealth(iBossIndex, NPCChaserGetStunInitialHealth(iBossIndex));
 		}
@@ -1389,16 +1392,29 @@ public Action Event_HitBoxHurt(Handle event, const char[] name, bool dB)
 			
 			if(!IsValidClient(attacker)) return;
 			
+			if(TF2_GetPlayerClass(attacker) == TFClass_Pyro)
+			{
+				//Probably the only time where buffing the phlog is a good thing.
+				int iPhlog = GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary);
+				if(IsValidEntity(iPhlog) && GetEntProp(iPhlog, Prop_Send, "m_iItemDefinitionIndex") == TF_WEAPON_PHLOGISTINATOR && GetEntPropFloat(attacker, Prop_Send, "m_flNextRageEarnTime") <= GetGameTime() && !view_as<bool>(GetEntProp(attacker, Prop_Send, "m_bRageDraining")))
+				{
+					float fRage = GetEntPropFloat(attacker, Prop_Send, "m_flRageMeter");
+					fRage += (float(damage) / 30.00);
+					if (fRage > 100.0) fRage = 100.0;
+					SetEntPropFloat(attacker, Prop_Send, "m_flRageMeter", fRage);
+				}
+			}
+			
 			int damagetype = DMG_BULLET;
 			
 			//The crit boolean if for both mini crit and critical hit.
 			if(GetEventBool(event, "crit", false))
 			{
-				if(TF2_IsPlayerCritBuffed(attacker))
+				if(TF2_IsPlayerCritBuffed(attacker))//Crit boosted
 					damagetype |= DMG_CRIT;
-				else if(TF2_IsMiniCritBuffed(attacker))
+				else if(TF2_IsMiniCritBuffed(attacker))//Mini crit boosted
 					bMiniCrit = true;
-				else
+				else //Random crit
 					damagetype |= DMG_CRIT;
 			}
 			Boss_HitBox_Damage(hitbox, attacker, float(damage), damagetype, bMiniCrit);

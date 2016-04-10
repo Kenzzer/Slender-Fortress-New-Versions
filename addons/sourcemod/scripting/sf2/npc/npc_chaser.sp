@@ -800,6 +800,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						iTarget = iBestNewTarget;
 					}
 				}
+				
+				CloseHandle(hArrayRaidTargets);
 			}
 		}
 		

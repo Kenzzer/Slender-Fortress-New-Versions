@@ -52,6 +52,8 @@
 
 #define vec3_origin { 0.0, 0.0, 0.0 }
 
+#define TF_WEAPON_PHLOGISTINATOR 594
+
 //My pull request for this cond is accepted I define it there until sourcemod release a new version.
 TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
 
