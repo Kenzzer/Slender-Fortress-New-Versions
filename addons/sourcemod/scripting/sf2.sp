@@ -3018,7 +3018,6 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
 		if(g_iSlenderHitboxOwner[activator] != -1)
 		{
-			PrintToChatAll("Hitbox!");
 			Npc = view_as<SF2NPC_BaseNPC>(activator);
 		}
 		if(Npc.IsValid())//Turn off colisions.

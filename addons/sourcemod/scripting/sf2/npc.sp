@@ -1204,7 +1204,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 					}
 					else
 					{
-						iHealth = GetProfileNum(sProfile, "stun_health_per_player", 150);
+						iHealth = GetProfileNum(sProfile, "stun_health_per_player", 0);
 						fMaxHealth += float(iHealth);
 					}
 				}
