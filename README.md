@@ -1,4 +1,4 @@
-Coder/Developer: Benoist3012
+Coder/Developer: [Benoist3012](http://steamcommunity.com/id/Benoist3012/)
 
 Special thanks to:
 
