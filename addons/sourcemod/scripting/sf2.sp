@@ -1246,7 +1246,7 @@ static void PrecacheStuff()
 	PrecacheSound2(ZAP_SOUND);
 	
 	// simple_bot;
-	//PrecacheModel("models/humans/group01/female_01.mdl", true);
+	PrecacheModel("models/humans/group01/female_01.mdl", true); //<= Can someone tell me why this has to be precached?
 	
 	PrecacheModel(PAGE_MODEL, true);
 	PrecacheModel(SF_KEYMODEL, true);
