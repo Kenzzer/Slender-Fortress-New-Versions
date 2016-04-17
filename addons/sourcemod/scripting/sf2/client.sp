@@ -3936,15 +3936,16 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 				flDistFromClosestBoss = flDist;
 			}
 		}
-		
+		/*if(IsSpaceOccupiedIgnorePlayers(flPos, flMins, flMaxs, client))
+			//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is stuck, no actions taken", client, client);*/
 		if (GetConVarBool(g_cvCampingEnabled) && 
-			!g_bRoundGrace && 
-			!IsSpaceOccupiedIgnorePlayers(flPos, flMins, flMaxs, client) && 
+			!g_bRoundGrace &&
 			g_flPlayerStaticAmount[client] <= GetConVarFloat(g_cvCampingNoStrikeSanity) && 
 			(iClosestBoss == -1 || flDistFromClosestBoss >= GetConVarFloat(g_cvCampingNoStrikeBossDistance)) &&
 			flDistFromLastPosition <= GetConVarFloat(g_cvCampingMinDistance))
 		{
 			bCamping = true;
+			//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is afk, or camping", client, client);
 		}
 		if(!g_bRoundGrace)
 		{
@@ -3956,6 +3957,7 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 				{
 					//EXIT CAMPER!
 					g_bPlayerIsExitCamping[client] = true;
+					//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is exit-camping!", client, client);
 				}
 				else
 					g_bPlayerIsExitCamping[client] = false;
@@ -3980,7 +3982,11 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 		else
 		{
 			// Forgiveness.
-			if (g_iPlayerCampingStrikes[client] > 0) g_iPlayerCampingStrikes[client]--;
+			if (g_iPlayerCampingStrikes[client] > 0)
+			{
+				//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is forgiven of one strike.", client, client);
+				g_iPlayerCampingStrikes[client]--;
+			}
 		}
 		
 		g_flPlayerCampingLastPosition[client][0] = flPos[0];
@@ -3990,6 +3996,7 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 	else
 	{
 		g_bPlayerCampingFirstTime[client] = false;
+		//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is afk/camping for the 1st time since the reset, don't take any actions for now.....", client, client);
 	}
 	
 	return Plugin_Continue;
