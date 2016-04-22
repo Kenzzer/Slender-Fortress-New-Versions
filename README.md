@@ -1,5 +1,7 @@
 Coder/Developer: [Benoist3012](http://steamcommunity.com/id/Benoist3012/)
 
+Original coder: [KitRifty](https://github.com/KitRifty)
+
 Special thanks to:
 
 - x3m77rus for making russian translations, and updating some part of the code to support more translation text.
