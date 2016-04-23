@@ -533,6 +533,7 @@ Handle fOnClientStartDeathCam;
 Handle fOnClientEndDeathCam;
 Handle fOnClientGetDefaultWalkSpeed;
 Handle fOnClientGetDefaultSprintSpeed;
+Handle fOnClientTakeDamage;
 Handle fOnClientSpawnedAsProxy;
 Handle fOnClientDamagedByBoss;
 Handle fOnGroupGiveQueuePoints;
@@ -618,6 +619,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error,int err_max)
 	fOnClientEndDeathCam = CreateGlobalForward("SF2_OnClientEndDeathCam", ET_Ignore, Param_Cell, Param_Cell);
 	fOnClientGetDefaultWalkSpeed = CreateGlobalForward("SF2_OnClientGetDefaultWalkSpeed", ET_Hook, Param_Cell, Param_CellByRef);
 	fOnClientGetDefaultSprintSpeed = CreateGlobalForward("SF2_OnClientGetDefaultSprintSpeed", ET_Hook, Param_Cell, Param_CellByRef);
+	fOnClientTakeDamage = CreateGlobalForward("SF2_OnClientTakeDamage", ET_Hook, Param_Cell, Param_Cell, Param_FloatByRef);
 	fOnClientSpawnedAsProxy = CreateGlobalForward("SF2_OnClientSpawnedAsProxy", ET_Ignore, Param_Cell);
 	fOnClientDamagedByBoss = CreateGlobalForward("SF2_OnClientDamagedByBoss", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Float, Param_Cell);
 	fOnGroupGiveQueuePoints = CreateGlobalForward("SF2_OnGroupGiveQueuePoints", ET_Hook, Param_Cell, Param_CellByRef);

@@ -54,8 +54,8 @@
 
 #define TF_WEAPON_PHLOGISTINATOR 594
 
-//My pull request for this cond is accepted I define it there until sourcemod release a new version.
-TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
+
+//TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
 
 // hull defines, mostly used for space checking.
 float HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }

@@ -176,6 +176,8 @@ forward Action:SF2_OnClientGetDefaultWalkSpeed(client, &Float:flDefault);
 
 forward Action:SF2_OnClientGetDefaultSprintSpeed(client, &Float:flDefault);
 
+forward Action:SF2_OnClientTakeDamage(victim, attacker, damage);
+
 forward Action:SF2_OnGroupGiveQueuePoints(iGroupIndex, &iAddAmount);
 
 forward SF2_OnClientDamagedByBoss(client, iBossIndex, inflictor, Float:flDamage, iDamageType);
