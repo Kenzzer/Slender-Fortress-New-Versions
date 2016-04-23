@@ -493,7 +493,21 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 	if (IsRoundInWarmup()) return Plugin_Continue;
 	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red && victim != attacker)
 	{
+		Action iAction = Plugin_Continue;
+		
+		float damage2 = damage;
+		Call_StartForward(fOnClientTakeDamage);
+		Call_PushCell(victim);
+		Call_PushCell(attacker);
+		Call_PushFloatRef(damage2);
+		Call_Finish(iAction);
+		
+		if (iAction == Plugin_Handled) return Plugin_Continue;
+		
 		damage = 0.0;
+		
+		if (iAction == Plugin_Changed) damage = damage2;
+		
 		return Plugin_Changed;
 	}
 	if (attacker != victim && IsValidClient(attacker))
@@ -541,7 +555,21 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 			{
 				if (g_bPlayerEliminated[attacker] == g_bPlayerEliminated[victim])
 				{
+					Action iAction = Plugin_Continue;
+		
+					float damage2 = damage;
+					Call_StartForward(fOnClientTakeDamage);
+					Call_PushCell(victim);
+					Call_PushCell(attacker);
+					Call_PushFloatRef(damage2);
+					Call_Finish(iAction);
+					
+					if (iAction == Plugin_Handled) return Plugin_Continue;
+					
 					damage = 0.0;
+					
+					if (iAction == Plugin_Changed) damage = damage2;
+					
 					return Plugin_Changed;
 				}
 				
@@ -578,6 +606,18 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 						
 						damage *= GetProfileFloat(sProfile, "proxies_damage_scale_vs_enemy", 1.0);
 					}
+					Action iAction = Plugin_Continue;
+		
+					float damage2 = damage;
+					Call_StartForward(fOnClientTakeDamage);
+					Call_PushCell(victim);
+					Call_PushCell(attacker);
+					Call_PushFloatRef(damage2);
+					Call_Finish(iAction);
+		
+					if (iAction == Plugin_Handled) return Plugin_Continue;
+		
+					if (iAction == Plugin_Changed) damage = damage2;
 					
 					return Plugin_Changed;
 				}
@@ -599,7 +639,6 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 					if(TF2_IsPlayerInCondition(victim, view_as<TFCond>(87)))
 					{
 						damage=0.0;
-						return Plugin_Changed;
 					}
 					if( damage * ( damagetype & DMG_CRIT ? 3.0 : 1.0 ) >= float(GetClientHealth(victim)) && !TF2_IsPlayerInCondition(victim, view_as<TFCond>(87)))//The proxy is about to die
 					{
@@ -632,12 +671,39 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 						}
 						//the player has no death anim leave him die.
 					}
+					Action iAction = Plugin_Continue;
+		
+					float damage2 = damage;
+					Call_StartForward(fOnClientTakeDamage);
+					Call_PushCell(victim);
+					Call_PushCell(attacker);
+					Call_PushFloatRef(damage2);
+					Call_Finish(iAction);
+					
+					if (iAction == Plugin_Handled) return Plugin_Continue;
+					
+					if (iAction == Plugin_Changed) damage = damage2;
+
 					return Plugin_Changed;
 				}
 			}
 			else
 			{
+				Action iAction = Plugin_Continue;
+				
+				float damage2 = damage;
+				Call_StartForward(fOnClientTakeDamage);
+				Call_PushCell(victim);
+				Call_PushCell(attacker);
+				Call_PushFloatRef(damage2);
+				Call_Finish(iAction);
+				
+				if (iAction == Plugin_Handled) return Plugin_Continue;
+				
 				damage = 0.0;
+				
+				if (iAction == Plugin_Changed) damage = damage2;
+				
 				return Plugin_Changed;
 			}
 		}
@@ -645,7 +711,21 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 		{
 			if (g_bPlayerEliminated[attacker] == g_bPlayerEliminated[victim])
 			{
+				Action iAction = Plugin_Continue;
+				
+				float damage2 = damage;
+				Call_StartForward(fOnClientTakeDamage);
+				Call_PushCell(victim);
+				Call_PushCell(attacker);
+				Call_PushFloatRef(damage2);
+				Call_Finish(iAction);
+				
+				if (iAction == Plugin_Handled) return Plugin_Continue;
+				
 				damage = 0.0;
+				
+				if (iAction == Plugin_Changed) damage = damage2;
+				
 				return Plugin_Changed;
 			}
 		}
