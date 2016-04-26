@@ -862,7 +862,7 @@ public void OnPluginStart()
 	// Hook events.
 	HookEvent("teamplay_round_start", Event_RoundStart);
 	HookEvent("teamplay_round_win", Event_RoundEnd);
-	HookEvent("teamplay_win_panel", Event_WinPanel, EventHookMode_Pre);
+	//HookEvent("teamplay_win_panel", Event_WinPanel, EventHookMode_Pre);
 	HookEvent("player_team", Event_DontBroadcastToClients, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_spawn", Event_PlayerSpawn);
