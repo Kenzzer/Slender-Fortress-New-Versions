@@ -6,9 +6,9 @@
 		{
 			"CTFPlayer::WantsLagCompensationOnEntity"
 			{
-				"windows"	"323"
-				"linux"		"324"
-				"mac"		"324"
+				"windows"	"324"
+				"linux"		"325"
+				"mac"		"325"
 			}
 			
 			"CBaseEntity::ShouldTransmit"
