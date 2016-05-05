@@ -3597,13 +3597,16 @@ public Action Timer_ClientResetDeathCam1(Handle timer, any userid)
 	
 	if (timer != g_hPlayerDeathCamTimer[client]) return;
 	
-	int iDeathCamBoss = NPCGetFromUniqueID(g_iPlayerDeathCamBoss[client]);
+	SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromUniqueID(g_iPlayerDeathCamBoss[client]));
 	
-	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
-	NPCGetProfile(iDeathCamBoss, sProfile, sizeof(sProfile));
+	if(Npc.IsValid())
+	{
+		char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
+		NPCGetProfile(Npc.Index, sProfile, sizeof(sProfile));
 	
-	g_bPlayerDeathCamShowOverlay[client] = true;
-	g_hPlayerDeathCamTimer[client] = CreateTimer(GetProfileFloat(sProfile, "death_cam_time_death"), Timer_ClientResetDeathCamEnd, userid, TIMER_FLAG_NO_MAPCHANGE);
+		g_bPlayerDeathCamShowOverlay[client] = true;
+		g_hPlayerDeathCamTimer[client] = CreateTimer(GetProfileFloat(sProfile, "death_cam_time_death"), Timer_ClientResetDeathCamEnd, userid, TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 public Action Timer_ClientResetDeathCamEnd(Handle timer, any userid)
