@@ -1511,8 +1511,21 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
+								iClosestAreaIndex,
+								_,
+								(NPCChaserGetStepSize(iBossIndex)*2.1));
+							
+							if(!bPathSuccess)
+							{
+								//It seems we can't reach our target without a jump.
+								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+								iGoalAreaIndex,
+								g_flSlenderGoalPos[iBossIndex],
+								SlenderChaseBossShortestPathCost,
+								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex);
-								
+							}
+							
 							int iTempAreaIndex = iClosestAreaIndex;
 							int iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
 							int iNavDirection;
