@@ -21,8 +21,9 @@ static float g_flNPCStunFlashlightDamage[MAX_BOSSES];
 static float g_flNPCStunInitialHealth[MAX_BOSSES];
 static float g_flNPCStunHealth[MAX_BOSSES];
 
-static g_iNPCState[MAX_BOSSES] = { -1, ... };
-static g_iNPCMovementActivity[MAX_BOSSES] = { -1, ... };
+static int g_iNPCState[MAX_BOSSES] = { -1, ... };
+static int g_iNPCMovementActivity[MAX_BOSSES] = { -1, ... };
+static int g_iGeneralDist;
 
 enum SF2NPCChaser_BaseAttackStructure
 {
@@ -1506,7 +1507,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							float flCenter[3], flCenterPortal[3], flClosestPoint[3];
 							int iClosestAreaIndex = 0;
 							
-							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+							g_iGeneralDist = 0;
+							
+							bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 								iGoalAreaIndex,
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
@@ -1515,15 +1518,38 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								_,
 								(NPCChaserGetStepSize(iBossIndex)*2.1));
 							
-							if(!bPathSuccess)
+							int iDist = g_iGeneralDist;
+							
+							g_iGeneralDist = 0;
+							
+							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+							iGoalAreaIndex,
+							g_flSlenderGoalPos[iBossIndex],
+							SlenderChaseBossShortestPathCost,
+							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
+							iClosestAreaIndex);
+							
+							if((iDist*0.65)>g_iGeneralDist || !bSafePathSuccess)
 							{
-								//It seems we can't reach our target without a jump.
+								//The safe path is sometimes not the best solution, if we are too much away from the player we have to hurry with the shortest one.
 								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 								iGoalAreaIndex,
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex);
+							}
+							else
+							{
+								//The safe path is fine
+								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+								iGoalAreaIndex,
+								g_flSlenderGoalPos[iBossIndex],
+								SlenderChaseBossShortestPathCost,
+								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
+								iClosestAreaIndex,
+								_,
+								(NPCChaserGetStepSize(iBossIndex)*2.1));
 							}
 							
 							int iTempAreaIndex = iClosestAreaIndex;
@@ -2362,6 +2388,8 @@ public int SlenderChaseBossShortestPathCost(int iAreaIndex,int iFromAreaIndex,in
 		if (iAreaFlags & NAV_MESH_JUMP) iCost += (5 * iDist);
 		
 		if ((flAreaCenter[2] - flFromAreaCenter[2]) > iStepSize) iCost += iStepSize;
+		
+		g_iGeneralDist += iDist;
 		
 		return iCost;
 	}
