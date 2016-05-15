@@ -454,6 +454,12 @@ public void PvP_OnTriggerStartTouch(int trigger,int iOther)
 	{
 		if (IsValidClient(iOther) && IsPlayerAlive(iOther))
 		{
+			//Resize the player
+			SetEntProp(iOther, Prop_Send, "m_flModelScale", 1.0);
+			SetEntProp(iOther, Prop_Send, "m_flHeadScale", 1.0);
+			SetEntProp(iOther, Prop_Send, "m_flTorsoScale", 1.0);
+			SetEntProp(iOther, Prop_Send, "m_flHandScale", 1.0);
+			
 			g_bPlayerInPvPTrigger[iOther] = true;
 			
 			if (IsClientInPvP(iOther))

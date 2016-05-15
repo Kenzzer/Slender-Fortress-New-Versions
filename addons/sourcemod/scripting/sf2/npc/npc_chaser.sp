@@ -757,7 +757,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	bool bQueueForNewPath = false;
 	bool bDoChasePersistencyInit = false;
 	bool bCamper = false;
-	if(g_bSlenderTeleportTargetIsCamping[iBossIndex] && EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]) != INVALID_ENT_REFERENCE)
+	if(iState != STATE_CHASE && g_bSlenderTeleportTargetIsCamping[iBossIndex] && EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]) != INVALID_ENT_REFERENCE)
 	{
 		int iCamper=EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
 		if(!g_bPlayerEliminated[iCamper])
@@ -809,6 +809,13 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	}
 	if(IsValidClient(iTarget) && g_bPlayerIsExitCamping[iTarget])
 		bCamper=true;
+	//We should never give up, but sometimes it happens.
+	if(g_bSlenderGiveUp[iBossIndex])
+	{
+		//Damit our target is unreachable for some unexplained reasons, haaaaaaaaaaaa!
+		iState = STATE_IDLE;
+		g_bSlenderGiveUp[iBossIndex] = false;
+	}
 	// Process which state we should be in.
 	switch (iState)
 	{
@@ -1516,7 +1523,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex,
 								_,
-								(NPCChaserGetStepSize(iBossIndex)*2.1));
+								NPCChaserGetStepSize(iBossIndex));
 							
 							int iDist = g_iGeneralDist;
 							
@@ -1529,7 +1536,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 							iClosestAreaIndex);
 							
-							if((iDist*0.65)>g_iGeneralDist || !bSafePathSuccess)
+							if((iDist*0.5)>g_iGeneralDist || !bSafePathSuccess)
 							{
 								//The safe path is sometimes not the best solution, if we are too much away from the player we have to hurry with the shortest one.
 								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
@@ -1549,7 +1556,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex,
 								_,
-								(NPCChaserGetStepSize(iBossIndex)*2.1));
+								NPCChaserGetStepSize(iBossIndex));
 							}
 							
 							int iTempAreaIndex = iClosestAreaIndex;
@@ -1564,6 +1571,32 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][1], 1);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][2], 2);
 							}
+							else//This check is made to prevent expensive calculations for the server.
+							{
+								//Sometimes the path fails, for multiple reasons.
+								float flStartPos[3];
+								NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
+								//If we are close of the goal position but we failed, let's see if player is not in a unreachable area.
+								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 250.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 250.0)
+								{
+									float jumpDist = g_flSlenderGoalPos[iBossIndex][2] - flStartPos[2];
+									//Jump speed and jump height are not the same thing I know, but if the speed if under the jump dist, then we have no chance to reach this place.
+									if(jumpDist > (g_flSlenderJumpSpeed[iBossIndex]+20.0))
+									{
+										//We can't jump there, give up...
+										g_bSlenderGiveUp[iBossIndex] = true;
+									}
+								}
+								//Some maps have teleporters like citadel or hellfire let's see if we are on the same nav area.
+								//I think this connected check should be done before the calculation.
+								if(!NavMeshArea_IsConnected(iCurrentAreaIndex, iGoalAreaIndex))
+								{
+									//Nope we aren't, give up...
+									//PrintToChatAll("Wait come back!");
+									g_bSlenderGiveUp[iBossIndex] = true;
+								}
+							}
+								
 							
 							while (iTempParentAreaIndex != -1)
 							{
@@ -1595,6 +1628,60 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								g_flSlenderGoalPos[iBossIndex][1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1));
 								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
+#if defined DEBUG
+							iTempAreaIndex = iClosestAreaIndex;
+							iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							
+							Handle hPositions = CreateArray(3);
+							
+							PushArrayArray(hPositions, g_flSlenderGoalPos[iBossIndex], 3);
+							
+							while (iTempParentAreaIndex != -1)
+							{
+								float flTempAreaCenter[3], flParentAreaCenter[3];
+								NavMeshArea_GetCenter(iTempAreaIndex, flTempAreaCenter);
+								NavMeshArea_GetCenter(iTempParentAreaIndex, flParentAreaCenter);
+								
+								iNavDirection = NavMeshArea_ComputeDirection(iTempAreaIndex, flParentAreaCenter);
+								NavMeshArea_ComputePortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flHalfWidth);
+								NavMeshArea_ComputeClosestPointInPortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flClosestPoint);
+								
+								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
+								
+								PushArrayArray(hPositions, flClosestPoint, 3);
+								
+								iTempAreaIndex = iTempParentAreaIndex;
+								iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							}
+							int iColor[4] = { 0, 255, 0, 255 };
+							float flStartPos[3];
+							NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
+							PushArrayArray(hPositions, flStartPos, 3);
+							
+							for (int i = GetArraySize(hPositions) - 1; i > 0; i--)
+							{
+								float flFromPos[3], flToPos[3];
+								GetArrayArray(hPositions, i, flFromPos, 3);
+								GetArrayArray(hPositions, i - 1, flToPos, 3);
+								
+								TE_SetupBeamPoints(flFromPos,
+									flToPos,
+									g_iPathLaserModelIndex,
+									g_iPathLaserModelIndex,
+									0,
+									30,
+									5.0,
+									5.0,
+									5.0,
+									5, 
+									0.0,
+									iColor,
+									30);
+									
+								TE_SendToAll();
+							}
+							CloseHandle(hPositions);
+#endif
 						}
 						else
 						{

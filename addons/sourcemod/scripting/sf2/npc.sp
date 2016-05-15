@@ -1091,6 +1091,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			g_iSlenderTarget[iBossIndex] = INVALID_ENT_REFERENCE;
 			g_iSlenderState[iBossIndex] = STATE_IDLE;
 			g_bSlenderAttacking[iBossIndex] = false;
+			g_bSlenderGiveUp[iBossIndex] = false;
 			g_hSlenderAttackTimer[iBossIndex] = INVALID_HANDLE;
 			g_flSlenderTargetSoundLastTime[iBossIndex] = -1.0;
 			g_flSlenderTargetSoundDiscardMasterPosTime[iBossIndex] = -1.0;

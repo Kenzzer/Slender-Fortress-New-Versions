@@ -33,9 +33,6 @@ bool sendproxymanager=false;
 #include <sf2>
 #pragma newdecls required
 
-// If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
-//#define METHODMAPS
-
 #define PLUGIN_VERSION "0.3.2_1"
 #define PLUGIN_VERSION_DISPLAY "0.3.2"
 
@@ -104,8 +101,6 @@ enum MuteMode
 bool g_bSeeUpdateMenu[MAXPLAYERS+1] = false;
 //Command
 bool g_bAdminNoPoints[MAXPLAYERS+1] = false;
-//Snd_Restart anti-cheat
-float g_fLastTimeSndRestart[MAXPLAYERS+1]; 
 
 // Offsets.
 int g_offsPlayerFOV = -1;
@@ -116,6 +111,11 @@ int g_offsPlayerPunchAngleVel = -1;
 int g_offsFogCtrlEnable = -1;
 int g_offsFogCtrlEnd = -1;
 int g_offsCollisionGroup = -1;
+
+#if defined DEBUG
+//temp
+int g_iPathLaserModelIndex;
+#endif
 
 bool g_bEnabled;
 
@@ -171,6 +171,7 @@ Handle g_hSlenderPath[MAX_BOSSES];
 //int g_iGoalPath[MAX_BOSSES][2];
 int g_iSlenderCurrentPathNode[MAX_BOSSES] = { -1, ... };
 bool g_bSlenderAttacking[MAX_BOSSES];
+bool g_bSlenderGiveUp[MAX_BOSSES];
 Handle g_hSlenderAttackTimer[MAX_BOSSES];
 float g_flSlenderNextJump[MAX_BOSSES] = { -1.0, ... };
 int g_iSlenderInterruptConditions[MAX_BOSSES];
@@ -1100,6 +1101,9 @@ public void OnMapStart()
 {
 	PvP_OnMapStart();
 	FindHealthBar();
+#if defined DEBUG
+	g_iPathLaserModelIndex = PrecacheModel("materials/sprites/laserbeam.vmt");
+#endif
 }
 
 public void OnConfigsExecuted()
@@ -4969,7 +4973,6 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			GetBossMusic(sPath,sizeof(sPath));
 			StopSound(iClient, MUSIC_CHAN, sPath);
 		}
-		g_fLastTimeSndRestart[iClient] = GetGameTime();
 		TF2_RemoveCondition(iClient, view_as<TFCond>(82));
 		TF2_RemoveCondition(iClient, TFCond_SpawnOutline);
 		if (HandlePlayerTeam(iClient))
@@ -5122,7 +5125,7 @@ public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
 		{
 			if (!IsRoundEnding())
 			{
-				if (g_bRoundGrace || g_bPlayerEliminated[iClient] || IsClientInGhostMode(iClient))
+				if (g_bRoundGrace || GetClientTeam(iClient) != TFTeam_Red)
 				{
 					SetEventBroadcast(event, true);
 				}
@@ -5347,7 +5350,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 	}
 	if (!IsRoundEnding())
 	{
-		if (g_bRoundGrace || g_bPlayerEliminated[iClient] || IsClientInGhostMode(iClient))
+		if (!g_bRoundGrace && GetClientTeam(iClient) != TFTeam_Red)
 		{
 			//Copy the data
 			char sString[64];
@@ -5356,7 +5359,6 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 			event2.SetInt("victim_entindex",event.GetInt("victim_entindex"));
 			event2.SetInt("inflictor_entindex",event.GetInt("inflictor_entindex"));
 			event2.SetInt("attacker",event.GetInt("attacker"));
-			event2.SetInt("weapon",event.GetInt("weapon"));
 			event2.SetInt("weaponid",event.GetInt("weaponid"));
 			event2.SetInt("damagebits",event.GetInt("damagebits"));
 			event2.SetInt("customkill",event.GetInt("customkill"));
@@ -5379,6 +5381,8 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 			event2.SetString("weapon_logclassname",sString);
 			event.GetString("assister_fallback",sString,sizeof(sString));
 			event2.SetString("assister_fallback",sString);
+			event.GetString("weapon",sString,sizeof(sString));
+			event2.SetString("weapon",sString);
 			//Send it to the clients
 			for (int i = 1; i<=MaxClients; i++)
 			{
