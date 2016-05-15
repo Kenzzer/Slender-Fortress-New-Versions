@@ -1556,7 +1556,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex,
 								_,
-								NPCChaserGetStepSize(iBossIndex));
+								NPCChaserGetStepSize(iBossIndex)*2.0);
 							}
 							
 							int iTempAreaIndex = iClosestAreaIndex;
