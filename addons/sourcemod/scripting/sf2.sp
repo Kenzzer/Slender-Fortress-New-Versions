@@ -5054,6 +5054,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			else
 			{
 				g_hPlayerOverlayCheck[iClient] = INVALID_HANDLE;
+				TF2Attrib_RemoveByDefIndex(iClient, 10);
 			}
 			
 			g_hPlayerPostWeaponsTimer[iClient] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
@@ -5496,11 +5497,8 @@ public Action Timer_RoundGrace(Handle timer)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientParticipating(i)) g_bPlayerEliminated[i] = true;
-		if(!g_bPlayerEliminated[i])
-		{
-			if(SF_IsRaidMap())
-				TF2Attrib_RemoveByDefIndex(i, 10);
-		}
+		if(IsValidClient(i))
+			TF2Attrib_RemoveByDefIndex(i, 10);
 	}
 	
 	// Initialize the main round timer.
