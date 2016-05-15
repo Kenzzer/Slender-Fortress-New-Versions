@@ -770,7 +770,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 	}
-	if(SF_IsRaidMap())
+	if(SF_IsRaidMap() && !g_bSlenderGiveUp[iBossIndex])
 	{
 		if(!IsValidClient(iTarget) || (IsValidClient(iTarget) && g_bPlayerEliminated[iTarget]))
 		{
@@ -814,7 +814,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	{
 		//Damit our target is unreachable for some unexplained reasons, haaaaaaaaaaaa!
 		iState = STATE_IDLE;
-		g_bSlenderGiveUp[iBossIndex] = false;
+		//Because raid maps force our state in chase mode, leave give up on true. Why? Because the server will try to calculate a path for an unreachable target..
+		if(!SF_IsRaidMap())
+			g_bSlenderGiveUp[iBossIndex] = false;
 	}
 	// Process which state we should be in.
 	switch (iState)
@@ -934,6 +936,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						// AHAHAHAH! I GOT YOU NOW!
 						iTarget = iBestNewTarget;
 						g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(iBestNewTarget);
+						g_bSlenderGiveUp[iBossIndex] = false;
 						iState = STATE_CHASE;
 					}
 				}
@@ -1117,6 +1120,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						g_bSlenderChaseDeathPosition[iBossIndex] = false;
 						
 						// Chase him again!
+						g_bSlenderGiveUp[iBossIndex] = false;
 						iState = STATE_CHASE;
 					}
 					else
@@ -1167,13 +1171,13 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			}
 		}
 	}
-	if (bCamper && iState != STATE_ATTACK)
+	if (bCamper && iState != STATE_ATTACK && !g_bSlenderGiveUp[iBossIndex])
 	{
 		bDoChasePersistencyInit = true;
 		iState = STATE_CHASE;
 	}
 	//In Raid maps the boss should always attack the target. 
-	if (SF_IsRaidMap() && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget))
+	if (SF_IsRaidMap() && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget) && !g_bSlenderGiveUp[iBossIndex])
 	{
 		g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "search_chase_duration");
 		iState = STATE_CHASE;
