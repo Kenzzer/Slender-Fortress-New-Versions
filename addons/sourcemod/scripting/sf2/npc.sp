@@ -1367,7 +1367,8 @@ public Action Hook_HitboxOnTakeDamage(int hitbox,int &attacker,int &inflictor,fl
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	//damage = Boss_HitBox_Damage(hitbox, attacker, damage, damagetype);
-	if(NPCChaserGetState(NPCGetFromEntIndex(g_iSlenderHitboxOwner[hitbox]))==STATE_STUN)
+	SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(g_iSlenderHitboxOwner[hitbox]);
+	if(Npc.IsValid() && NPCChaserGetState(NPCGetFromEntIndex(Npc.Index)==STATE_STUN))
 		damage = 0.0;
 	SetVariantInt(30000);
 	AcceptEntityInput(hitbox,"SetHealth");

@@ -821,7 +821,14 @@ public bool TraceRayDontHitPlayersOrEntity(int entity,int mask,any data)
 //	==========================================================
 //	TIMER/CALLBACK FUNCTIONS
 //	==========================================================
-
+stock void CloseEvent(Event event)
+{
+	CreateTimer(10.0,CloseEventTimer,event);
+}
+public Action CloseEventTimer(Handle timer,Event event)
+{
+	CloseHandle(event);
+}
 public Action Timer_KillEntity(Handle timer, any entref)
 {
 	int ent = EntRefToEntIndex(entref);

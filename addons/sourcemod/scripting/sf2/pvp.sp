@@ -158,7 +158,7 @@ public void PvP_OnGameFrame()
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 			bool bChangeProjectileTeam = false;
 			
 			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
@@ -302,7 +302,7 @@ public Action Hook_PvPProjectileSpawn(int ent)
 	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
@@ -327,7 +327,7 @@ public void Hook_PvPProjectileSpawnPost(int ent)
 	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
@@ -612,7 +612,7 @@ static void PvP_RemovePlayerProjectiles(int iClient)
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 			bool bMine = false;
 		
 			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");

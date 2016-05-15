@@ -699,7 +699,7 @@ public void OnPluginStart()
 	g_offsFogCtrlEnd = FindSendPropInfo("CFogController", "m_fog.end");
 	if (g_offsFogCtrlEnd == -1) LogError("Couldn't find CFogController offset for m_fog.end!");
 	
-	g_offsCollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
+	g_offsCollisionGroup = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	if (g_offsCollisionGroup == -1)  LogError("Couldn't find CBaseEntity offset for m_CollisionGroup!");
 	
 	g_hPageMusicRanges = CreateArray(3);
@@ -4478,7 +4478,7 @@ void ShowHudTextUsingTextEntity(const int[] iClients,int iClientsNum,int iGameTe
 	int Color1[4] = { 255, 255, 255, 255 };
 	int Color2[4] = { 255, 255, 255, 255 };
 	
-	int iParmsOffset = FindDataMapOffs(iGameText, "m_textParms");
+	int iParmsOffset = FindDataMapInfo(iGameText, "m_textParms");
 	if (iParmsOffset != -1)
 	{
 		// hudtextparms_s m_textParms
@@ -5187,7 +5187,7 @@ public Action Event_PlayerHurt(Handle event, const char[] name, bool dB)
 #endif
 }
 
-public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
+public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return;
 	
@@ -5345,7 +5345,52 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 		
 		g_hPlayerPostWeaponsTimer[iClient] = INVALID_HANDLE;
 	}
-	
+	if (!IsRoundEnding())
+	{
+		if (g_bRoundGrace || g_bPlayerEliminated[iClient] || IsClientInGhostMode(iClient))
+		{
+			//Copy the data
+			char sString[64];
+			Event event2 = CreateEvent("player_death");
+			event2.SetInt("userid",event.GetInt("userid"));
+			event2.SetInt("victim_entindex",event.GetInt("victim_entindex"));
+			event2.SetInt("inflictor_entindex",event.GetInt("inflictor_entindex"));
+			event2.SetInt("attacker",event.GetInt("attacker"));
+			event2.SetInt("weapon",event.GetInt("weapon"));
+			event2.SetInt("weaponid",event.GetInt("weaponid"));
+			event2.SetInt("damagebits",event.GetInt("damagebits"));
+			event2.SetInt("customkill",event.GetInt("customkill"));
+			event2.SetInt("assister",event.GetInt("assister"));
+			event2.SetInt("stun_flags",event.GetInt("stun_flags"));
+			event2.SetInt("death_flags",event.GetInt("death_flags"));
+			event2.SetBool("silent_kill",event.GetBool("silent_kill"));
+			event2.SetInt("playerpenetratecount",event.GetInt("playerpenetratecount"));
+			event2.SetInt("kill_streak_total",event.GetInt("kill_streak_total"));
+			event2.SetInt("kill_streak_wep",event.GetInt("kill_streak_wep"));
+			event2.SetInt("kill_streak_assist",event.GetInt("kill_streak_assist"));
+			event2.SetInt("kill_streak_victim",event.GetInt("kill_streak_victim"));
+			event2.SetInt("ducks_streaked",event.GetInt("ducks_streaked"));
+			event2.SetInt("duck_streak_total",event.GetInt("duck_streak_total"));
+			event2.SetInt("duck_streak_assist",event.GetInt("duck_streak_assist"));
+			event2.SetInt("duck_streak_victim",event.GetInt("duck_streak_victim"));
+			event2.SetBool("rocket_jump",event.GetBool("rocket_jump"));
+			event2.SetInt("weapon_def_index",event.GetInt("weapon_def_index"));
+			event.GetString("weapon_logclassname",sString,sizeof(sString));
+			event2.SetString("weapon_logclassname",sString);
+			event.GetString("assister_fallback",sString,sizeof(sString));
+			event2.SetString("assister_fallback",sString);
+			//Send it to the clients
+			for (int i = 1; i<=MaxClients; i++)
+			{
+				//dead-ringered spies are not supposed to see their death message.
+				if(bFake && i == iClient)
+					continue;
+				if(IsValidClient(i) && GetClientTeam(i) != TFTeam_Red)
+					event2.FireToClient(i);
+			}
+			CloseEvent(event2);
+		}
+	}
 	PvP_OnPlayerDeath(iClient, bFake);
 	
 #if defined DEBUG
@@ -6215,7 +6260,7 @@ static void GetRoundIntroParameters()
 		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
 		if (StrEqual(sName, "sf2_intro_fade", false))
 		{
-			int iColorOffset = FindSendPropOffs("CBaseEntity", "m_clrRender");
+			int iColorOffset = FindSendPropInfo("CBaseEntity", "m_clrRender");
 			if (iColorOffset != -1)
 			{
 				g_iRoundIntroFadeColor[0] = GetEntData(ent, iColorOffset, 1);
