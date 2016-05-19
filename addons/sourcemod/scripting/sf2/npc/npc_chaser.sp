@@ -1520,19 +1520,6 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							
 							g_iGeneralDist = 0;
 							
-							bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-								iGoalAreaIndex,
-								g_flSlenderGoalPos[iBossIndex],
-								SlenderChaseBossShortestPathCost,
-								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-								iClosestAreaIndex,
-								_,
-								NPCChaserGetStepSize(iBossIndex)*2.0);
-							
-							int iDist = g_iGeneralDist;
-							
-							g_iGeneralDist = 0;
-							
 							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 							iGoalAreaIndex,
 							g_flSlenderGoalPos[iBossIndex],
@@ -1540,27 +1527,28 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 							iClosestAreaIndex);
 							
-							if((iDist*0.5)>g_iGeneralDist || !bSafePathSuccess)
+							if(bPathSuccess)
 							{
-								//The safe path is sometimes not the best solution, if we are too much away from the player we have to hurry with the shortest one.
-								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-								iGoalAreaIndex,
-								g_flSlenderGoalPos[iBossIndex],
-								SlenderChaseBossShortestPathCost,
-								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-								iClosestAreaIndex);
-							}
-							else
-							{
-								//The safe path is fine
-								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+								//Our shortest path was a sucess, let's see if the safe one works.
+								bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 								iGoalAreaIndex,
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex,
-								_,
+								(g_iGeneralDist*2.5),
 								NPCChaserGetStepSize(iBossIndex)*2.0);
+								
+								if(!bSafePathSuccess)
+								{
+									//No safe path, use the shortest path.
+									bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+									iGoalAreaIndex,
+									g_flSlenderGoalPos[iBossIndex],
+									SlenderChaseBossShortestPathCost,
+									RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
+									iClosestAreaIndex);
+								}
 							}
 							
 							int iTempAreaIndex = iClosestAreaIndex;

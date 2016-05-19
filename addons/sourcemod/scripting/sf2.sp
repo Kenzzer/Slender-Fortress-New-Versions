@@ -117,6 +117,9 @@ int g_offsCollisionGroup = -1;
 int g_iPathLaserModelIndex;
 #endif
 
+//Commands
+float g_flLastCommandTime[MAXPLAYERS + 1];
+
 bool g_bEnabled;
 
 Handle g_hConfig;
@@ -1809,7 +1812,7 @@ public Action Command_GhostMode(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bPlayerProxy[iClient])
+	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bPlayerProxy[iClient] || TF2_IsPlayerInCondition(iClient,TFCond_HalloweenKart) || TF2_IsPlayerInCondition(iClient,TFCond_Taunting)|| TF2_IsPlayerInCondition(iClient,TFCond_Charging) || g_flLastCommandTime[iClient] > GetEngineTime())
 	{
 		CPrintToChat(iClient, "{red}%T", "SF2 Ghost Mode Not Allowed", iClient);
 		return Plugin_Handled;
@@ -1829,6 +1832,7 @@ public Action Command_GhostMode(int iClient,int args)
 		
 		CPrintToChat(iClient, "{olive}%T", "SF2 Ghost Mode Disabled", iClient);
 	}
+	g_flLastCommandTime[iClient] = GetEngineTime()+0.5;
 	return Plugin_Handled;
 }
 
@@ -3196,6 +3200,8 @@ public void OnClientPutInServer(int iClient)
 #endif
 	
 	ClientSetPlayerGroup(iClient, -1);
+	
+	g_flLastCommandTime[iClient] = GetEngineTime();
 	
 	g_bPlayerEscaped[iClient] = false;
 	g_bPlayerEliminated[iClient] = true;
