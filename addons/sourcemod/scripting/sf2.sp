@@ -33,13 +33,13 @@ bool sendproxymanager=false;
 #include <sf2>
 #pragma newdecls required
 
-#define PLUGIN_VERSION "0.3.2_1"
-#define PLUGIN_VERSION_DISPLAY "0.3.2"
+#define PLUGIN_VERSION "1.0.0-dev3"
+#define PLUGIN_VERSION_DISPLAY "1.0.0"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2
 #define TFTeam_Blue 3
-//#define TFTeam_Boss 5
+#define TFTeam_Boss 5
 
 #define EF_ITEM_BLINK 0x100
 

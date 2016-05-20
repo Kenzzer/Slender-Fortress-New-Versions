@@ -454,14 +454,14 @@ public void PvP_OnTriggerStartTouch(int trigger,int iOther)
 	{
 		if (IsValidClient(iOther) && IsPlayerAlive(iOther))
 		{
+			//Use valve's kill code if the player is stuck.
+			if(GetEntPropFloat(iOther, Prop_Send, "m_flModelScale") != 1.0)
+				TF2_AddCondition(iOther, TFCond_HalloweenTiny, 0.1);
 			//Resize the player.
 			SetEntPropFloat(iOther, Prop_Send, "m_flModelScale", 1.0);
 			SetEntPropFloat(iOther, Prop_Send, "m_flHeadScale", 1.0);
 			SetEntPropFloat(iOther, Prop_Send, "m_flTorsoScale", 1.0);
 			SetEntPropFloat(iOther, Prop_Send, "m_flHandScale", 1.0);
-			
-			//Use valve's kill code if the player is stuck.
-			TF2_AddCondition(iOther, TFCond_HalloweenTiny, 0.1);
 			
 			g_bPlayerInPvPTrigger[iOther] = true;
 			
