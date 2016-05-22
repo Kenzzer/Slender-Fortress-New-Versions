@@ -545,6 +545,8 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 								
 								Handle hCvar = FindConVar("tf_weapon_criticals");
 								if (hCvar != INVALID_HANDLE && GetConVarBool(hCvar)) damagetype |= DMG_ACID;
+								
+								g_bBackStabbed[victim] = true;
 								return Plugin_Changed;
 							}
 						}
@@ -3380,7 +3382,7 @@ void ClientOnJump(int client)
 			int iOverride = GetConVarInt(g_cvPlayerInfiniteSprintOverride);
 			if ((!g_bRoundInfiniteSprint && iOverride != 1) || iOverride == 0)
 			{
-				if(g_iPlayerSprintPoints[client] > 10)
+				if(g_iPlayerSprintPoints[client] > 2)
 				{
 					g_iPlayerSprintPoints[client] -= 7;
 					if (g_iPlayerSprintPoints[client] < 0) g_iPlayerSprintPoints[client] = 0;

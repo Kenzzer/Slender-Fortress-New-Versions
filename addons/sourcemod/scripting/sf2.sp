@@ -313,6 +313,7 @@ bool g_bPlayerEscaped[MAXPLAYERS + 1];
 int g_iPlayerPageCount[MAXPLAYERS + 1];
 int g_iPlayerQueuePoints[MAXPLAYERS + 1];
 bool g_bPlayerPlaying[MAXPLAYERS + 1];
+bool g_bBackStabbed[MAXPLAYERS + 1];
 Handle g_hPlayerOverlayCheck[MAXPLAYERS + 1];
 
 Handle g_hPlayerSwitchBlueTimer[MAXPLAYERS + 1];
@@ -4979,6 +4980,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			GetBossMusic(sPath,sizeof(sPath));
 			StopSound(iClient, MUSIC_CHAN, sPath);
 		}
+		g_bBackStabbed[iClient] = false;
 		TF2_RemoveCondition(iClient, view_as<TFCond>(82));
 		TF2_RemoveCondition(iClient, TFCond_SpawnOutline);
 		if (HandlePlayerTeam(iClient))
@@ -5117,7 +5119,7 @@ public Action Event_DontBroadcastToClients(Handle event, const char[] name, bool
 	return Plugin_Continue;
 }
 
-public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
+public Action Event_PlayerDeathPre(Event event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
@@ -5127,14 +5129,19 @@ public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
 	
 	if (!IsRoundInWarmup())
 	{
-		int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+		int iClient = GetClientOfUserId(event.GetInt("userid"));
 		if (iClient > 0)
 		{
+			if (g_bBackStabbed[iClient])
+			{
+				event.SetInt("customkill", TF_CUSTOM_BACKSTAB);
+				g_bBackStabbed[iClient] = false;
+			}
 			if (!IsRoundEnding())
 			{
 				if (g_bRoundGrace || GetClientTeam(iClient) != TFTeam_Red)
 				{
-					SetEventBroadcast(event, true);
+					event.BroadcastDisabled = true;
 				}
 			}
 		}
@@ -5208,8 +5215,8 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerDeath(%d)", iClient);
 #endif
 	
-	bool bFake = view_as<bool>(GetEventInt(event, "death_flags") & TF_DEATHFLAG_DEADRINGER);
-	int inflictor = GetEventInt(event, "inflictor_entindex");
+	bool bFake = view_as<bool>(event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER);
+	int inflictor = event.GetInt("inflictor_entindex");
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("inflictor = %d", inflictor);
@@ -5332,13 +5339,13 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 		int iKatanaHealthGain = GetConVarInt(g_cvHalfZatoichiHealthGain);
 		if (iKatanaHealthGain >= 0)
 		{
-			int iAttacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+			int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
 			if (iAttacker > 0)
 			{
 				if (!IsClientInPvP(iAttacker) && (!g_bPlayerEliminated[iAttacker] || g_bPlayerProxy[iAttacker]))
 				{
 					char sWeapon[64];
-					GetEventString(event, "weapon", sWeapon, sizeof(sWeapon));
+					event.GetString("weapon",sWeapon,sizeof(sWeapon));
 					
 					if (StrEqual(sWeapon, "demokatana"))
 					{
@@ -5357,7 +5364,8 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 	}
 	if (!IsRoundEnding())
 	{
-		if (!g_bRoundGrace && GetClientTeam(iClient) != TFTeam_Red)
+		int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
+		if (!g_bRoundGrace && GetClientTeam(iClient) != TFTeam_Red && iClient != iAttacker)
 		{
 			//Copy the data
 			char sString[64];

@@ -341,7 +341,7 @@ stock bool TF2_IsPlayerCritBuffed(int iClient)
 stock bool IsTauntWep(int iWeapon)
 {
 	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
-	if(Index==37 || Index==304 || Index==5 || Index==195 || Index==43 || Index==239 || Index==310 || Index==331 || Index==426 || Index==587 || Index==656 || Index==1084 || Index==1100)
+	if(Index==37 || Index==304 || Index==5 || Index==195 || Index==43 || Index==239 || Index==310 || Index==331 || Index==426 || Index==587 || Index==656 || Index==1084 || Index==1100 || Index == 1143)
 		return true;
 	return false;
 }
