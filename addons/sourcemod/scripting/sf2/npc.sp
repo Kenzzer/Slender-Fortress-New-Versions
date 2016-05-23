@@ -1987,6 +1987,7 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 		if (GetGameTime() >= g_flSlenderNextTeleportTime[iBossIndex])
 		{
 			float flTeleportTime = GetRandomFloat(GetProfileFloat(sProfile, "teleport_time_min", 5.0), GetProfileFloat(sProfile, "teleport_time_max", 9.0));
+			bool bIgnoreFuncNavPrefer = view_as<bool>(GetProfileNum(sProfile, "ignore_nav_prefer", 1));
 			g_flSlenderNextTeleportTime[iBossIndex] = GetGameTime() + flTeleportTime;
 			
 			int iTeleportTarget = EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
@@ -2040,6 +2041,9 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 									// Don't spawn/teleport at areas marked with the "NO HOSTAGES" flag.
 									continue;
 								}
+								// Check if the nav area has a func prefer on it.
+								if (bIgnoreFuncNavPrefer && NavHasFuncPrefer(iAreaIndex))
+									continue;
 								
 								int iIndex = PushArrayCell(hAreaArray, iAreaIndex);
 								SetArrayCell(hAreaArray, iIndex, float(NavMeshArea_GetCostSoFar(iAreaIndex)), 1);
@@ -2109,17 +2113,13 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 									{
 										continue;
 									}
-									
-									if (NPCGetType(iBossIndex) == SF2BossType_Chaser)
+									if (IsSpaceOccupiedNPC(flTraceHitPos,
+										HULL_HUMAN_MINS,
+										HULL_HUMAN_MAXS,
+										iBoss))
 									{
-										if (IsSpaceOccupiedNPC(flTraceHitPos,
-											HULL_HUMAN_MINS,
-											HULL_HUMAN_MAXS,
-											iBoss))
-										{
-											// Can't let an NPC spawn here; too little space. If we let it spawn here it will be non solid!
-											continue;
-										}
+										// Can't let an NPC spawn here; too little space. If we let it spawn here it will be non solid!
+										continue;
 									}
 									
 									flAreaSpawnPoint[0] = flTraceHitPos[0];

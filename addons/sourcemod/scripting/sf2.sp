@@ -576,6 +576,7 @@ Handle g_hSDKWantsLagCompensationOnEntity;
 Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
+Handle g_hSDKPointIsWithin;
 
 #if defined DEBUG
 #include "sf2/debug.sp"
@@ -915,6 +916,8 @@ public void OnPluginStart()
 	
 	PvP_Initialize();
 	
+	Nav_Initialize();
+	
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
 #if defined DEBUG
@@ -993,7 +996,7 @@ static void SetupHooks()
 	PrepSDKCall_SetFromConf( hConfig, SDKConf_Virtual, "CTFPlayer::EquipWearable" );
 	PrepSDKCall_AddParameter( SDKType_CBaseEntity, SDKPass_Pointer );
 	g_hSDKEquipWearable = EndPrepSDKCall();
-	if( g_hSDKEquipWearable == INVALID_HANDLE )//In case the signature is missing, look if the server has the tf2 randomizer's gamedata.
+	if( g_hSDKEquipWearable == INVALID_HANDLE )//In case the offset is missing, look if the server has the tf2 randomizer's gamedata.
 	{
 		char strFilePath[PLATFORM_MAX_PATH];
 		BuildPath( Path_SM, strFilePath, sizeof(strFilePath), "gamedata/tf2items.randomizer.txt" );
@@ -1021,13 +1024,26 @@ static void SetupHooks()
 	{
 		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SF2 gamedata!");
 	}
+	
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
 	g_hSDKPlaySpecificSequence = EndPrepSDKCall();
 	if(g_hSDKPlaySpecificSequence == INVALID_HANDLE)
 	{
-		SetFailState("Failed to retrieve CTFPlayer::PlaySpecificSequence signature from SF2 gamedata!");
+		PrintToServer("Failed to retrieve CTFPlayer::PlaySpecificSequence signature from SF2 gamedata!");
+		//Don't have to call SetFailState, since this function is used in a minor part of the code.
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	g_hSDKPointIsWithin = EndPrepSDKCall();
+	if(g_hSDKPointIsWithin == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve CBaseTrigger::PointIsWithin signature from SF2 gamedata!");
+		//Don't have to call SetFailState, since this function is used in a minor part of the code.
 	}
 	
 	int iOffset = GameConfGetOffset(hConfig, "CTFPlayer::WantsLagCompensationOnEntity"); 
@@ -4543,6 +4559,8 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 	NPCStopMusic();
 	// Remove all bosses from the game.
 	NPCRemoveAll();
+	// Collect the func_nav_prefer
+	NavCollectFuncNavPrefer();
 	
 	// Refresh groups.
 	for (int i = 0; i < SF2_MAX_PLAYER_GROUPS; i++)

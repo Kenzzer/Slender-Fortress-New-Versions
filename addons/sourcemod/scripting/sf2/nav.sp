@@ -5,6 +5,7 @@
 
 #define JumpCrouchHeight 58.0
 
+static Handle g_hFuncNavPrefer;
 
 methodmap NavPath < Handle
 {
@@ -44,6 +45,36 @@ methodmap NavPath < Handle
 	}
 }
 
+void Nav_Initialize()
+{
+	g_hFuncNavPrefer = CreateArray();
+}
+
+stock void NavCollectFuncNavPrefer()
+{
+	ClearArray(g_hFuncNavPrefer);
+	int iFunc = -1;
+	while ((iFunc = FindEntityByClassname(iFunc, "func_nav_prefer")) != -1)
+	{
+		PushArrayCell(g_hFuncNavPrefer, iFunc);
+	}
+}
+
+stock bool NavHasFuncPrefer(int iAreaIndex)
+{
+	float flCenter[3];
+	NavMeshArea_GetCenter(iAreaIndex, flCenter);
+	if (GetArraySize(g_hFuncNavPrefer) > 0)
+	{
+		for (int a = 1;a <= (GetArraySize(g_hFuncNavPrefer) - 1);a++)
+		{
+			int iFunc = GetArrayCell(g_hFuncNavPrefer, a);
+			if (SDK_PointIsWithin(iFunc, flCenter))
+				return true;
+		}
+	}
+	return false;
+}
 
 stock Handle CreateNavPath()
 {

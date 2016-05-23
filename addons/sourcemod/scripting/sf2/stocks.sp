@@ -75,6 +75,15 @@ stock bool SF_IsRaidMap()
 {
 	return view_as<bool>(g_bIsRaidMap || (GetConVarInt(g_cvRaidMap) == 1));
 }
+bool SDK_PointIsWithin(int iFunc, float flPos[3])
+{
+	if(g_hSDKPointIsWithin != INVALID_HANDLE)
+	{
+		return view_as<bool>(SDKCall(g_hSDKPointIsWithin, iFunc, flPos));
+	}
+
+	return false;
+}
 //	==========================================================
 //	ENTITY FUNCTIONS
 //	==========================================================
