@@ -886,6 +886,8 @@ public void OnPluginStart()
 	HookEntityOutput("info_npc_spawn_destination", "OnUser1", NPCSpawn);
 	HookEntityOutput("trigger_multiple", "OnStartTouch", Hook_TriggerOnStartTouch);
 	HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
+	HookEntityOutput("trigger_teleport", "OnStartTouch", Hook_TriggerTeleportOnStartTouch);
+	//HookEntityOutput("trigger_teleport", "OnEndTouch", Hook_TriggerTeleportOnEndTouch);
 	
 	// Hook usermessages.
 	HookUserMessage(GetUserMessageId("VoiceSubtitle"), Hook_BlockUserMessage, true);
@@ -3067,6 +3069,59 @@ public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator
 	}
 }
 
+public void Hook_TriggerTeleportOnStartTouch(const char[] output,int caller,int activator, float delay)
+{
+	if (!g_bEnabled) return;
+
+	if (!IsValidEntity(caller)) return;
+	
+	int flags = GetEntProp(caller, Prop_Data, "m_spawnflags");
+	if (((flags & TRIGGER_CLIENTS) && (flags & TRIGGER_NPCS)) || (flags & TRIGGER_EVERYTHING_BUT_PHYSICS_DEBRIS))
+	{
+		if (IsValidClient(activator))
+		{
+			bool bChase = ClientHasMusicFlag(activator, MUSICF_CHASE);
+			if (bChase)
+			{
+				// The player took a teleporter and is chased, and the boss can take it too, add the teleporter to the temp boss' goals.
+				for (int i = 0; i < MAX_BOSSES; i++)
+				{
+					if (NPCGetUniqueID(i) == -1) continue;
+					if (g_iSlenderTarget[i] != activator)
+					{
+						for (int ii = 0;ii < MAX_NPCTELEPORTER;ii++)
+						{
+							if (NPCChaserGetTeleporter(i,ii) == INVALID_ENT_REFERENCE)
+							{
+								NPCChaserSetTeleporter(i,ii,EntIndexToEntRef(caller));
+								break;
+							}
+						}
+					}
+				}
+			}
+			return;
+		}
+		SF2NPC_Chaser NpcChaser = view_as<SF2NPC_Chaser>(NPCGetFromEntIndex(activator));
+		if (NpcChaser.IsValid())
+		{
+			//A boss took a teleporter
+			int iTeleporter = NpcChaser.GetTeleporter(0);
+			if (iTeleporter == EntIndexToEntRef(caller)) //Remove our temp goal, and go back chase our target! GRAAAAAAAAAAAAh! Unless we have some other teleporters to take....fak.
+				NpcChaser.SetTeleporter(0,INVALID_ENT_REFERENCE);
+			if (MAX_NPCTELEPORTER>2 && NpcChaser.GetTeleporter(1) != INVALID_ENT_REFERENCE)
+			{
+				for (int i = 0;i+1 < MAX_NPCTELEPORTER;i++)
+				{
+					if (NpcChaser.GetTeleporter(i+1) != INVALID_ENT_REFERENCE)
+						NpcChaser.SetTeleporter(i,NpcChaser.GetTeleporter(i+1));
+					else
+						NpcChaser.SetTeleporter(i,INVALID_ENT_REFERENCE);
+				}
+			}
+		}
+	}
+}
 public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3], float damagePosition[3],int damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;

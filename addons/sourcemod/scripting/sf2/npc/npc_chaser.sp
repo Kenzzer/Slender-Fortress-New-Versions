@@ -22,6 +22,7 @@ static float g_flNPCStunInitialHealth[MAX_BOSSES];
 static float g_flNPCStunHealth[MAX_BOSSES];
 
 static int g_iNPCState[MAX_BOSSES] = { -1, ... };
+static int g_iNPCTeleporter[MAX_BOSSES][MAX_NPCTELEPORTER];
 static int g_iNPCMovementActivity[MAX_BOSSES] = { -1, ... };
 static int g_iGeneralDist;
 
@@ -109,6 +110,16 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 		return SF2NPC_Chaser:SF2NPC_BaseNPC(index);
 	}
 	
+	public int GetTeleporter(int iTeleporterNumber)
+	{
+		return NPCChaserGetTeleporter(this.Index,iTeleporterNumber);
+	}
+	
+	public void SetTeleporter(int iTeleporterNumber,int iEntity)
+	{
+		NPCChaserSetTeleporter(this.Index,iTeleporterNumber,iEntity);
+	}
+	
 	public float GetWalkSpeed(int difficulty)
 	{
 		return NPCChaserGetWalkSpeed(this.Index, difficulty);
@@ -155,6 +166,15 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 	}
 }
 
+public void NPCChaserSetTeleporter(int iBossIndex, int iTeleporterNumber, int iEntity)
+{
+	g_iNPCTeleporter[iBossIndex][iTeleporterNumber] = iEntity;
+}
+
+public int NPCChaserGetTeleporter(int iBossIndex, int iTeleporterNumber)
+{
+	return g_iNPCTeleporter[iBossIndex][iTeleporterNumber];
+}
 
 public void NPCChaserInitialize()
 {
@@ -823,6 +843,11 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	{
 		case STATE_IDLE, STATE_WANDER:
 		{
+			for (int i = 0;i < MAX_NPCTELEPORTER;i++)
+			{
+				if (NPCChaserGetTeleporter(iBossIndex,i) != INVALID_ENT_REFERENCE)
+					NPCChaserSetTeleporter(iBossIndex,i,INVALID_ENT_REFERENCE);
+			}
 			if (iState == STATE_WANDER)
 			{
 				if (GetArraySize(g_hSlenderPath[iBossIndex]) <= 0)
@@ -1498,6 +1523,12 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						}
 					}
 				}
+				if (NPCChaserGetTeleporter(iBossIndex,0) != INVALID_ENT_REFERENCE)
+				{
+					int iTeleporter = EntRefToEntIndex(NPCChaserGetTeleporter(iBossIndex,0));
+					if (IsValidEntity(iTeleporter))
+						GetEntPropVector(iTeleporter, Prop_Data, "m_vecAbsOrigin", g_flSlenderGoalPos[iBossIndex]);
+				}
 			}
 			
 			if (NavMesh_Exists())
@@ -1579,9 +1610,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 										g_bSlenderGiveUp[iBossIndex] = true;
 									}
 								}
-								//Some maps have teleporters like citadel or hellfire let's see if we are on the same nav area.
+								//Some maps have non-npcs teleporters like citadel let's see if we are on the same nav area
 								//I think this connected check should be done before the calculation.
-								if(!NavMeshArea_IsConnected(iCurrentAreaIndex, iGoalAreaIndex))
+								if(!NavMeshArea_IsConnected(iCurrentAreaIndex, iGoalAreaIndex) && NPCChaserGetTeleporter(iBossIndex,0) == INVALID_ENT_REFERENCE)
 								{
 									//Nope we aren't, give up...
 									//PrintToChatAll("Wait come back!");
