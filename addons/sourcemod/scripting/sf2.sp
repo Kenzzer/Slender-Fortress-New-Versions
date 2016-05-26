@@ -426,7 +426,7 @@ static bool g_bNewBossRoundContinuous = false;
 static int g_iNewBossRoundCount = 1;
 
 static bool g_bPlayerPlayedNewBossRound[MAXPLAYERS + 1] = { true, ... };
-static char g_strintBossRoundProfile[64] = "";
+static char g_strNewBossRoundProfile[64] = "";
 
 static Handle g_hRoundMessagesTimer = INVALID_HANDLE;
 static int g_iRoundMessagesNum = 0;
@@ -577,6 +577,9 @@ Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKPointIsWithin;
+
+//Fail Timer
+Handle g_hTimerFail;
 
 #if defined DEBUG
 #include "sf2/debug.sp"
@@ -1121,6 +1124,7 @@ static void SetupClassDefaultWeapons()
 
 public void OnMapStart()
 {
+	g_hTimerFail = INVALID_HANDLE;
 	PvP_OnMapStart();
 	FindHealthBar();
 #if defined DEBUG
@@ -1225,7 +1229,7 @@ static void StartPlugin()
 	g_bNewBossRoundNew = false;
 	g_bNewBossRoundContinuous = false;
 	g_iNewBossRoundCount = 1;
-	strcopy(g_strintBossRoundProfile, sizeof(g_strintBossRoundProfile), "");
+	strcopy(g_strNewBossRoundProfile, sizeof(g_strNewBossRoundProfile), "");
 	
 	// Reset global round vars.
 	g_iRoundCount = 0;
@@ -3429,6 +3433,7 @@ public void OnClientDisconnect(int iClient)
 		}
 	}
 	
+	g_bPlayerEliminated[iClient] = true;
 	// Reset queue points global variable.
 	g_iPlayerQueuePoints[iClient] = 0;
 	
@@ -4686,6 +4691,9 @@ public Action Event_RoundEnd(Handle event, const char[] name, bool dB)
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_RoundEnd");
 #endif
+
+	SF_FailEnd();
+	
 	SpecialRound_RoundEnd();
 	
 	SetRoundState(SF2RoundState_Outro);
@@ -5435,7 +5443,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 		
 		g_hPlayerPostWeaponsTimer[iClient] = INVALID_HANDLE;
 	}
-	if (!IsRoundEnding())
+	if (!IsRoundEnding() && !g_bRoundWaitingForPlayers)
 	{
 		int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
 		if (!g_bRoundGrace && GetClientTeam(iClient) != TFTeam_Red && iClient != iAttacker)
@@ -5610,6 +5618,10 @@ public Action Timer_RoundTime(Handle timer)
 	
 	if (g_iRoundTime <= 0)
 	{
+		//The round ended trigger a security timer.
+		SF_FailEnd();
+		SF_FailRoundEnd(2.0);
+		
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_bPlayerEliminated[i] || IsClientInGhostMode(i)) continue;
@@ -5659,6 +5671,10 @@ public Action Timer_RoundTimeEscape(Handle timer)
 	
 	if (g_iRoundTime <= 0)
 	{
+		//The round ended trigger a security timer.
+		SF_FailEnd();
+		SF_FailRoundEnd(2.0);
+		
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_bPlayerEliminated[i] || IsClientInGhostMode(i) || DidClientEscape(i)) continue;
@@ -5668,7 +5684,6 @@ public Action Timer_RoundTimeEscape(Handle timer)
 			ClientStartDeathCam(i, 0, flBuffer);
 			KillClient(i);
 		}
-		
 		return Plugin_Stop;
 	}
 	
@@ -5736,6 +5751,58 @@ public Action Timer_VoteDifficulty(Handle timer, any data)
 	
 	VoteMenu(g_hMenuVoteDifficulty, iClients, iClientsNum, 15);
 	
+	return Plugin_Stop;
+}
+
+void SF_FailRoundEnd(float time=2.0)
+{
+	//Check round win conditions again.
+	CreateTimer((time-0.8), Timer_CheckRoundWinConditions);
+	
+	g_hTimerFail = CreateTimer(time, Timer_Fail);
+}
+
+void SF_FailEnd()
+{
+	if (g_hTimerFail != INVALID_HANDLE)
+		CloseHandle(g_hTimerFail);
+	g_hTimerFail = INVALID_HANDLE;
+}
+
+public Action Timer_Fail(Handle hTimer)
+{
+	LogSF2Message("Wow you hit a rare bug, where the round doesn't end after the timer ran out. Collecting info on your game...\nThanks to open an issue here: (https://github.com/Benoist3012/Slender-Fortress-New-Versions/issues) and post the following log:");
+	int iEscapedPlayers = 0;
+	int iClientInGame = 0;
+	int iRedPlayers = 0;
+	int iBluPlayers = 0;
+	int iEliminatedPlayers = 0;
+	for (int iClient = 0;iClient <= MaxClients; iClient++)
+	{
+		if (IsClientInGame(iClient))
+		{
+			iClientInGame++;
+			LogSF2Message("Player %N (%i), Team: %d, Eliminated: %d, Escaped: %d.", iClient, iClient, GetClientTeam(iClient), g_bPlayerEliminated[iClient], DidClientEscape(iClient));
+			if (GetClientTeam(iClient) == TFTeam_Blue)
+				iBluPlayers++;
+			else if (GetClientTeam(iClient) == TFTeam_Red)
+				iRedPlayers++;
+		}
+		if (g_bPlayerEliminated[iClient])
+		{
+			iEliminatedPlayers++;
+		}
+		if (DidClientEscape(iClient))
+		{
+			iEscapedPlayers++;
+		}
+	}
+	LogSF2Message("Total clients: %d, Blu players: %d, Red players: %d, Escaped players: %d, Eliminated players: %d", MaxClients, iBluPlayers, iRedPlayers, iEscapedPlayers, iEliminatedPlayers);
+	//Force blus to win.
+	ForceTeamWin(TFTeam_Blue);
+	
+	g_hTimerFail = INVALID_HANDLE;
+
 	return Plugin_Stop;
 }
 
@@ -6119,7 +6186,7 @@ static bool HandleSpecialRoundState()
 #endif
 }
 
-bool IsintBossRoundRunning()
+bool IsNewBossRoundRunning()
 {
 	return g_bNewBossRound;
 }
@@ -6127,7 +6194,7 @@ bool IsintBossRoundRunning()
 /**
  *	Returns an array which contains all the profile names valid to be chosen for a int boss round.
  */
-static Handle GetintBossRoundProfileList()
+static Handle GetNewBossRoundProfileList()
 {
 	Handle hBossList = CloneArray(GetSelectableBossProfileList());
 	
@@ -6152,7 +6219,7 @@ static Handle GetintBossRoundProfileList()
 	return hBossList;
 }
 
-static void HandleintBossRoundState()
+static void HandleNewBossRoundState()
 {
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START HandleintBossRoundState()");
@@ -6212,7 +6279,7 @@ static void HandleintBossRoundState()
 	// Check if we have enough bosses.
 	if (g_bNewBossRound)
 	{
-		Handle hBossList = GetintBossRoundProfileList();
+		Handle hBossList = GetNewBossRoundProfileList();
 	
 		if (GetArraySize(hBossList) < 1)
 		{
@@ -6294,14 +6361,14 @@ static void SelectStartingBossesForRound()
 	{
 		if (g_bNewBossRoundNew)
 		{
-			Handle hBossList = GetintBossRoundProfileList();
+			Handle hBossList = GetNewBossRoundProfileList();
 		
-			GetArrayString(hBossList, GetRandomInt(0, GetArraySize(hBossList) - 1), g_strintBossRoundProfile, sizeof(g_strintBossRoundProfile));
+			GetArrayString(hBossList, GetRandomInt(0, GetArraySize(hBossList) - 1), g_strNewBossRoundProfile, sizeof(g_strNewBossRoundProfile));
 		
 			CloseHandle(hBossList);
 		}
 		
-		strcopy(g_strRoundBossProfile, sizeof(g_strRoundBossProfile), g_strintBossRoundProfile);
+		strcopy(g_strRoundBossProfile, sizeof(g_strRoundBossProfile), g_strNewBossRoundProfile);
 	}
 	else
 	{
@@ -6483,7 +6550,7 @@ void InitializeNewGame()
 	}
 	
 	// Determine boss round state.
-	HandleintBossRoundState();
+	HandleNewBossRoundState();
 	
 	if (g_bNewBossRound)
 	{
