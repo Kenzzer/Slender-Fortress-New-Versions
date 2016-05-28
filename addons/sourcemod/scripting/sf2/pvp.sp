@@ -6,18 +6,6 @@
 
 #define SF2_PVP_SPAWN_SOUND "items/spawn_item.wav"
 
-#define TRIGGER_CLIENTS (1 << 0)
-#define TRIGGER_NPCS (1 << 1)
-#define TRIGGER_PUSHABLES (1 << 2)
-#define TRIGGER_PHYSICS_OBJECTS (1 << 3)
-#define TRIGGER_ALLY_NPCS (1 << 4)
-#define TRIGGER_CLIENTS_VEHICLES (1 << 5)
-#define TRIGGER_EVERYTHING_NOT_DEBRIS (1 << 6)
-#define TRIGGER_CLIENTS_NOT_VEHICLES (1 << 7)
-#define TRIGGER_PHYSICS_DEBRIS (1 << 8)
-#define TRIGGER_NPCS_VEHICLES (1 << 9)
-#define TRIGGER_NOT_BOTS (1 << 10)
-
 Handle g_cvPvPArenaLeaveTime;
 Handle g_cvPvPArenaPlayerCollisions;
 Handle g_cvPvPArenaProjectileZap;
@@ -104,7 +92,7 @@ public void PvP_OnMapStart()
 			GetEntPropString(iEnt, Prop_Data, "m_iName", strName, sizeof(strName));
 			if(strcmp(strName, "sf2_pvp_trigger") == 0)
 			{
-				//StartTouch seems to be unreliable if a player is teleported/spawns in the trigger
+				//StartTouch seems to be unreliable if a player is teleported/spawned in the trigger
 				//SDKHook( iEnt, SDKHook_StartTouch, PvP_OnTriggerStartTouch );
 				//But end touch works fine.
 				SDKHook( iEnt, SDKHook_EndTouch, PvP_OnTriggerEndTouch );

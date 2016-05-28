@@ -504,7 +504,7 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 	if (iAction == Plugin_Changed) 
 	{
 		damage = damage2;
-		return Plugin_Continue;
+		return Plugin_Changed;
 	}
 	
 	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red && victim != attacker)
