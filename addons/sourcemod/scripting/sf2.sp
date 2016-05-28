@@ -5777,9 +5777,9 @@ public Action Timer_Fail(Handle hTimer)
 	int iRedPlayers = 0;
 	int iBluPlayers = 0;
 	int iEliminatedPlayers = 0;
-	for (int iClient = 0;iClient <= MaxClients; iClient++)
+	for (int iClient = 1;iClient <= MaxClients; iClient++)
 	{
-		if (IsClientInGame(iClient))
+		if (IsValidClient(iClient))
 		{
 			iClientInGame++;
 			LogSF2Message("Player %N (%i), Team: %d, Eliminated: %d, Escaped: %d.", iClient, iClient, GetClientTeam(iClient), g_bPlayerEliminated[iClient], DidClientEscape(iClient));
