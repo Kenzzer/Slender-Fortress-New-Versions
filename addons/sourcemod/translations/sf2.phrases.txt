@@ -290,7 +290,7 @@
 	"SF2 Help Heavy Class Info Description"
 	{
 		"en"	"[+] Large health, least affected by screen wobbling\n[-] The Gloves of Running Urgently only affects sprinting speed"
-		"en"	"[+] Много здоровья, мало подвержен внушению\n[-] ГРУ влияют только на скорость бега"
+		"ru"	"[+] Много здоровья, мало подвержен внушению\n[-] ГРУ влияют только на скорость бега"
 	}
 
 	"SF2 Help Medic Class Info Menu Title"
@@ -302,7 +302,7 @@
 	"SF2 Help Medic Class Info Description"
 	{
 		"en"	"[+] Regenerates health over time\n[-] Prioritized target to bosses"
-		"en"	"[+] Со временем восстанавливает здоровье\n[-] Приоритетная цель"
+		"ru"	"[+] Со временем восстанавливает здоровье\n[-] Приоритетная цель"
 	}
 
 	"SF2 Help Pyro Class Info Menu Title"
