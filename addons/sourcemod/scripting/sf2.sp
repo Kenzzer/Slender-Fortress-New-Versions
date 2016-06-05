@@ -1480,7 +1480,7 @@ public void OnGameFrame()
 							AddVectors(ang, g_flSlenderEyePosOffset[i], ang);
 							for (int i2 = 0; i2 < 3; i2++) ang[i2] = AngleNormalize(ang[i2]);
 							
-							TeleportEntity(iBoss, NULL_VECTOR, ang, NULL_VECTOR);
+							DispatchKeyValueVector(iBoss, "angles", ang);
 						}
 					}
 				}
@@ -4148,7 +4148,8 @@ public Action Timer_SlenderBlinkBossThink(Handle timer, any entref)
 					GetProfileVector(sProfile, "pos_offset", flBuffer);
 					AddVectors(buffer, flBuffer, buffer);
 					
-					TeleportEntity(slender, buffer, flAng, NULL_VECTOR);
+					DispatchKeyValueVector(slender, "origin", buffer);
+					DispatchKeyValueVector(slender, "angles", flAng);
 					
 					float flMaxRange = GetProfileFloat(sProfile, "teleport_range_max");
 					float flDist = GetVectorDistance(buffer, flPos);
