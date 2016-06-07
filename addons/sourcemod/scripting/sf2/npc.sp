@@ -3369,11 +3369,11 @@ stock bool SpawnProxy(int client,int iBossIndex,float flTeleportPos[3])
 				}
 			}
 		}
-		if(iTeleportAreaIndex == -1)
-		{
+		if (iTeleportAreaIndex == -1)
 			return false;
-		}
+		else
+			return true;
 	}
-	return true;
+	return false;
 }
 #include "sf2/npc/npc_chaser.sp"

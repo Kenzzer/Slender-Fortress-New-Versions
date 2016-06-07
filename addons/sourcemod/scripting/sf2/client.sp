@@ -51,7 +51,7 @@ static int g_iPlayerUltravisionEnt[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ..
 
 // Sprint data.
 static bool g_bPlayerSprint[MAXPLAYERS + 1] = { false, ... };
-static int g_iPlayerSprintPoints[MAXPLAYERS + 1] = { 100, ... };
+int g_iPlayerSprintPoints[MAXPLAYERS + 1] = { 100, ... };
 static Handle g_hPlayerSprintTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 
 // Blink data.
@@ -384,7 +384,7 @@ public Action Hook_ClientSetTransmit(int client,int other)
 		if (!IsRoundEnding())
 		{
 			// SPECIAL ROUND: Singleplayer
-			if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+			if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 			{
 				if (!g_bPlayerEliminated[client] && !g_bPlayerEliminated[other] && !DidClientEscape(other)) return Plugin_Handled; 
 			}
@@ -1108,7 +1108,7 @@ public Action Hook_FlashlightBeamSetTransmit(int ent,int other)
 	}
 	else
 	{
-		if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 		{
 			return Plugin_Handled;
 		}
@@ -1157,7 +1157,7 @@ public Action Hook_FlashlightEndSetTransmit(int ent,int other)
 	}
 	else
 	{
-		if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 		{
 			return Plugin_Handled;
 		}
@@ -2314,7 +2314,7 @@ static void ClientProcessInteractiveGlow(int client)
 	{
 		ClientRemoveInteractiveGlow(client);
 		
-		if (IsEntityClassname(iEnt, "prop_dynamic", false))
+		if (IsEntityClassname(iEnt, "prop_dynamic", false) || IsEntityClassname(iEnt, "tf_taunt_prop", false))
 		{
 			char sTargetName[64];
 			GetEntPropString(iEnt, Prop_Data, "m_iName", sTargetName, sizeof(sTargetName));
@@ -5504,7 +5504,7 @@ stock void ClientUpdateListeningFlags(int client, bool bReset=false)
 		{
 			if (!g_bPlayerEliminated[i])
 			{
-				if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+				if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 				{
 					if (DidClientEscape(i))
 					{

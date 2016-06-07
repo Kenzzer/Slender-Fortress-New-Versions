@@ -865,13 +865,66 @@ stock bool IsInfiniteFlashlightEnabled()
 {
 	return view_as<bool>(g_bRoundInfiniteFlashlight || (GetConVarInt(g_cvPlayerInfiniteFlashlightOverride) == 1) || SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT));
 }
-stock bool SF_SpecialRound(int specialround)
+
+int g_iArraySpecialRoundType[SPECIALROUND_MAXROUNDS];
+
+stock bool SF_SpecialRound(int iSpecialRound)
 {
 	if(!g_bSpecialRound)
 		return false;
-	if(specialround==g_iSpecialRoundType)
-		return true;
-	if(specialround==g_iSpecialRoundType2)
-		return true;
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if(iSpecialRound==g_iArraySpecialRoundType[iArray])
+			return true;
+	}
 	return false;
+}
+
+stock void SF_AddSpecialRound(int iSpecialRound)
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if (g_iArraySpecialRoundType[iArray] == 0)
+		{
+			g_iArraySpecialRoundType[iArray] = iSpecialRound;
+			break;
+		}
+	}
+}
+
+stock void SF_RemoveSpecialRound(int iSpecialRound)
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if (g_iArraySpecialRoundType[iArray] == iSpecialRound)
+		{
+			g_iArraySpecialRoundType[iArray] = 0;
+			//Useless
+			/*if (iArray != (SPECIALROUND_MAXROUNDS-1))
+			{
+				for (int iArray2 = iArray;iArray2 < SPECIALROUND_MAXROUNDS; iArray2++)
+				{
+					if (g_iArraySpecialRoundType[iArray2+1] != 0)
+					{
+						g_iArraySpecialRoundType[iArray2] = g_iArraySpecialRoundType[iArray2+1];
+						g_iArraySpecialRoundType[iArray2+1] = 0;
+					}
+					else
+					{
+						g_iArraySpecialRoundType[iArray2] = 0;
+						break;
+					}
+				}
+			}*/
+			break;
+		}
+	}
+}
+
+stock void SF_RemoveAllSpecialRound()
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		g_iArraySpecialRoundType[iArray] = 0;
+	}
 }

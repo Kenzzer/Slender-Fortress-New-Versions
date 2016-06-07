@@ -862,7 +862,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 					iState = STATE_WANDER;
 				}
 			}
-			if (g_iSpecialRoundType == SPECIALROUND_BEACON || g_iSpecialRoundType2 == SPECIALROUND_BEACON)
+			if (SF_SpecialRound(SPECIALROUND_BEACON))
 			{
 				if(!g_bSlenderInBacon[iBossIndex])
 				{
@@ -1603,7 +1603,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 250.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 250.0)
 								{
 									float jumpDist = g_flSlenderGoalPos[iBossIndex][2] - flStartPos[2];
-									//Jump speed and jump height are not the same thing I know, but if the speed if under the jump dist, then we have no chance to reach this place.
+									//Jump speed and jump height are not the same thing I know, but if the speed is under the jump dist, then we have no chance to reach this place.
 									if(jumpDist > (g_flSlenderJumpSpeed[iBossIndex]+20.0))
 									{
 										//We can't jump there, give up...
@@ -2675,6 +2675,54 @@ public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 					GetAngleVectors(flDirection, flDirection, NULL_VECTOR, NULL_VECTOR);
 					NormalizeVector(flDirection, flDirection);
 					ScaleVector(flDirection, flAttackDamageForce);
+					
+					if (SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
+					{
+						int iEffect = GetRandomInt(0, 5);
+						switch (iEffect)
+						{
+							case 1:
+							{
+								TF2_MakeBleed(i, i, 3.0);
+							}
+							case 2:
+							{
+								TF2_IgnitePlayer(i, slender);
+							}
+							case 3:
+							{
+								TF2_AddCondition(i, TFCond_Jarated, 3.0);
+							}
+							case 4:
+							{
+								TF2_AddCondition(i, TFCond_CritMmmph, 2.0);
+							}
+							case 5:
+							{
+								int iEffectRare = GetRandomInt(1, 30);
+								switch (iEffectRare)
+								{
+									case 1,14,25,30:
+									{
+										int iNewHealth = GetEntProp(i, Prop_Send, "m_iHealth")+view_as<int>(flDamage);
+										if (iNewHealth > 450) iNewHealth = 450;
+										TF2_AddCondition(i, TFCond_MegaHeal, 2.0);
+										SetEntProp(i, Prop_Send, "m_iHealth", iNewHealth);
+										flDamage = 0.0;
+									}
+									case 7,27:
+									{
+										//It's over 9000!
+										flDamage = 9001.0;
+									}
+									case 5,16,18,22,23,26:
+									{
+										ScaleVector(flDirection, 1200.0);
+									}
+								}
+							}
+						}
+					}
 					
 					Call_StartForward(fOnClientDamagedByBoss);
 					Call_PushCell(i);
