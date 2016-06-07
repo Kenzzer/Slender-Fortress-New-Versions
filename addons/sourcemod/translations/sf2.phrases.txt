@@ -1127,6 +1127,6 @@
 	
 	"SF2 Change Log"
 	{
-		"en" "-Raid maps are now using default tf2 hud.\n-NPCs are now always attacking the players on raid maps."
+		"en" "-Moving out of beta.\n-Added 2 new special rounds"
 	}
 }
