@@ -15,15 +15,13 @@ static Handle g_hSpecialRoundCycleNames = INVALID_HANDLE;
 static Handle g_hSpecialRoundTimer = INVALID_HANDLE;
 static int g_iSpecialRoundCycleNum = 0;
 static float g_flSpecialRoundCycleEndTime = -1.0;
-static bool bDoubleRoulette=false;
 static bool bSuprise = false;
 static bool g_bStarted = false;
-bool bRevolution = false;
-static int doubleroulettecount=0;
+static int doubleroulettecount = 0;
+static int g_iSpecialRoundType = 0;
 
 void ReloadSpecialRounds()
 {
-	g_iSpecialRoundType2 = 0;
 	if (g_hSpecialRoundCycleNames == INVALID_HANDLE)
 	{
 		g_hSpecialRoundCycleNames = CreateArray(128);
@@ -52,73 +50,11 @@ void ReloadSpecialRounds()
 		
 		// Load names for the cycle.
 		char sBuffer[128];
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DOUBLETROUBLE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DOUBLETROUBLE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_SINGLEPLAYER, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DOUBLEMAXPLAYERS, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_LIGHTSOUT, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_BEACON, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DOOMBOX, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_NOGRACE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_2DOUBLE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DOUBLEROULETTE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_NIGHTVISION, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_INFINITEFLASHLIGHT, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DREAMFAKEBOSSES, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_EYESONTHECLOACK, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_NOPAGEBONUS, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_DUCKS, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_1UP, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_NOULTRAVISION, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_SUPRISE, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_LASTRESORT, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_ESCAPETICKETS, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		SpecialRoundGetDescriptionHud(SPECIALROUND_REVOLUTION, sBuffer, sizeof(sBuffer));
-		PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
-		
-		//I think it's time to make a loop for that
+		for (int iSpecialRound = SPECIALROUND_DOUBLETROUBLE; iSpecialRound < SPECIALROUND_MAXROUNDS; iSpecialRound++)
+		{
+			SpecialRoundGetDescriptionHud(iSpecialRound, sBuffer, sizeof(sBuffer));
+			PushArrayString(g_hSpecialRoundCycleNames, sBuffer);
+		}
 		
 		KvRewind(kv);
 		if (KvJumpToKey(kv, "jokes"))
@@ -301,15 +237,6 @@ void SpecialRoundCycleStart()
 	if(g_bStarted) return;
 	
 	g_bStarted = true;
-	if(bDoubleRoulette)
-	{
-		g_iSpecialRoundType2 = g_iSpecialRoundType;
-	}
-	else
-	{
-		g_iSpecialRoundType2 = SPECIALROUND_MAXROUNDS;
-		g_iSpecialRoundType = g_iSpecialRoundType2;
-	}
 	EmitSoundToAll(SR_MUSIC, _, MUSIC_CHAN);
 	g_iSpecialRoundType = 0;
 	g_iSpecialRoundCycleNum = 0;
@@ -320,8 +247,6 @@ void SpecialRoundCycleStart()
 void SpecialRoundCycleFinish()
 {
 	EmitSoundToAll(SR_SOUND_SELECT, _, SNDCHAN_AUTO);
-	if(!bDoubleRoulette)
-		g_iSpecialRoundType2 = 0;
 	int iOverride = GetConVarInt(g_cvSpecialRoundOverride);
 	if (iOverride >= 1 && iOverride < SPECIALROUND_MAXROUNDS)
 	{
@@ -329,11 +254,18 @@ void SpecialRoundCycleFinish()
 	}
 	else
 	{
+		int iPlayers;
+		for (int iClient = 1; iClient <= MaxClients; iClient++)
+		{
+			if (IsValidClient(iClient) && !g_bPlayerEliminated[iClient])
+				iPlayers++;
+		}
 		Handle hEnabledRounds = CreateArray();
 		
 		if (GetArraySize(GetSelectableBossProfileList()) > 0)
 		{
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLETROUBLE);
+			PushArrayCell(hEnabledRounds, SPECIALROUND_DOOMBOX);
 		}
 		
 		if (GetActivePlayerCount() <= GetConVarInt(g_cvMaxPlayers) * 2)
@@ -350,58 +282,62 @@ void SpecialRoundCycleFinish()
 			PushArrayCell(hEnabledRounds, SPECIALROUND_SINGLEPLAYER);
 		}
 		*/
-		if(!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE))
+		if (!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INSANEDIFFICULTY);
-		if(!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+		if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_LIGHTSOUT);
 			
-		if(!SF_SpecialRound(SPECIALROUND_BEACON))
+		if (!SF_SpecialRound(SPECIALROUND_BEACON))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_BEACON);
-			
-		PushArrayCell(hEnabledRounds, SPECIALROUND_DOOMBOX);
 		
-		if(!SF_SpecialRound(SPECIALROUND_NOGRACE) && !bRevolution)
+		if (!SF_SpecialRound(SPECIALROUND_NOGRACE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION) && GetRoundState() != SF2RoundState_Intro)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
 			
-		if(!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+		if (!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NIGHTVISION);
 			
-		if(!bDoubleRoulette)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);
+		/*if (!SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);*/
 			
-		if(!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+		if (!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !GetConVarBool(g_cvNightvisionEnabled))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INFINITEFLASHLIGHT);
 			
-		if(!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
+		if (!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DREAMFAKEBOSSES);
 			
-		if(!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
+		if (!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_EYESONTHECLOACK);
 		
-		if(!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2 && !bRevolution)
+		if (!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOPAGEBONUS);
-		
+
 		//Disabled
 		/*if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_DUCKS))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DUCKS);*/
 		
-		if(!SF_SpecialRound(SPECIALROUND_1UP) && !bRevolution)
+		if (!SF_SpecialRound(SPECIALROUND_1UP) && !SF_SpecialRound(SPECIALROUND_REVOLUTION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_1UP);
 		
-		if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+		if (g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOULTRAVISION);
 		
-		if(!bSuprise && !bDoubleRoulette && !bRevolution)
+		if (!bSuprise && !SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_SUPRISE);
 		
-		if(!SF_SpecialRound(SPECIALROUND_LASTRESORT))
+		if (!SF_SpecialRound(SPECIALROUND_LASTRESORT))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_LASTRESORT);
 		
-		if(!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4)
+		if (!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_ESCAPETICKETS);
 		
-		if(!bRevolution)
+		if (!SF_SpecialRound(SPECIALROUND_REVOLUTION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_REVOLUTION);
+		
+		if (!SF_SpecialRound(SPECIALROUND_DISTORTION) && iPlayers >= 4)
+			PushArrayCell(hEnabledRounds, SPECIALROUND_DISTORTION);
+		
+		if (!SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
+			PushArrayCell(hEnabledRounds, SPECIALROUND_MULTIEFFECT);
 			
 		g_iSpecialRoundType = GetArrayCell(hEnabledRounds, GetRandomInt(0, GetArraySize(hEnabledRounds) - 1));
 		
@@ -446,7 +382,7 @@ void SpecialRoundStart()
 			g_hSpecialRoundTimer = INVALID_HANDLE;
 		}
 	}
-	if(bDoubleRoulette)
+	if(SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 		doubleroulettecount += 1;
 	switch (g_iSpecialRoundType)
 	{
@@ -460,6 +396,7 @@ void SpecialRoundStart()
 				GetArrayString(hSelectableBosses, GetRandomInt(0, GetArraySize(hSelectableBosses) - 1), sBuffer, sizeof(sBuffer));
 				AddProfile(sBuffer);
 			}
+			SF_AddSpecialRound(SPECIALROUND_DOUBLETROUBLE);
 		}
 		case SPECIALROUND_DOOMBOX:
 		{
@@ -473,16 +410,19 @@ void SpecialRoundStart()
 				GetArrayString(hSelectableBosses, GetRandomInt(0, GetArraySize(hSelectableBosses) - 1), sBuffer, sizeof(sBuffer));
 				AddProfile(sBuffer,_,_,_,false);
 			}
+			SF_AddSpecialRound(SPECIALROUND_DOOMBOX);
 		}
 		case SPECIALROUND_INSANEDIFFICULTY:
 		{
 			SetConVarString(g_cvDifficulty, "3"); // Override difficulty to Insane.
+			SF_AddSpecialRound(SPECIALROUND_INSANEDIFFICULTY);
 		}
 		case SPECIALROUND_NOGRACE:
 		{
 			SetConVarString(g_cvDifficulty, "2"); // Override difficulty to Hardcore.
 			if(g_hRoundGraceTimer!=INVALID_HANDLE)
 				TriggerTimer(g_hRoundGraceTimer);
+			SF_AddSpecialRound(SPECIALROUND_NOGRACE);
 		}
 		case SPECIALROUND_SINGLEPLAYER:
 		{
@@ -492,6 +432,7 @@ void SpecialRoundStart()
 				
 				ClientUpdateListeningFlags(i);
 			}
+			SF_AddSpecialRound(SPECIALROUND_SINGLEPLAYER);
 		}
 		case SPECIALROUND_2DOUBLE:
 		{
@@ -504,10 +445,11 @@ void SpecialRoundStart()
 				GetArrayString(hSelectableBosses, GetRandomInt(0, GetArraySize(hSelectableBosses) - 1), sBuffer, sizeof(sBuffer));
 				AddProfile(sBuffer);
 			}
+			SF_AddSpecialRound(SPECIALROUND_2DOUBLE);
 		}
 		case SPECIALROUND_DOUBLEROULETTE:
 		{
-			bDoubleRoulette=true;
+			SF_AddSpecialRound(SPECIALROUND_DOUBLEROULETTE);
 		}
 		case SPECIALROUND_SUPRISE:
 		{
@@ -518,9 +460,14 @@ void SpecialRoundStart()
 		{
 			ForceInNextPlayersInQueue(GetConVarInt(g_cvMaxPlayers));
 			SetConVarString(g_cvDifficulty, "3"); // Override difficulty to Insane.
+			SF_AddSpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS);
 		}
 		case SPECIALROUND_LIGHTSOUT,SPECIALROUND_NIGHTVISION:
 		{
+			if (g_iSpecialRoundType == SPECIALROUND_LIGHTSOUT)
+				SF_AddSpecialRound(SPECIALROUND_LIGHTSOUT);
+			else if (g_iSpecialRoundType == SPECIALROUND_NIGHTVISION)
+				SF_AddSpecialRound(SPECIALROUND_NIGHTVISION);
 			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (!IsClientInGame(i)) continue;
@@ -536,6 +483,15 @@ void SpecialRoundStart()
 		case SPECIALROUND_DREAMFAKEBOSSES:
 		{
 			CreateTimer(2.0,Timer_SpecialRoundFakeBosses,_,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+			SF_AddSpecialRound(SPECIALROUND_DREAMFAKEBOSSES);
+		}
+		case SPECIALROUND_EYESONTHECLOACK:
+		{
+			SF_AddSpecialRound(SPECIALROUND_EYESONTHECLOACK);
+		}
+		case SPECIALROUND_NOPAGEBONUS:
+		{
+			SF_AddSpecialRound(SPECIALROUND_NOPAGEBONUS);
 		}
 		case SPECIALROUND_1UP:
 		{
@@ -548,6 +504,7 @@ void SpecialRoundStart()
 					TF2_AddCondition(i,TFCond_PreventDeath,-1.0);
 				}
 			}
+			SF_AddSpecialRound(SPECIALROUND_1UP);
 		}
 		case SPECIALROUND_NOULTRAVISION:
 		{
@@ -560,36 +517,105 @@ void SpecialRoundStart()
 					ClientDeactivateUltravision(i);
 				}
 			}
+			SF_AddSpecialRound(SPECIALROUND_NOULTRAVISION);
 		}
 		case SPECIALROUND_DUCKS:
 		{
-			PrecacheModel("models/items/target_duck.mdl");
+			PrecacheModel("models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
+			float vecPos[3], vecAng[3];
 			char targetName[64];
-			int ent = -1;
-			while ((ent = FindEntityByClassname(ent, "prop_dynamic_override")) != -1)
+			int i;
+			int iPage = MaxClients+1;
+			while((iPage = FindEntityByClassname(iPage, "prop_dynamic_override")) > MaxClients)
 			{
-				GetEntPropString(ent, Prop_Data, "m_iName", targetName, sizeof(targetName));
-				if (targetName[0])
+				GetEntPropString(iPage, Prop_Data, "m_iName", targetName, sizeof(targetName));
+				if(StrEqual(targetName, "sf2_page_ex"))
 				{
-					if(!StrContains(targetName, "sf2_page_", false))
+					AcceptEntityInput(iPage, "Kill");
+				}
+				PrintToChatAll("Name:%s",targetName);
+				if(!StrEqual(targetName, "sf2_page_ex") && StrContains(targetName, "sf2_page_", false) != -1)
+				{
+					PrintToChatAll("found");
+					ReplaceString(targetName, sizeof(targetName), "sf2_page_", "");
+					i = StringToInt(targetName);
+					GetEntPropVector(iPage, Prop_Data, "m_vecAbsOrigin", vecPos);
+					GetEntPropVector(iPage, Prop_Data, "m_angAbsRotation", vecAng);
+					char pageName[50];
+					int page = CreateEntityByName("prop_dynamic_override");
+					if (page != -1)
 					{
-						SetEntityModel(ent, "models/items/target_duck.mdl");
-						SetEntPropFloat(ent, Prop_Send, "m_flModelScale", 1.0);
+						TeleportEntity(page, vecPos, vecAng, NULL_VECTOR);
+						Format(pageName,50,"sf2_page_%i",i);
+						DispatchKeyValue(page, "targetname", pageName);
+							
+						SetEntityModel(page, "models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
+							
+						DispatchKeyValue(page, "solid", "2");
+						DispatchSpawn(page);
+						ActivateEntity(page);
+						SetVariantInt(i);
+						AcceptEntityInput(page, "Skin");
+						AcceptEntityInput(page, "EnableCollision");
+							
+						SetEntPropFloat(page, Prop_Send, "m_flModelScale", 1.0);
+							
+						SetEntProp(page, Prop_Send, "m_fEffects", EF_ITEM_BLINK);
+						
+						SDKHook(page, SDKHook_OnTakeDamage, Hook_PageOnTakeDamage);
+						SDKHook(page, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmit);
 					}
+					int page2 = CreateEntityByName("prop_dynamic_override");
+					if (page2 != -1)
+					{
+						TeleportEntity(page2, vecPos, vecAng, NULL_VECTOR);
+						DispatchKeyValue(page2, "targetname", "sf2_page_ex");
+							
+						SetEntityModel(page2, "models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
+							
+						DispatchKeyValue(page2, "solid", "0");
+						DispatchKeyValue(page2, "parentname", pageName);
+						DispatchSpawn(page2);
+						ActivateEntity(page2);
+						SetVariantInt(i);
+						AcceptEntityInput(page2, "Skin");
+						AcceptEntityInput(page2, "DisableCollision");
+						SetVariantString(pageName);
+						AcceptEntityInput(page2, "SetParent");
+							
+						SetEntPropFloat(page2, Prop_Send, "m_flModelScale", 1.0);
+							
+						SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
+					}
+					AcceptEntityInput(iPage, "Kill");
 				}
 			}
+			SF_AddSpecialRound(SPECIALROUND_DUCKS);
 		}
 		case SPECIALROUND_REVOLUTION:
 		{
-			bRevolution = true;
+			SF_AddSpecialRound(SPECIALROUND_REVOLUTION);
+			g_iSpecialRoundTime = 0;
+		}
+		case SPECIALROUND_ESCAPETICKETS:
+		{
+			SF_AddSpecialRound(SPECIALROUND_ESCAPETICKETS);
+		}
+		case SPECIALROUND_DISTORTION:
+		{
+			SF_AddSpecialRound(SPECIALROUND_DISTORTION);
+		}
+		case SPECIALROUND_MULTIEFFECT:
+		{
+			SF_AddSpecialRound(SPECIALROUND_MULTIEFFECT);
 		}
 	}
 	if(doubleroulettecount==2)
 	{
 		doubleroulettecount=0;
-		bDoubleRoulette=false;
+		SF_RemoveSpecialRound(SPECIALROUND_DOUBLEROULETTE);
 	}
-	if(bDoubleRoulette)
+	if(SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 		SpecialRoundCycleStart();
 }
 
@@ -610,8 +636,8 @@ public Action Timer_DisplaySpecialRound(Handle timer)
 void SpecialRound_RoundEnd()
 {
 	bSuprise = false;
-	bRevolution = false;
 	g_bStarted = false;
+	SF_RemoveAllSpecialRound();
 }
 void SpecialRoundReset()
 {

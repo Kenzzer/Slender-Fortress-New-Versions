@@ -8,6 +8,7 @@
 #define SF2_MAX_NAME_LENGTH 32
 
 #define MAX_BOSSES 32
+#define MAX_NPCTELEPORTER 5
 #define MAX_NODES -1
 
 // Difficulty modifiers.

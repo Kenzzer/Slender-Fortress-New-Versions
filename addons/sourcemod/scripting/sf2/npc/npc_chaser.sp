@@ -22,6 +22,7 @@ static float g_flNPCStunInitialHealth[MAX_BOSSES];
 static float g_flNPCStunHealth[MAX_BOSSES];
 
 static int g_iNPCState[MAX_BOSSES] = { -1, ... };
+static int g_iNPCTeleporter[MAX_BOSSES][MAX_NPCTELEPORTER];
 static int g_iNPCMovementActivity[MAX_BOSSES] = { -1, ... };
 static int g_iGeneralDist;
 
@@ -109,6 +110,16 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 		return SF2NPC_Chaser:SF2NPC_BaseNPC(index);
 	}
 	
+	public int GetTeleporter(int iTeleporterNumber)
+	{
+		return NPCChaserGetTeleporter(this.Index,iTeleporterNumber);
+	}
+	
+	public void SetTeleporter(int iTeleporterNumber,int iEntity)
+	{
+		NPCChaserSetTeleporter(this.Index,iTeleporterNumber,iEntity);
+	}
+	
 	public float GetWalkSpeed(int difficulty)
 	{
 		return NPCChaserGetWalkSpeed(this.Index, difficulty);
@@ -155,6 +166,15 @@ methodmap SF2NPC_Chaser < SF2NPC_BaseNPC
 	}
 }
 
+public void NPCChaserSetTeleporter(int iBossIndex, int iTeleporterNumber, int iEntity)
+{
+	g_iNPCTeleporter[iBossIndex][iTeleporterNumber] = iEntity;
+}
+
+public int NPCChaserGetTeleporter(int iBossIndex, int iTeleporterNumber)
+{
+	return g_iNPCTeleporter[iBossIndex][iTeleporterNumber];
+}
 
 public void NPCChaserInitialize()
 {
@@ -757,7 +777,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	bool bQueueForNewPath = false;
 	bool bDoChasePersistencyInit = false;
 	bool bCamper = false;
-	if(g_bSlenderTeleportTargetIsCamping[iBossIndex] && EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]) != INVALID_ENT_REFERENCE)
+	if(iState != STATE_CHASE && g_bSlenderTeleportTargetIsCamping[iBossIndex] && EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]) != INVALID_ENT_REFERENCE)
 	{
 		int iCamper=EntRefToEntIndex(g_iSlenderTeleportTarget[iBossIndex]);
 		if(!g_bPlayerEliminated[iCamper])
@@ -770,7 +790,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 		}
 		g_bSlenderTeleportTargetIsCamping[iBossIndex]=false;
 	}
-	if(SF_IsRaidMap())
+	if(SF_IsRaidMap() && !g_bSlenderGiveUp[iBossIndex])
 	{
 		if(!IsValidClient(iTarget) || (IsValidClient(iTarget) && g_bPlayerEliminated[iTarget]))
 		{
@@ -809,11 +829,25 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	}
 	if(IsValidClient(iTarget) && g_bPlayerIsExitCamping[iTarget])
 		bCamper=true;
+	//We should never give up, but sometimes it happens.
+	if(g_bSlenderGiveUp[iBossIndex])
+	{
+		//Damit our target is unreachable for some unexplained reasons, haaaaaaaaaaaa!
+		iState = STATE_IDLE;
+		//Because raid maps force our state in chase mode, leave give up on true. Why? Because the server will try to calculate a path for an unreachable target..
+		if(!SF_IsRaidMap())
+			g_bSlenderGiveUp[iBossIndex] = false;
+	}
 	// Process which state we should be in.
 	switch (iState)
 	{
 		case STATE_IDLE, STATE_WANDER:
 		{
+			for (int i = 0;i < MAX_NPCTELEPORTER;i++)
+			{
+				if (NPCChaserGetTeleporter(iBossIndex,i) != INVALID_ENT_REFERENCE)
+					NPCChaserSetTeleporter(iBossIndex,i,INVALID_ENT_REFERENCE);
+			}
 			if (iState == STATE_WANDER)
 			{
 				if (GetArraySize(g_hSlenderPath[iBossIndex]) <= 0)
@@ -828,7 +862,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 					iState = STATE_WANDER;
 				}
 			}
-			if (g_iSpecialRoundType == SPECIALROUND_BEACON || g_iSpecialRoundType2 == SPECIALROUND_BEACON)
+			if (SF_SpecialRound(SPECIALROUND_BEACON))
 			{
 				if(!g_bSlenderInBacon[iBossIndex])
 				{
@@ -927,6 +961,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						// AHAHAHAH! I GOT YOU NOW!
 						iTarget = iBestNewTarget;
 						g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(iBestNewTarget);
+						g_bSlenderGiveUp[iBossIndex] = false;
 						iState = STATE_CHASE;
 					}
 				}
@@ -1110,6 +1145,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						g_bSlenderChaseDeathPosition[iBossIndex] = false;
 						
 						// Chase him again!
+						g_bSlenderGiveUp[iBossIndex] = false;
 						iState = STATE_CHASE;
 					}
 					else
@@ -1160,13 +1196,13 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			}
 		}
 	}
-	if (bCamper && iState != STATE_ATTACK)
+	if (bCamper && iState != STATE_ATTACK && !g_bSlenderGiveUp[iBossIndex])
 	{
 		bDoChasePersistencyInit = true;
 		iState = STATE_CHASE;
 	}
 	//In Raid maps the boss should always attack the target. 
-	if (SF_IsRaidMap() && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget))
+	if (SF_IsRaidMap() && iState != STATE_ATTACK && iState != STATE_STUN && IsValidClient(iTarget) && !g_bSlenderGiveUp[iBossIndex])
 	{
 		g_flSlenderTimeUntilNoPersistence[iBossIndex] = GetGameTime() + GetProfileFloat(sSlenderProfile, "search_chase_duration");
 		iState = STATE_CHASE;
@@ -1487,6 +1523,12 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						}
 					}
 				}
+				if (NPCChaserGetTeleporter(iBossIndex,0) != INVALID_ENT_REFERENCE)
+				{
+					int iTeleporter = EntRefToEntIndex(NPCChaserGetTeleporter(iBossIndex,0));
+					if (IsValidEntity(iTeleporter))
+						GetEntPropVector(iTeleporter, Prop_Data, "m_vecAbsOrigin", g_flSlenderGoalPos[iBossIndex]);
+				}
 			}
 			
 			if (NavMesh_Exists())
@@ -1509,19 +1551,6 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							
 							g_iGeneralDist = 0;
 							
-							bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-								iGoalAreaIndex,
-								g_flSlenderGoalPos[iBossIndex],
-								SlenderChaseBossShortestPathCost,
-								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-								iClosestAreaIndex,
-								_,
-								(NPCChaserGetStepSize(iBossIndex)*2.1));
-							
-							int iDist = g_iGeneralDist;
-							
-							g_iGeneralDist = 0;
-							
 							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 							iGoalAreaIndex,
 							g_flSlenderGoalPos[iBossIndex],
@@ -1529,27 +1558,28 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 							iClosestAreaIndex);
 							
-							if((iDist*0.65)>g_iGeneralDist || !bSafePathSuccess)
+							if(bPathSuccess)
 							{
-								//The safe path is sometimes not the best solution, if we are too much away from the player we have to hurry with the shortest one.
-								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-								iGoalAreaIndex,
-								g_flSlenderGoalPos[iBossIndex],
-								SlenderChaseBossShortestPathCost,
-								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-								iClosestAreaIndex);
-							}
-							else
-							{
-								//The safe path is fine
-								bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+								//Our shortest path was a sucess, let's see if the safe one works.
+								bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
 								iGoalAreaIndex,
 								g_flSlenderGoalPos[iBossIndex],
 								SlenderChaseBossShortestPathCost,
 								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 								iClosestAreaIndex,
-								_,
-								(NPCChaserGetStepSize(iBossIndex)*2.1));
+								(g_iGeneralDist*2.5),
+								NPCChaserGetStepSize(iBossIndex)*2.0);
+								
+								if(!bSafePathSuccess)
+								{
+									//No safe path, use the shortest path.
+									bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
+									iGoalAreaIndex,
+									g_flSlenderGoalPos[iBossIndex],
+									SlenderChaseBossShortestPathCost,
+									RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
+									iClosestAreaIndex);
+								}
 							}
 							
 							int iTempAreaIndex = iClosestAreaIndex;
@@ -1564,6 +1594,32 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][1], 1);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][2], 2);
 							}
+							else//This check is made to prevent expensive calculations for the server.
+							{
+								//Sometimes the path fails, for multiple reasons.
+								float flStartPos[3];
+								NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
+								//If we are close of the goal position but we failed, let's see if player is not in a unreachable area.
+								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 250.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 250.0)
+								{
+									float jumpDist = g_flSlenderGoalPos[iBossIndex][2] - flStartPos[2];
+									//Jump speed and jump height are not the same thing I know, but if the speed is under the jump dist, then we have no chance to reach this place.
+									if(jumpDist > (g_flSlenderJumpSpeed[iBossIndex]+20.0))
+									{
+										//We can't jump there, give up...
+										g_bSlenderGiveUp[iBossIndex] = true;
+									}
+								}
+								//Some maps have non-npcs teleporters like citadel let's see if we are on the same nav area
+								//I think this connected check should be done before the calculation.
+								if(!NavMeshArea_IsConnected(iCurrentAreaIndex, iGoalAreaIndex) && NPCChaserGetTeleporter(iBossIndex,0) == INVALID_ENT_REFERENCE)
+								{
+									//Nope we aren't, give up...
+									//PrintToChatAll("Wait come back!");
+									g_bSlenderGiveUp[iBossIndex] = true;
+								}
+							}
+								
 							
 							while (iTempParentAreaIndex != -1)
 							{
@@ -1595,6 +1651,60 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								g_flSlenderGoalPos[iBossIndex][1] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 1));
 								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
+#if defined DEBUG
+							iTempAreaIndex = iClosestAreaIndex;
+							iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							
+							Handle hPositions = CreateArray(3);
+							
+							PushArrayArray(hPositions, g_flSlenderGoalPos[iBossIndex], 3);
+							
+							while (iTempParentAreaIndex != -1)
+							{
+								float flTempAreaCenter[3], flParentAreaCenter[3];
+								NavMeshArea_GetCenter(iTempAreaIndex, flTempAreaCenter);
+								NavMeshArea_GetCenter(iTempParentAreaIndex, flParentAreaCenter);
+								
+								iNavDirection = NavMeshArea_ComputeDirection(iTempAreaIndex, flParentAreaCenter);
+								NavMeshArea_ComputePortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flHalfWidth);
+								NavMeshArea_ComputeClosestPointInPortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flClosestPoint);
+								
+								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
+								
+								PushArrayArray(hPositions, flClosestPoint, 3);
+								
+								iTempAreaIndex = iTempParentAreaIndex;
+								iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							}
+							int iColor[4] = { 0, 255, 0, 255 };
+							float flStartPos[3];
+							NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
+							PushArrayArray(hPositions, flStartPos, 3);
+							
+							for (int i = GetArraySize(hPositions) - 1; i > 0; i--)
+							{
+								float flFromPos[3], flToPos[3];
+								GetArrayArray(hPositions, i, flFromPos, 3);
+								GetArrayArray(hPositions, i - 1, flToPos, 3);
+								
+								TE_SetupBeamPoints(flFromPos,
+									flToPos,
+									g_iPathLaserModelIndex,
+									g_iPathLaserModelIndex,
+									0,
+									30,
+									5.0,
+									5.0,
+									5.0,
+									5, 
+									0.0,
+									iColor,
+									30);
+									
+								TE_SendToAll();
+							}
+							CloseHandle(hPositions);
+#endif
 						}
 						else
 						{
@@ -2565,6 +2675,54 @@ public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 					GetAngleVectors(flDirection, flDirection, NULL_VECTOR, NULL_VECTOR);
 					NormalizeVector(flDirection, flDirection);
 					ScaleVector(flDirection, flAttackDamageForce);
+					
+					if (SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
+					{
+						int iEffect = GetRandomInt(0, 5);
+						switch (iEffect)
+						{
+							case 1:
+							{
+								TF2_MakeBleed(i, i, 3.0);
+							}
+							case 2:
+							{
+								TF2_IgnitePlayer(i, slender);
+							}
+							case 3:
+							{
+								TF2_AddCondition(i, TFCond_Jarated, 3.0);
+							}
+							case 4:
+							{
+								TF2_AddCondition(i, TFCond_CritMmmph, 2.0);
+							}
+							case 5:
+							{
+								int iEffectRare = GetRandomInt(1, 30);
+								switch (iEffectRare)
+								{
+									case 1,14,25,30:
+									{
+										int iNewHealth = GetEntProp(i, Prop_Send, "m_iHealth")+view_as<int>(flDamage);
+										if (iNewHealth > 450) iNewHealth = 450;
+										TF2_AddCondition(i, TFCond_MegaHeal, 2.0);
+										SetEntProp(i, Prop_Send, "m_iHealth", iNewHealth);
+										flDamage = 0.0;
+									}
+									case 7,27:
+									{
+										//It's over 9000!
+										flDamage = 9001.0;
+									}
+									case 5,16,18,22,23,26:
+									{
+										ScaleVector(flDirection, 1200.0);
+									}
+								}
+							}
+						}
+					}
 					
 					Call_StartForward(fOnClientDamagedByBoss);
 					Call_PushCell(i);

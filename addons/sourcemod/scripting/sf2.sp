@@ -33,16 +33,13 @@ bool sendproxymanager=false;
 #include <sf2>
 #pragma newdecls required
 
-// If compiling with SM 1.7+, uncomment to compile and use SF2 methodmaps.
-//#define METHODMAPS
-
-#define PLUGIN_VERSION "0.3.2_1"
-#define PLUGIN_VERSION_DISPLAY "0.3.2"
+#define PLUGIN_VERSION "1.0.0-dev3"
+#define PLUGIN_VERSION_DISPLAY "1.0.0"
 
 #define TFTeam_Spectator 1
 #define TFTeam_Red 2
 #define TFTeam_Blue 3
-//#define TFTeam_Boss 5
+#define TFTeam_Boss 5
 
 #define EF_ITEM_BLINK 0x100
 
@@ -104,8 +101,6 @@ enum MuteMode
 bool g_bSeeUpdateMenu[MAXPLAYERS+1] = false;
 //Command
 bool g_bAdminNoPoints[MAXPLAYERS+1] = false;
-//Snd_Restart anti-cheat
-float g_fLastTimeSndRestart[MAXPLAYERS+1]; 
 
 // Offsets.
 int g_offsPlayerFOV = -1;
@@ -116,6 +111,14 @@ int g_offsPlayerPunchAngleVel = -1;
 int g_offsFogCtrlEnable = -1;
 int g_offsFogCtrlEnd = -1;
 int g_offsCollisionGroup = -1;
+
+#if defined DEBUG
+//temp
+int g_iPathLaserModelIndex;
+#endif
+
+//Commands
+float g_flLastCommandTime[MAXPLAYERS + 1];
 
 bool g_bEnabled;
 
@@ -171,6 +174,7 @@ Handle g_hSlenderPath[MAX_BOSSES];
 //int g_iGoalPath[MAX_BOSSES][2];
 int g_iSlenderCurrentPathNode[MAX_BOSSES] = { -1, ... };
 bool g_bSlenderAttacking[MAX_BOSSES];
+bool g_bSlenderGiveUp[MAX_BOSSES];
 Handle g_hSlenderAttackTimer[MAX_BOSSES];
 float g_flSlenderNextJump[MAX_BOSSES] = { -1.0, ... };
 int g_iSlenderInterruptConditions[MAX_BOSSES];
@@ -309,6 +313,7 @@ bool g_bPlayerEscaped[MAXPLAYERS + 1];
 int g_iPlayerPageCount[MAXPLAYERS + 1];
 int g_iPlayerQueuePoints[MAXPLAYERS + 1];
 bool g_bPlayerPlaying[MAXPLAYERS + 1];
+bool g_bBackStabbed[MAXPLAYERS + 1];
 Handle g_hPlayerOverlayCheck[MAXPLAYERS + 1];
 
 Handle g_hPlayerSwitchBlueTimer[MAXPLAYERS + 1];
@@ -383,6 +388,7 @@ static int g_iRoundCount = 0;
 static int g_iRoundEndCount = 0;
 static int g_iRoundActiveCount = 0;
 int g_iRoundTime = 0;
+int g_iSpecialRoundTime = 0;
 static int g_iTimeEscape = 0;
 static int g_iRoundTimeLimit = 0;
 static int g_iRoundEscapeTimeLimit = 0;
@@ -406,8 +412,6 @@ static bool g_bRoundWaitingForPlayers = false;
 
 // Special round variables.
 bool g_bSpecialRound = false;
-int g_iSpecialRoundType = 0;
-int g_iSpecialRoundType2 = 0;
 
 bool g_bSpecialRoundint = false;
 bool g_bSpecialRoundContinuous = false;
@@ -421,7 +425,7 @@ static bool g_bNewBossRoundContinuous = false;
 static int g_iNewBossRoundCount = 1;
 
 static bool g_bPlayerPlayedNewBossRound[MAXPLAYERS + 1] = { true, ... };
-static char g_strintBossRoundProfile[64] = "";
+static char g_strNewBossRoundProfile[64] = "";
 
 static Handle g_hRoundMessagesTimer = INVALID_HANDLE;
 static int g_iRoundMessagesNum = 0;
@@ -571,6 +575,10 @@ Handle g_hSDKWantsLagCompensationOnEntity;
 Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
+Handle g_hSDKPointIsWithin;
+
+//Fail Timer
+Handle g_hTimerFail;
 
 #if defined DEBUG
 #include "sf2/debug.sp"
@@ -699,7 +707,7 @@ public void OnPluginStart()
 	g_offsFogCtrlEnd = FindSendPropInfo("CFogController", "m_fog.end");
 	if (g_offsFogCtrlEnd == -1) LogError("Couldn't find CFogController offset for m_fog.end!");
 	
-	g_offsCollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
+	g_offsCollisionGroup = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	if (g_offsCollisionGroup == -1)  LogError("Couldn't find CBaseEntity offset for m_CollisionGroup!");
 	
 	g_hPageMusicRanges = CreateArray(3);
@@ -848,6 +856,7 @@ public void OnPluginStart()
 	
 	// Hook onto existing console commands.
 	AddCommandListener(Hook_CommandBuild, "build");
+	AddCommandListener(Hook_CommandTaunt, "taunt");
 	AddCommandListener(Hook_CommandSuicideAttempt, "kill");
 	AddCommandListener(Hook_CommandSuicideAttempt, "explode");
 	AddCommandListener(Hook_CommandSuicideAttempt, "joinclass");
@@ -858,7 +867,6 @@ public void OnPluginStart()
 	AddCommandListener(Hook_CommandVoiceMenu, "voicemenu");
 	AddCommandListener(Hook_CommandSay, "say");
 	AddCommandListener(Hook_CommandSayTeam, "say_team");
-	AddCommandListener(Hook_CommandBuild, "build");
 	// Hook events.
 	HookEvent("teamplay_round_start", Event_RoundStart);
 	HookEvent("teamplay_round_win", Event_RoundEnd);
@@ -880,6 +888,8 @@ public void OnPluginStart()
 	HookEntityOutput("info_npc_spawn_destination", "OnUser1", NPCSpawn);
 	HookEntityOutput("trigger_multiple", "OnStartTouch", Hook_TriggerOnStartTouch);
 	HookEntityOutput("trigger_multiple", "OnEndTouch", Hook_TriggerOnEndTouch);
+	HookEntityOutput("trigger_teleport", "OnStartTouch", Hook_TriggerTeleportOnStartTouch);
+	//HookEntityOutput("trigger_teleport", "OnEndTouch", Hook_TriggerTeleportOnEndTouch);
 	
 	// Hook usermessages.
 	HookUserMessage(GetUserMessageId("VoiceSubtitle"), Hook_BlockUserMessage, true);
@@ -909,6 +919,8 @@ public void OnPluginStart()
 	SetupPlayerGroups();
 	
 	PvP_Initialize();
+	
+	Nav_Initialize();
 	
 	// @TODO: When cvars are finalized, set this to true.
 	AutoExecConfig(false);
@@ -988,7 +1000,7 @@ static void SetupHooks()
 	PrepSDKCall_SetFromConf( hConfig, SDKConf_Virtual, "CTFPlayer::EquipWearable" );
 	PrepSDKCall_AddParameter( SDKType_CBaseEntity, SDKPass_Pointer );
 	g_hSDKEquipWearable = EndPrepSDKCall();
-	if( g_hSDKEquipWearable == INVALID_HANDLE )//In case the signature is missing, look if the server has the tf2 randomizer's gamedata.
+	if( g_hSDKEquipWearable == INVALID_HANDLE )//In case the offset is missing, look if the server has the tf2 randomizer's gamedata.
 	{
 		char strFilePath[PLATFORM_MAX_PATH];
 		BuildPath( Path_SM, strFilePath, sizeof(strFilePath), "gamedata/tf2items.randomizer.txt" );
@@ -1016,13 +1028,26 @@ static void SetupHooks()
 	{
 		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SF2 gamedata!");
 	}
+	
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
 	g_hSDKPlaySpecificSequence = EndPrepSDKCall();
 	if(g_hSDKPlaySpecificSequence == INVALID_HANDLE)
 	{
-		SetFailState("Failed to retrieve CTFPlayer::PlaySpecificSequence signature from SF2 gamedata!");
+		PrintToServer("Failed to retrieve CTFPlayer::PlaySpecificSequence signature from SF2 gamedata!");
+		//Don't have to call SetFailState, since this function is used in a minor part of the code.
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	g_hSDKPointIsWithin = EndPrepSDKCall();
+	if(g_hSDKPointIsWithin == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve CBaseTrigger::PointIsWithin signature from SF2 gamedata!");
+		//Don't have to call SetFailState, since this function is used in a minor part of the code.
 	}
 	
 	int iOffset = GameConfGetOffset(hConfig, "CTFPlayer::WantsLagCompensationOnEntity"); 
@@ -1098,8 +1123,12 @@ static void SetupClassDefaultWeapons()
 
 public void OnMapStart()
 {
+	g_hTimerFail = INVALID_HANDLE;
 	PvP_OnMapStart();
 	FindHealthBar();
+#if defined DEBUG
+	g_iPathLaserModelIndex = PrecacheModel("materials/sprites/laserbeam.vmt");
+#endif
 }
 
 public void OnConfigsExecuted()
@@ -1190,7 +1219,7 @@ static void StartPlugin()
 	g_bSpecialRoundint = false;
 	g_bSpecialRoundContinuous = false;
 	g_iSpecialRoundCount = 1;
-	g_iSpecialRoundType = 0;
+	SF_RemoveAllSpecialRound();
 	
 	SpecialRoundReset();
 	
@@ -1199,7 +1228,7 @@ static void StartPlugin()
 	g_bNewBossRoundNew = false;
 	g_bNewBossRoundContinuous = false;
 	g_iNewBossRoundCount = 1;
-	strcopy(g_strintBossRoundProfile, sizeof(g_strintBossRoundProfile), "");
+	strcopy(g_strNewBossRoundProfile, sizeof(g_strNewBossRoundProfile), "");
 	
 	// Reset global round vars.
 	g_iRoundCount = 0;
@@ -1805,7 +1834,7 @@ public Action Command_GhostMode(int iClient,int args)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bPlayerProxy[iClient])
+	if (IsRoundEnding() || IsRoundInWarmup() || !g_bPlayerEliminated[iClient] || !IsClientParticipating(iClient) || g_bPlayerProxy[iClient] || TF2_IsPlayerInCondition(iClient,TFCond_HalloweenKart) || TF2_IsPlayerInCondition(iClient,TFCond_Taunting)|| TF2_IsPlayerInCondition(iClient,TFCond_Charging) || g_flLastCommandTime[iClient] > GetEngineTime())
 	{
 		CPrintToChat(iClient, "{red}%T", "SF2 Ghost Mode Not Allowed", iClient);
 		return Plugin_Handled;
@@ -1825,6 +1854,7 @@ public Action Command_GhostMode(int iClient,int args)
 		
 		CPrintToChat(iClient, "{olive}%T", "SF2 Ghost Mode Disabled", iClient);
 	}
+	g_flLastCommandTime[iClient] = GetEngineTime()+0.5;
 	return Plugin_Handled;
 }
 
@@ -2478,6 +2508,14 @@ public Action Hook_CommandBuild(int iClient, const char[] command,int argc)
 	return Plugin_Continue;
 }
 
+public Action Hook_CommandTaunt(int iClient, const char[] command,int argc)
+{
+	if (!g_bEnabled) return Plugin_Continue;
+	if (!g_bPlayerEliminated[iClient] && GetRoundState() == SF2RoundState_Intro) return Plugin_Handled;
+	
+	return Plugin_Continue;
+}
+
 public Action Timer_BossCountUpdate(Handle timer)
 {
 	if (timer != g_hBossCountUpdateTimer) return Plugin_Stop;
@@ -2947,7 +2985,7 @@ public Action Hook_NormalSound(int clients[64], int &numClients, char sample[PLA
 			{
 				if (!g_bPlayerEliminated[iClient])
 				{
-					if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+					if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 					{
 						if (!g_bPlayerEliminated[entity] && !DidClientEscape(entity))
 						{
@@ -2994,6 +3032,25 @@ public MRESReturn Hook_EntityShouldTransmit(int entity, Handle hReturn, Handle h
 	return MRES_Ignored;
 }
 
+void SF_CollectTriggersMultiple()
+{
+	int ent = -1;
+	while ((ent = FindEntityByClassname(ent, "trigger_multiple")) != -1)
+	{
+		SDKHook(ent, SDKHook_StartTouch, Hook_TriggerOnStartTouchEx);
+		SDKHook(ent, SDKHook_EndTouch, Hook_TriggerOnEndTouchEx);
+	}
+}
+public Action Hook_TriggerOnStartTouchEx(int iTrigger, int iOther)
+{
+	Hook_TriggerOnStartTouch("OnStartTouch", iTrigger, iOther, 0.0);
+}
+
+public Action Hook_TriggerOnEndTouchEx(int iTrigger, int iOther)
+{
+	Hook_TriggerOnEndTouch("OnEndTouch", iTrigger, iOther, 0.0);
+}
+
 public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activator, float delay)
 {
 	if (!g_bEnabled) return;
@@ -3002,6 +3059,8 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 	
 	char sName[64];
 	GetEntPropString(caller, Prop_Data, "m_iName", sName, sizeof(sName));
+
+	LogSF2Message("[SF2 TRIGGERS LOG] Trigger %i (trigger_multiple) %s start touch by %i (%s)!", caller, sName, activator, IsValidClient(activator) ? "Player" : "Entity");
 	
 	if (StrContains(sName, "sf2_escape_trigger", false) == 0)
 	{
@@ -3015,14 +3074,14 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 		}
 	}
 	//We have to disable hitbox's colisions in order to prevent some bugs.
-	if(activator>MaxClients)
+	if (activator>MaxClients)
 	{
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
-		if(g_iSlenderHitboxOwner[activator] != -1)
+		if (g_iSlenderHitboxOwner[activator] != -1)
 		{
 			Npc = view_as<SF2NPC_BaseNPC>(activator);
 		}
-		if(Npc.IsValid())//Turn off colisions.
+		if (Npc.IsValid())//Turn off colisions.
 		{
 			SetEntData(g_iSlenderHitbox[Npc.Index], g_offsCollisionGroup, 2, 4, true);
 		}
@@ -3034,14 +3093,75 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator, float flDelay)
 {
 	if (!g_bEnabled) return;
-	if(activator>MaxClients)
+	
+	if (!IsValidEntity(caller)) return;
+	
+	char sName[64];
+	GetEntPropString(caller, Prop_Data, "m_iName", sName, sizeof(sName));
+	
+	LogSF2Message("[SF2 TRIGGERS LOG] Trigger %i (trigger_multiple) %s end touch by %i (%s)!", caller, sName, activator, IsValidClient(activator) ? "Player" : "Entity");
+
+	if (activator>MaxClients)
 	{
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
-		if(Npc.IsValid())//Turn colisions back.
+		if (Npc.IsValid())//Turn colisions back.
 			SetEntData(g_iSlenderHitbox[Npc.Index], g_offsCollisionGroup, 4, 4, true);
 	}
 }
 
+public void Hook_TriggerTeleportOnStartTouch(const char[] output,int caller,int activator, float delay)
+{
+	if (!g_bEnabled) return;
+
+	if (!IsValidEntity(caller)) return;
+	
+	int flags = GetEntProp(caller, Prop_Data, "m_spawnflags");
+	if (((flags & TRIGGER_CLIENTS) && (flags & TRIGGER_NPCS)) || (flags & TRIGGER_EVERYTHING_BUT_PHYSICS_DEBRIS))
+	{
+		if (IsValidClient(activator))
+		{
+			bool bChase = ClientHasMusicFlag(activator, MUSICF_CHASE);
+			if (bChase)
+			{
+				// The player took a teleporter and is chased, and the boss can take it too, add the teleporter to the temp boss' goals.
+				for (int i = 0; i < MAX_BOSSES; i++)
+				{
+					if (NPCGetUniqueID(i) == -1) continue;
+					if (g_iSlenderTarget[i] != activator)
+					{
+						for (int ii = 0;ii < MAX_NPCTELEPORTER;ii++)
+						{
+							if (NPCChaserGetTeleporter(i,ii) == INVALID_ENT_REFERENCE)
+							{
+								NPCChaserSetTeleporter(i,ii,EntIndexToEntRef(caller));
+								break;
+							}
+						}
+					}
+				}
+			}
+			return;
+		}
+		SF2NPC_Chaser NpcChaser = view_as<SF2NPC_Chaser>(NPCGetFromEntIndex(activator));
+		if (NpcChaser.IsValid())
+		{
+			//A boss took a teleporter
+			int iTeleporter = NpcChaser.GetTeleporter(0);
+			if (iTeleporter == EntIndexToEntRef(caller)) //Remove our temp goal, and go back chase our target! GRAAAAAAAAAAAAh! Unless we have some other teleporters to take....fak.
+				NpcChaser.SetTeleporter(0,INVALID_ENT_REFERENCE);
+			if (MAX_NPCTELEPORTER>2 && NpcChaser.GetTeleporter(1) != INVALID_ENT_REFERENCE)
+			{
+				for (int i = 0;i+1 < MAX_NPCTELEPORTER;i++)
+				{
+					if (NpcChaser.GetTeleporter(i+1) != INVALID_ENT_REFERENCE)
+						NpcChaser.SetTeleporter(i,NpcChaser.GetTeleporter(i+1));
+					else
+						NpcChaser.SetTeleporter(i,INVALID_ENT_REFERENCE);
+				}
+			}
+		}
+	}
+}
 public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float &damage,int &damagetype,int &weapon, float damageForce[3], float damagePosition[3],int damagecustom)
 {
 	if (!g_bEnabled) return Plugin_Continue;
@@ -3062,7 +3182,7 @@ public Action Hook_PageOnTakeDamage(int page,int &attacker,int &inflictor,float 
 
 static void CollectPage(int page,int activator)
 {
-	if(SF_SpecialRound(SPECIALROUND_ESCAPETICKETS))
+	if (SF_SpecialRound(SPECIALROUND_ESCAPETICKETS))
 	{
 		ClientEscape(activator);
 		TeleportClientToEscapePoint(activator);
@@ -3192,6 +3312,8 @@ public void OnClientPutInServer(int iClient)
 #endif
 	
 	ClientSetPlayerGroup(iClient, -1);
+	
+	g_flLastCommandTime[iClient] = GetEngineTime();
 	
 	g_bPlayerEscaped[iClient] = false;
 	g_bPlayerEliminated[iClient] = true;
@@ -3347,6 +3469,7 @@ public void OnClientDisconnect(int iClient)
 		}
 	}
 	
+	g_bPlayerEliminated[iClient] = true;
 	// Reset queue points global variable.
 	g_iPlayerQueuePoints[iClient] = 0;
 	
@@ -3964,7 +4087,11 @@ public Action Hook_SlenderObjectSetTransmit(int ent,int other)
 		if (!IsValidEdict(GetEntPropEnt(other, Prop_Send, "m_hObserverTarget"))) return Plugin_Handled;
 	}
 	if (IsClientInGhostMode(other)) return Plugin_Handled;
-	
+	if (IsValidClient(other))
+	{
+		if(ClientGetDistanceFromEntity(other,ent)>=320)
+			return Plugin_Handled;
+	}
 	return Plugin_Continue;
 }
 public Action Hook_SlenderObjectSetTransmitEx(int ent,int other)
@@ -4224,7 +4351,7 @@ void SlenderOnClientStressUpdate(int iClient)
 			CloseHandle(hArrayRaidTargets);
 			if (iPreferredTeleportTarget && iPreferredTeleportTarget != INVALID_ENT_REFERENCE)
 			{
-				// Set our preferred target to the int guy.
+				// Set our preferred target to the new guy.
 				float flTargetDuration = GetProfileFloat(sProfile, "teleport_target_persistency_period", 13.0);
 				float flDeviation = GetRandomFloat(0.92, 1.08);
 				flTargetDuration = Pow(flDeviation * flTargetDuration, ((g_flRoundDifficultyModifier * (NPCGetAnger(iBossIndex) - 1.0)) / 2.0)) + ((flDeviation * flTargetDuration) - 1.0);
@@ -4322,7 +4449,38 @@ void SetPageCount(int iNum)
 			if(!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS))
 				g_iRoundTime += g_iRoundTimeGainFromPage;
 			if (g_iRoundTime > g_iRoundTimeLimit) g_iRoundTime = g_iRoundTimeLimit;
-			
+			if (SF_SpecialRound(SPECIALROUND_DISTORTION))
+			{
+				Handle hClientSwap = CreateArray();
+				for (int iClient = 0; iClient < MAX_BOSSES; iClient++)
+				{
+					if (!IsValidClient(iClient)) continue;
+					if (!IsPlayerAlive(iClient)) continue;
+					if (g_bPlayerEliminated[iClient]) continue;
+					PushArrayCell(hClientSwap, iClient);
+				}
+				int iSize = GetArraySize(hClientSwap);
+				if (iSize > 1)
+				{
+					int iClient, iClient2;
+					float flPos[3], flPos2[3], flAng[3], flAng2[3], flVel[3], flVel2[3];
+					SortADTArray(hClientSwap, Sort_Random, Sort_Integer);
+					for (int iArray = 0; iArray < (iSize/2); iArray++)
+					{
+						iClient = GetArrayCell(hClientSwap, iArray);
+						GetClientAbsOrigin(iClient, flPos);
+						GetClientEyeAngles(iClient, flAng);
+						GetEntPropVector(iClient, Prop_Data, "m_vecAbsVelocity", flVel);
+						iClient2 = GetArrayCell(hClientSwap, ((iSize-1)-iArray));
+						GetClientAbsOrigin(iClient2, flPos2);
+						GetClientEyeAngles(iClient2, flAng2);
+						GetEntPropVector(iClient2, Prop_Data, "m_vecAbsVelocity", flVel2);
+						TeleportEntity(iClient, flPos2, flAng2, flVel2);
+						TeleportEntity(iClient2, flPos, flAng, flVel);
+					}
+				}
+				CloseHandle(hClientSwap);
+			}
 			// Increase anger on selected bosses.
 			for (int i = 0; i < MAX_BOSSES; i++)
 			{
@@ -4478,7 +4636,7 @@ void ShowHudTextUsingTextEntity(const int[] iClients,int iClientsNum,int iGameTe
 	int Color1[4] = { 255, 255, 255, 255 };
 	int Color2[4] = { 255, 255, 255, 255 };
 	
-	int iParmsOffset = FindDataMapOffs(iGameText, "m_textParms");
+	int iParmsOffset = FindDataMapInfo(iGameText, "m_textParms");
 	if (iParmsOffset != -1)
 	{
 		// hudtextparms_s m_textParms
@@ -4532,7 +4690,10 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 	NPCStopMusic();
 	// Remove all bosses from the game.
 	NPCRemoveAll();
-	
+	// Collect the func_nav_prefer.
+	NavCollectFuncNavPrefer();
+	// Collect trigger_multiple to prevent touch bug.
+	SF_CollectTriggersMultiple();
 	// Refresh groups.
 	for (int i = 0; i < SF2_MAX_PLAYER_GROUPS; i++)
 	{
@@ -4549,8 +4710,7 @@ public Action Event_RoundStart(Handle event, const char[] name, bool dB)
 		g_bPlayerEliminated[i] = true;
 		g_bPlayerEscaped[i] = false;
 	}
-	g_iSpecialRoundType = -1;
-	g_iSpecialRoundType2 = -1;
+	SF_RemoveAllSpecialRound();
 	// Calculate the new round state.
 	if (g_bRoundWaitingForPlayers)
 	{
@@ -4602,6 +4762,9 @@ public Action Event_RoundEnd(Handle event, const char[] name, bool dB)
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_RoundEnd");
 #endif
+
+	SF_FailEnd();
+	
 	SpecialRound_RoundEnd();
 	
 	SetRoundState(SF2RoundState_Outro);
@@ -4969,7 +5132,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			GetBossMusic(sPath,sizeof(sPath));
 			StopSound(iClient, MUSIC_CHAN, sPath);
 		}
-		g_fLastTimeSndRestart[iClient] = GetGameTime();
+		g_bBackStabbed[iClient] = false;
 		TF2_RemoveCondition(iClient, view_as<TFCond>(82));
 		TF2_RemoveCondition(iClient, TFCond_SpawnOutline);
 		if (HandlePlayerTeam(iClient))
@@ -5051,6 +5214,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool dB)
 			else
 			{
 				g_hPlayerOverlayCheck[iClient] = INVALID_HANDLE;
+				TF2Attrib_RemoveByDefIndex(iClient, 10);
 			}
 			
 			g_hPlayerPostWeaponsTimer[iClient] = CreateTimer(0.1, Timer_ClientPostWeapons, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
@@ -5107,7 +5271,7 @@ public Action Event_DontBroadcastToClients(Handle event, const char[] name, bool
 	return Plugin_Continue;
 }
 
-public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
+public Action Event_PlayerDeathPre(Event event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 	
@@ -5117,14 +5281,19 @@ public Action Event_PlayerDeathPre(Handle event, const char[] name, bool dB)
 	
 	if (!IsRoundInWarmup())
 	{
-		int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+		int iClient = GetClientOfUserId(event.GetInt("userid"));
 		if (iClient > 0)
 		{
+			if (g_bBackStabbed[iClient])
+			{
+				event.SetInt("customkill", TF_CUSTOM_BACKSTAB);
+				g_bBackStabbed[iClient] = false;
+			}
 			if (!IsRoundEnding())
 			{
-				if (g_bRoundGrace || g_bPlayerEliminated[iClient] || IsClientInGhostMode(iClient))
+				if (g_bRoundGrace || GetClientTeam(iClient) != TFTeam_Red)
 				{
-					SetEventBroadcast(event, true);
+					event.BroadcastDisabled = true;
 				}
 			}
 		}
@@ -5187,7 +5356,7 @@ public Action Event_PlayerHurt(Handle event, const char[] name, bool dB)
 #endif
 }
 
-public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
+public Action Event_PlayerDeath(Event event, const char[] name, bool dB)
 {
 	if (!g_bEnabled) return;
 	
@@ -5198,8 +5367,8 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT START: Event_PlayerDeath(%d)", iClient);
 #endif
 	
-	bool bFake = view_as<bool>(GetEventInt(event, "death_flags") & TF_DEATHFLAG_DEADRINGER);
-	int inflictor = GetEventInt(event, "inflictor_entindex");
+	bool bFake = view_as<bool>(event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER);
+	int inflictor = event.GetInt("inflictor_entindex");
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("inflictor = %d", inflictor);
@@ -5241,6 +5410,8 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 		{
 			if (!g_bPlayerEliminated[iClient])
 			{
+				if (SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
+						CreateTimer(0.1, Timer_ReplacePlayerRagdoll, GetClientUserId(iClient));
 				if (IsRoundInIntro() || g_bRoundGrace || DidClientEscape(iClient))
 				{
 					CreateTimer(0.3, Timer_RespawnPlayer, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
@@ -5322,13 +5493,13 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 		int iKatanaHealthGain = GetConVarInt(g_cvHalfZatoichiHealthGain);
 		if (iKatanaHealthGain >= 0)
 		{
-			int iAttacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+			int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
 			if (iAttacker > 0)
 			{
 				if (!IsClientInPvP(iAttacker) && (!g_bPlayerEliminated[iAttacker] || g_bPlayerProxy[iAttacker]))
 				{
 					char sWeapon[64];
-					GetEventString(event, "weapon", sWeapon, sizeof(sWeapon));
+					event.GetString("weapon",sWeapon,sizeof(sWeapon));
 					
 					if (StrEqual(sWeapon, "demokatana"))
 					{
@@ -5345,12 +5516,168 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dB)
 		
 		g_hPlayerPostWeaponsTimer[iClient] = INVALID_HANDLE;
 	}
-	
+	if (!IsRoundEnding() && !g_bRoundWaitingForPlayers)
+	{
+		int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
+		if (!g_bRoundGrace && GetClientTeam(iClient) != TFTeam_Red && iClient != iAttacker)
+		{
+			//Copy the data
+			char sString[64];
+			Event event2 = CreateEvent("player_death");
+			event2.SetInt("userid",event.GetInt("userid"));
+			event2.SetInt("victim_entindex",event.GetInt("victim_entindex"));
+			event2.SetInt("inflictor_entindex",event.GetInt("inflictor_entindex"));
+			event2.SetInt("attacker",event.GetInt("attacker"));
+			event2.SetInt("weaponid",event.GetInt("weaponid"));
+			event2.SetInt("damagebits",event.GetInt("damagebits"));
+			event2.SetInt("customkill",event.GetInt("customkill"));
+			event2.SetInt("assister",event.GetInt("assister"));
+			event2.SetInt("stun_flags",event.GetInt("stun_flags"));
+			event2.SetInt("death_flags",event.GetInt("death_flags"));
+			event2.SetBool("silent_kill",event.GetBool("silent_kill"));
+			event2.SetInt("playerpenetratecount",event.GetInt("playerpenetratecount"));
+			event2.SetInt("kill_streak_total",event.GetInt("kill_streak_total"));
+			event2.SetInt("kill_streak_wep",event.GetInt("kill_streak_wep"));
+			event2.SetInt("kill_streak_assist",event.GetInt("kill_streak_assist"));
+			event2.SetInt("kill_streak_victim",event.GetInt("kill_streak_victim"));
+			event2.SetInt("ducks_streaked",event.GetInt("ducks_streaked"));
+			event2.SetInt("duck_streak_total",event.GetInt("duck_streak_total"));
+			event2.SetInt("duck_streak_assist",event.GetInt("duck_streak_assist"));
+			event2.SetInt("duck_streak_victim",event.GetInt("duck_streak_victim"));
+			event2.SetBool("rocket_jump",event.GetBool("rocket_jump"));
+			event2.SetInt("weapon_def_index",event.GetInt("weapon_def_index"));
+			event.GetString("weapon_logclassname",sString,sizeof(sString));
+			event2.SetString("weapon_logclassname",sString);
+			event.GetString("assister_fallback",sString,sizeof(sString));
+			event2.SetString("assister_fallback",sString);
+			event.GetString("weapon",sString,sizeof(sString));
+			event2.SetString("weapon",sString);
+			//Send it to the clients
+			for (int i = 1; i<=MaxClients; i++)
+			{
+				//dead-ringered spies are not supposed to see their death message.
+				if(bFake && i == iClient)
+					continue;
+				if(IsValidClient(i) && GetClientTeam(i) != TFTeam_Red)
+					event2.FireToClient(i);
+			}
+			CloseEvent(event2);
+		}
+	}
 	PvP_OnPlayerDeath(iClient, bFake);
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("EVENT END: Event_PlayerDeath(%d)", iClient);
 #endif
+}
+
+public Action Timer_ReplacePlayerRagdoll(Handle timer, any userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (0 >= client)
+	{
+		return Plugin_Continue;
+	}
+	int ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
+	if (!IsValidEntity(ragdoll))
+	{
+		return Plugin_Continue;
+	}
+	int ent = CreateEntityByName("tf_ragdoll", -1);
+	if (ent != -1)
+	{
+		float pos[3], ang[3], velocity[3], force[3];
+		GetEntPropVector(ragdoll, Prop_Send, "m_vecRagdollOrigin", pos);
+		GetEntPropVector(ragdoll, Prop_Send, "m_vecRagdollVelocity", velocity);
+		GetEntPropVector(ragdoll, Prop_Send, "m_vecForce", force);
+		GetEntPropVector(ragdoll, Prop_Data, "m_angAbsRotation", ang);
+		TeleportEntity(ent, pos, ang, NULL_VECTOR);
+		SetEntPropVector(ent, Prop_Send, "m_vecRagdollOrigin", pos);
+		SetEntPropVector(ent, Prop_Send, "m_vecRagdollVelocity", velocity);
+		SetEntPropVector(ent, Prop_Send, "m_vecForce", force);
+		SetEntPropFloat(ent, Prop_Send, "m_flHeadScale", 1.0);
+		SetEntPropFloat(ent, Prop_Send, "m_flTorsoScale", 1.0);
+		SetEntPropFloat(ent, Prop_Send, "m_flHandScale", 1.0);
+		SetEntProp(ent, Prop_Send, "m_nForceBone", GetEntProp(ragdoll, Prop_Send, "m_nForceBone"));
+		SetEntProp(ent, Prop_Send, "m_bOnGround", GetEntProp(ragdoll, Prop_Send, "m_bOnGround"));
+		SetEntProp(ent, Prop_Send, "m_bCloaked", GetEntProp(ragdoll, Prop_Send, "m_bCloaked"));
+		SetEntProp(ent, Prop_Send, "m_iPlayerIndex", GetEntProp(ragdoll, Prop_Send, "m_iPlayerIndex"));
+		SetEntProp(ent, Prop_Send, "m_iTeam", GetEntProp(ragdoll, Prop_Send, "m_iTeam"));
+		SetEntProp(ent, Prop_Send, "m_iClass", GetEntProp(ragdoll, Prop_Send, "m_iClass"));
+		SetEntProp(ent, Prop_Send, "m_bWasDisguised", GetEntProp(ragdoll, Prop_Send, "m_bWasDisguised"));
+		SetEntProp(ent, Prop_Send, "m_bFeignDeath", GetEntProp(ragdoll, Prop_Send, "m_bFeignDeath"));
+		SetEntProp(ent, Prop_Send, "m_bGib", GetEntProp(ragdoll, Prop_Send, "m_bGib"));
+		SetEntProp(ent, Prop_Send, "m_iDamageCustom", GetEntProp(ragdoll, Prop_Send, "m_iDamageCustom"));
+		SetEntProp(ent, Prop_Send, "m_bBurning", GetEntProp(ragdoll, Prop_Send, "m_bBurning"));
+		SetEntProp(ent, Prop_Send, "m_bBecomeAsh", GetEntProp(ragdoll, Prop_Send, "m_bBecomeAsh"));
+		SetEntProp(ent, Prop_Send, "m_bGoldRagdoll", GetEntProp(ragdoll, Prop_Send, "m_bGoldRagdoll"));
+		SetEntProp(ent, Prop_Send, "m_bIceRagdoll", GetEntProp(ragdoll, Prop_Send, "m_bIceRagdoll"));
+		SetEntProp(ent, Prop_Send, "m_bElectrocuted", GetEntProp(ragdoll, Prop_Send, "m_bElectrocuted"));
+		int iDeathType = GetRandomInt(1, 8);
+		switch (iDeathType)
+		{
+			case 1:
+			{
+				velocity[0] = 40.0; 
+				velocity[1] = 40.0;
+				velocity[2] = 40.0;
+				force[0] = 40.0; 
+				force[1] = 40.0;
+				force[2] = 40.0;
+				ScaleVector(velocity, 10000.0);
+				ScaleVector(force, 10000.0);
+				velocity[0] = 0.0;
+				velocity[1] = 0.0;
+				force[0] = 0.0;
+				force[1] = 0.0;
+				SetEntPropVector(ent, Prop_Send, "m_vecForce", force);
+				SetEntPropVector(ent, Prop_Send, "m_vecRagdollVelocity", velocity);
+			}
+			case 2:
+			{
+				SetEntProp(ent, Prop_Send, "m_bGib", true);
+			}
+			case 3:
+			{
+				SetEntProp(ent, Prop_Send, "m_bGoldRagdoll", true);
+			}
+			case 4:
+			{
+				SetEntProp(ent, Prop_Send, "m_bIceRagdoll", true);
+			}
+			case 5:
+			{
+				SetEntProp(ent, Prop_Send, "m_bBecomeAsh", true);
+			}
+			case 6:
+			{
+				SetEntProp(ent, Prop_Send, "m_bBurning", true);
+			}
+			case 7:
+			{
+				SetEntProp(ent, Prop_Send, "m_bElectrocuted", true);
+			}
+			case 8:
+			{
+				velocity[0] = 40.0; 
+				velocity[1] = 40.0;
+				velocity[2] = 40.0;
+				force[0] = 40.0; 
+				force[1] = 40.0;
+				force[2] = 40.0;
+				MakeVectorFromPoints(pos, view_as<float>({0.0, 0.0, 0.0}), velocity);
+				ScaleVector(velocity, 20000.0);
+				ScaleVector(force, 20000.0);
+				SetEntPropVector(ent, Prop_Send, "m_vecForce", force);
+				SetEntPropVector(ent, Prop_Send, "m_vecRagdollVelocity", velocity);
+			}
+		}
+		DispatchSpawn(ent);
+		ActivateEntity(ent);
+		SetEntPropEnt(client, Prop_Send, "m_hRagdoll", ent, 0);
+	}
+	AcceptEntityInput(ragdoll, "Kill", -1, -1, 0);
+	return Plugin_Continue;
 }
 
 public Action Timer_SetPlayerHealth(Handle timer, any data)
@@ -5447,11 +5774,8 @@ public Action Timer_RoundGrace(Handle timer)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientParticipating(i)) g_bPlayerEliminated[i] = true;
-		if(!g_bPlayerEliminated[i])
-		{
-			if(SF_IsRaidMap())
-				TF2Attrib_RemoveByDefIndex(i, 10);
-		}
+		if(IsValidClient(i))
+			TF2Attrib_RemoveByDefIndex(i, 10);
 	}
 	
 	// Initialize the main round timer.
@@ -5476,6 +5800,10 @@ public Action Timer_RoundTime(Handle timer)
 	
 	if (g_iRoundTime <= 0)
 	{
+		//The round ended trigger a security timer.
+		SF_FailEnd();
+		SF_FailRoundEnd(2.0);
+		
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_bPlayerEliminated[i] || IsClientInGhostMode(i)) continue;
@@ -5485,16 +5813,15 @@ public Action Timer_RoundTime(Handle timer)
 		
 		return Plugin_Stop;
 	}
-	if(bRevolution)
+	if(SF_SpecialRound(SPECIALROUND_REVOLUTION))
 	{
-		for (int i = 1; i <= 40; i++)
+		if(g_iSpecialRoundTime % 60 == 0)
 		{
-			if(g_iRoundTime==(60*i))
-			{
-				SpecialRoundCycleStart();
-			}
+			SpecialRoundCycleStart();
 		}
 	}
+	if(g_bSpecialRound)
+		g_iSpecialRoundTime++;
 	g_iRoundTime--;
 	
 	int hours, minutes, seconds;
@@ -5525,6 +5852,10 @@ public Action Timer_RoundTimeEscape(Handle timer)
 	
 	if (g_iRoundTime <= 0)
 	{
+		//The round ended trigger a security timer.
+		SF_FailEnd();
+		SF_FailRoundEnd(2.0);
+		
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_bPlayerEliminated[i] || IsClientInGhostMode(i) || DidClientEscape(i)) continue;
@@ -5534,8 +5865,15 @@ public Action Timer_RoundTimeEscape(Handle timer)
 			ClientStartDeathCam(i, 0, flBuffer);
 			KillClient(i);
 		}
-		
 		return Plugin_Stop;
+	}
+	
+	if(SF_SpecialRound(SPECIALROUND_REVOLUTION))
+	{
+		if(g_iSpecialRoundTime % 60 == 0)
+		{
+			SpecialRoundCycleStart();
+		}
 	}
 	
 	int hours, minutes, seconds;
@@ -5569,7 +5907,8 @@ public Action Timer_RoundTimeEscape(Handle timer)
 				ShowSyncHudText(i, g_hRoundTimerSync, "%T\n%d:%02d", "SF2 Default Escape Message", i, minutes, seconds);
 		}
 	}
-	
+	if(g_bSpecialRound)
+		g_iSpecialRoundTime++;
 	g_iRoundTime--;
 	
 	return Plugin_Continue;
@@ -5602,6 +5941,58 @@ public Action Timer_VoteDifficulty(Handle timer, any data)
 	
 	VoteMenu(g_hMenuVoteDifficulty, iClients, iClientsNum, 15);
 	
+	return Plugin_Stop;
+}
+
+void SF_FailRoundEnd(float time=2.0)
+{
+	//Check round win conditions again.
+	CreateTimer((time-0.8), Timer_CheckRoundWinConditions);
+	
+	g_hTimerFail = CreateTimer(time, Timer_Fail);
+}
+
+void SF_FailEnd()
+{
+	if (g_hTimerFail != INVALID_HANDLE)
+		CloseHandle(g_hTimerFail);
+	g_hTimerFail = INVALID_HANDLE;
+}
+
+public Action Timer_Fail(Handle hTimer)
+{
+	LogSF2Message("Wow you hit a rare bug, where the round doesn't end after the timer ran out. Collecting info on your game...\nThanks to open an issue here: (https://github.com/Benoist3012/Slender-Fortress-New-Versions/issues) and post the following log:");
+	int iEscapedPlayers = 0;
+	int iClientInGame = 0;
+	int iRedPlayers = 0;
+	int iBluPlayers = 0;
+	int iEliminatedPlayers = 0;
+	for (int iClient = 1;iClient <= MaxClients; iClient++)
+	{
+		if (IsValidClient(iClient))
+		{
+			iClientInGame++;
+			LogSF2Message("Player %N (%i), Team: %d, Eliminated: %d, Escaped: %d.", iClient, iClient, GetClientTeam(iClient), g_bPlayerEliminated[iClient], DidClientEscape(iClient));
+			if (GetClientTeam(iClient) == TFTeam_Blue)
+				iBluPlayers++;
+			else if (GetClientTeam(iClient) == TFTeam_Red)
+				iRedPlayers++;
+		}
+		if (g_bPlayerEliminated[iClient])
+		{
+			iEliminatedPlayers++;
+		}
+		if (DidClientEscape(iClient))
+		{
+			iEscapedPlayers++;
+		}
+	}
+	LogSF2Message("Total clients: %d, Blu players: %d, Red players: %d, Escaped players: %d, Eliminated players: %d", MaxClients, iBluPlayers, iRedPlayers, iEscapedPlayers, iEliminatedPlayers);
+	//Force blus to win.
+	ForceTeamWin(TFTeam_Blue);
+	
+	g_hTimerFail = INVALID_HANDLE;
+
 	return Plugin_Stop;
 }
 
@@ -5828,8 +6219,6 @@ void SpawnPages()
 				}
 				
 				DispatchKeyValue(page, "solid", "2");
-				DispatchKeyValue(page, "fademindist", "300");
-				DispatchKeyValue(page, "fademaxdist", "400");
 				DispatchSpawn(page);
 				ActivateEntity(page);
 				SetVariantInt(i);
@@ -5876,11 +6265,11 @@ void SpawnPages()
 				
 				if (g_bPageRef)
 				{
-					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", (g_flPageRefModelScale-0.05));
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", g_flPageRefModelScale);
 				}
 				else
 				{
-					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", (PAGE_MODELSCALE-0.05));
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", PAGE_MODELSCALE);
 				}
 				SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
 			}
@@ -5985,7 +6374,7 @@ static bool HandleSpecialRoundState()
 #endif
 }
 
-bool IsintBossRoundRunning()
+bool IsNewBossRoundRunning()
 {
 	return g_bNewBossRound;
 }
@@ -5993,7 +6382,7 @@ bool IsintBossRoundRunning()
 /**
  *	Returns an array which contains all the profile names valid to be chosen for a int boss round.
  */
-static Handle GetintBossRoundProfileList()
+static Handle GetNewBossRoundProfileList()
 {
 	Handle hBossList = CloneArray(GetSelectableBossProfileList());
 	
@@ -6018,7 +6407,7 @@ static Handle GetintBossRoundProfileList()
 	return hBossList;
 }
 
-static void HandleintBossRoundState()
+static void HandleNewBossRoundState()
 {
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("START HandleintBossRoundState()");
@@ -6078,7 +6467,7 @@ static void HandleintBossRoundState()
 	// Check if we have enough bosses.
 	if (g_bNewBossRound)
 	{
-		Handle hBossList = GetintBossRoundProfileList();
+		Handle hBossList = GetNewBossRoundProfileList();
 	
 		if (GetArraySize(hBossList) < 1)
 		{
@@ -6160,14 +6549,14 @@ static void SelectStartingBossesForRound()
 	{
 		if (g_bNewBossRoundNew)
 		{
-			Handle hBossList = GetintBossRoundProfileList();
+			Handle hBossList = GetNewBossRoundProfileList();
 		
-			GetArrayString(hBossList, GetRandomInt(0, GetArraySize(hBossList) - 1), g_strintBossRoundProfile, sizeof(g_strintBossRoundProfile));
+			GetArrayString(hBossList, GetRandomInt(0, GetArraySize(hBossList) - 1), g_strNewBossRoundProfile, sizeof(g_strNewBossRoundProfile));
 		
 			CloseHandle(hBossList);
 		}
 		
-		strcopy(g_strRoundBossProfile, sizeof(g_strRoundBossProfile), g_strintBossRoundProfile);
+		strcopy(g_strRoundBossProfile, sizeof(g_strRoundBossProfile), g_strNewBossRoundProfile);
 	}
 	else
 	{
@@ -6215,7 +6604,7 @@ static void GetRoundIntroParameters()
 		GetEntPropString(ent, Prop_Data, "m_iName", sName, sizeof(sName));
 		if (StrEqual(sName, "sf2_intro_fade", false))
 		{
-			int iColorOffset = FindSendPropOffs("CBaseEntity", "m_clrRender");
+			int iColorOffset = FindSendPropInfo("CBaseEntity", "m_clrRender");
 			if (iColorOffset != -1)
 			{
 				g_iRoundIntroFadeColor[0] = GetEntData(ent, iColorOffset, 1);
@@ -6349,7 +6738,7 @@ void InitializeNewGame()
 	}
 	
 	// Determine boss round state.
-	HandleintBossRoundState();
+	HandleNewBossRoundState();
 	
 	if (g_bNewBossRound)
 	{

@@ -6,18 +6,6 @@
 
 #define SF2_PVP_SPAWN_SOUND "items/spawn_item.wav"
 
-#define TRIGGER_CLIENTS (1 << 0)
-#define TRIGGER_NPCS (1 << 1)
-#define TRIGGER_PUSHABLES (1 << 2)
-#define TRIGGER_PHYSICS_OBJECTS (1 << 3)
-#define TRIGGER_ALLY_NPCS (1 << 4)
-#define TRIGGER_CLIENTS_VEHICLES (1 << 5)
-#define TRIGGER_EVERYTHING_NOT_DEBRIS (1 << 6)
-#define TRIGGER_CLIENTS_NOT_VEHICLES (1 << 7)
-#define TRIGGER_PHYSICS_DEBRIS (1 << 8)
-#define TRIGGER_NPCS_VEHICLES (1 << 9)
-#define TRIGGER_NOT_BOTS (1 << 10)
-
 Handle g_cvPvPArenaLeaveTime;
 Handle g_cvPvPArenaPlayerCollisions;
 Handle g_cvPvPArenaProjectileZap;
@@ -104,7 +92,7 @@ public void PvP_OnMapStart()
 			GetEntPropString(iEnt, Prop_Data, "m_iName", strName, sizeof(strName));
 			if(strcmp(strName, "sf2_pvp_trigger") == 0)
 			{
-				//StartTouch seems to be unreliable if a player is teleported/spawns in the trigger
+				//StartTouch seems to be unreliable if a player is teleported/spawned in the trigger
 				//SDKHook( iEnt, SDKHook_StartTouch, PvP_OnTriggerStartTouch );
 				//But end touch works fine.
 				SDKHook( iEnt, SDKHook_EndTouch, PvP_OnTriggerEndTouch );
@@ -158,7 +146,7 @@ public void PvP_OnGameFrame()
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 			bool bChangeProjectileTeam = false;
 			
 			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
@@ -302,7 +290,7 @@ public Action Hook_PvPProjectileSpawn(int ent)
 	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
@@ -327,7 +315,7 @@ public void Hook_PvPProjectileSpawnPost(int ent)
 	char sClass[64];
 	GetEntityClassname(ent, sClass, sizeof(sClass));
 	
-	int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+	int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 	int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwnerEntity == -1 && iThrowerOffset != -1)
@@ -454,6 +442,15 @@ public void PvP_OnTriggerStartTouch(int trigger,int iOther)
 	{
 		if (IsValidClient(iOther) && IsPlayerAlive(iOther))
 		{
+			//Use valve's kill code if the player is stuck.
+			if(GetEntPropFloat(iOther, Prop_Send, "m_flModelScale") != 1.0)
+				TF2_AddCondition(iOther, TFCond_HalloweenTiny, 0.1);
+			//Resize the player.
+			SetEntPropFloat(iOther, Prop_Send, "m_flModelScale", 1.0);
+			SetEntPropFloat(iOther, Prop_Send, "m_flHeadScale", 1.0);
+			SetEntPropFloat(iOther, Prop_Send, "m_flTorsoScale", 1.0);
+			SetEntPropFloat(iOther, Prop_Send, "m_flHandScale", 1.0);
+			
 			g_bPlayerInPvPTrigger[iOther] = true;
 			
 			if (IsClientInPvP(iOther))
@@ -612,7 +609,7 @@ static void PvP_RemovePlayerProjectiles(int iClient)
 		int ent = -1;
 		while ((ent = FindEntityByClassname(ent, g_sPvPProjectileClasses[i])) != -1)
 		{
-			int iThrowerOffset = FindDataMapOffs(ent, "m_hThrower");
+			int iThrowerOffset = FindDataMapInfo(ent, "m_hThrower");
 			bool bMine = false;
 		
 			int iOwnerEntity = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");

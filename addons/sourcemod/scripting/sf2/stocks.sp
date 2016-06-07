@@ -38,6 +38,18 @@
 #define SF_FADE_ONLYONE			0x0004
 #define SF_FADE_STAYOUT			0x0008
 
+#define TRIGGER_CLIENTS 						(1 << 0)
+#define TRIGGER_NPCS 							(1 << 1)
+#define TRIGGER_PUSHABLES 						(1 << 2)
+#define TRIGGER_PHYSICS_OBJECTS 				(1 << 3)
+#define TRIGGER_ONLY_ALLY_NPCS 					(1 << 4)
+#define TRIGGER_ONLY_CLIENTS_IN_VEHICLES 		(1 << 5)
+#define TRIGGER_EVERYTHING_BUT_PHYSICS_DEBRIS 	(1 << 6)
+#define TRIGGER_ONLY_CLIENTS_NOT_IN_VEHICLES 	(1 << 7)
+#define TRIGGER_PHYSICS_DEBRIS 					(1 << 8)
+#define TRIGGER_ONLY_NPCS_IN_VEHICLES 			(1 << 9)
+#define TRIGGER_DISSALOW_BOTS 					(1 << 10)
+
 #define MAX_BUTTONS 26
 
 #define FSOLID_CUSTOMRAYTEST 0x0001
@@ -74,6 +86,15 @@ stock bool SF_IsSurvivalMap()
 stock bool SF_IsRaidMap()
 {
 	return view_as<bool>(g_bIsRaidMap || (GetConVarInt(g_cvRaidMap) == 1));
+}
+bool SDK_PointIsWithin(int iFunc, float flPos[3])
+{
+	if(g_hSDKPointIsWithin != INVALID_HANDLE)
+	{
+		return view_as<bool>(SDKCall(g_hSDKPointIsWithin, iFunc, flPos));
+	}
+
+	return false;
 }
 //	==========================================================
 //	ENTITY FUNCTIONS
@@ -341,7 +362,7 @@ stock bool TF2_IsPlayerCritBuffed(int iClient)
 stock bool IsTauntWep(int iWeapon)
 {
 	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
-	if(Index==37 || Index==304 || Index==5 || Index==195 || Index==43 || Index==239 || Index==310 || Index==331 || Index==426 || Index==587 || Index==656 || Index==1084 || Index==1100)
+	if(Index==37 || Index==304 || Index==5 || Index==195 || Index==43 || Index==239 || Index==310 || Index==331 || Index==426 || Index==587 || Index==656 || Index==1084 || Index==1100 || Index == 1143)
 		return true;
 	return false;
 }
@@ -821,7 +842,14 @@ public bool TraceRayDontHitPlayersOrEntity(int entity,int mask,any data)
 //	==========================================================
 //	TIMER/CALLBACK FUNCTIONS
 //	==========================================================
-
+stock void CloseEvent(Event event)
+{
+	CreateTimer(10.0,CloseEventTimer,event);
+}
+public Action CloseEventTimer(Handle timer,Event event)
+{
+	CloseHandle(event);
+}
 public Action Timer_KillEntity(Handle timer, any entref)
 {
 	int ent = EntRefToEntIndex(entref);
@@ -837,13 +865,66 @@ stock bool IsInfiniteFlashlightEnabled()
 {
 	return view_as<bool>(g_bRoundInfiniteFlashlight || (GetConVarInt(g_cvPlayerInfiniteFlashlightOverride) == 1) || SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT));
 }
-stock bool SF_SpecialRound(int specialround)
+
+int g_iArraySpecialRoundType[SPECIALROUND_MAXROUNDS];
+
+stock bool SF_SpecialRound(int iSpecialRound)
 {
 	if(!g_bSpecialRound)
 		return false;
-	if(specialround==g_iSpecialRoundType)
-		return true;
-	if(specialround==g_iSpecialRoundType2)
-		return true;
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if(iSpecialRound==g_iArraySpecialRoundType[iArray])
+			return true;
+	}
 	return false;
+}
+
+stock void SF_AddSpecialRound(int iSpecialRound)
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if (g_iArraySpecialRoundType[iArray] == 0)
+		{
+			g_iArraySpecialRoundType[iArray] = iSpecialRound;
+			break;
+		}
+	}
+}
+
+stock void SF_RemoveSpecialRound(int iSpecialRound)
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		if (g_iArraySpecialRoundType[iArray] == iSpecialRound)
+		{
+			g_iArraySpecialRoundType[iArray] = 0;
+			//Useless
+			/*if (iArray != (SPECIALROUND_MAXROUNDS-1))
+			{
+				for (int iArray2 = iArray;iArray2 < SPECIALROUND_MAXROUNDS; iArray2++)
+				{
+					if (g_iArraySpecialRoundType[iArray2+1] != 0)
+					{
+						g_iArraySpecialRoundType[iArray2] = g_iArraySpecialRoundType[iArray2+1];
+						g_iArraySpecialRoundType[iArray2+1] = 0;
+					}
+					else
+					{
+						g_iArraySpecialRoundType[iArray2] = 0;
+						break;
+					}
+				}
+			}*/
+			break;
+		}
+	}
+}
+
+stock void SF_RemoveAllSpecialRound()
+{
+	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
+	{
+		g_iArraySpecialRoundType[iArray] = 0;
+	}
 }

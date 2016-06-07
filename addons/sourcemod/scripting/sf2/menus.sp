@@ -230,11 +230,11 @@ public int Menu_VoteDifficulty(Handle menu, MenuAction action,int param1,int par
 		char sInfo[64], sDisplay[256], sColor[32];
 		GetMenuItem(menu, param1, sInfo, sizeof(sInfo), _, sDisplay, sizeof(sDisplay));
 		
-		if (IsSpecialRoundRunning() && (g_iSpecialRoundType == SPECIALROUND_INSANEDIFFICULTY || g_iSpecialRoundType == SPECIALROUND_DOUBLEMAXPLAYERS || g_iSpecialRoundType == SPECIALROUND_2DOUBLE))
+		if (IsSpecialRoundRunning() && (SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) || SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) || SF_SpecialRound(SPECIALROUND_2DOUBLE)))
 		{
 			SetConVarInt(g_cvDifficulty, Difficulty_Insane);
 		}
-		else if (IsSpecialRoundRunning() && g_iSpecialRoundType == SPECIALROUND_NOGRACE)
+		else if (IsSpecialRoundRunning() && SF_SpecialRound(SPECIALROUND_NOGRACE))
 		{
 			SetConVarInt(g_cvDifficulty, Difficulty_Hard);
 		}

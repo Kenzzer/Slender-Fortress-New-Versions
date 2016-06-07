@@ -51,7 +51,7 @@ static int g_iPlayerUltravisionEnt[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ..
 
 // Sprint data.
 static bool g_bPlayerSprint[MAXPLAYERS + 1] = { false, ... };
-static int g_iPlayerSprintPoints[MAXPLAYERS + 1] = { 100, ... };
+int g_iPlayerSprintPoints[MAXPLAYERS + 1] = { 100, ... };
 static Handle g_hPlayerSprintTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 
 // Blink data.
@@ -384,7 +384,7 @@ public Action Hook_ClientSetTransmit(int client,int other)
 		if (!IsRoundEnding())
 		{
 			// SPECIAL ROUND: Singleplayer
-			if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+			if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 			{
 				if (!g_bPlayerEliminated[client] && !g_bPlayerEliminated[other] && !DidClientEscape(other)) return Plugin_Handled; 
 			}
@@ -491,23 +491,25 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 	if (!g_bEnabled) return Plugin_Continue;
 	
 	if (IsRoundInWarmup()) return Plugin_Continue;
+	
+	Action iAction = Plugin_Continue;
+		
+	float damage2 = damage;
+	Call_StartForward(fOnClientTakeDamage);
+	Call_PushCell(victim);
+	Call_PushCell(attacker);
+	Call_PushFloatRef(damage2);
+	Call_Finish(iAction);
+		
+	if (iAction == Plugin_Changed) 
+	{
+		damage = damage2;
+		return Plugin_Changed;
+	}
+	
 	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red && victim != attacker)
 	{
-		Action iAction = Plugin_Continue;
-		
-		float damage2 = damage;
-		Call_StartForward(fOnClientTakeDamage);
-		Call_PushCell(victim);
-		Call_PushCell(attacker);
-		Call_PushFloatRef(damage2);
-		Call_Finish(iAction);
-		
-		if (iAction == Plugin_Handled) return Plugin_Continue;
-		
 		damage = 0.0;
-		
-		if (iAction == Plugin_Changed) damage = damage2;
-		
 		return Plugin_Changed;
 	}
 	if (attacker != victim && IsValidClient(attacker))
@@ -545,6 +547,8 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 								
 								Handle hCvar = FindConVar("tf_weapon_criticals");
 								if (hCvar != INVALID_HANDLE && GetConVarBool(hCvar)) damagetype |= DMG_ACID;
+								
+								g_bBackStabbed[victim] = true;
 								return Plugin_Changed;
 							}
 						}
@@ -555,21 +559,7 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 			{
 				if (g_bPlayerEliminated[attacker] == g_bPlayerEliminated[victim])
 				{
-					Action iAction = Plugin_Continue;
-		
-					float damage2 = damage;
-					Call_StartForward(fOnClientTakeDamage);
-					Call_PushCell(victim);
-					Call_PushCell(attacker);
-					Call_PushFloatRef(damage2);
-					Call_Finish(iAction);
-					
-					if (iAction == Plugin_Handled) return Plugin_Continue;
-					
 					damage = 0.0;
-					
-					if (iAction == Plugin_Changed) damage = damage2;
-					
 					return Plugin_Changed;
 				}
 				
@@ -606,19 +596,6 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 						
 						damage *= GetProfileFloat(sProfile, "proxies_damage_scale_vs_enemy", 1.0);
 					}
-					Action iAction = Plugin_Continue;
-		
-					float damage2 = damage;
-					Call_StartForward(fOnClientTakeDamage);
-					Call_PushCell(victim);
-					Call_PushCell(attacker);
-					Call_PushFloatRef(damage2);
-					Call_Finish(iAction);
-		
-					if (iAction == Plugin_Handled) return Plugin_Continue;
-		
-					if (iAction == Plugin_Changed) damage = damage2;
-					
 					return Plugin_Changed;
 				}
 				else if (g_bPlayerProxy[victim])
@@ -671,39 +648,12 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 						}
 						//the player has no death anim leave him die.
 					}
-					Action iAction = Plugin_Continue;
-		
-					float damage2 = damage;
-					Call_StartForward(fOnClientTakeDamage);
-					Call_PushCell(victim);
-					Call_PushCell(attacker);
-					Call_PushFloatRef(damage2);
-					Call_Finish(iAction);
-					
-					if (iAction == Plugin_Handled) return Plugin_Continue;
-					
-					if (iAction == Plugin_Changed) damage = damage2;
-
 					return Plugin_Changed;
 				}
 			}
 			else
 			{
-				Action iAction = Plugin_Continue;
-				
-				float damage2 = damage;
-				Call_StartForward(fOnClientTakeDamage);
-				Call_PushCell(victim);
-				Call_PushCell(attacker);
-				Call_PushFloatRef(damage2);
-				Call_Finish(iAction);
-				
-				if (iAction == Plugin_Handled) return Plugin_Continue;
-				
 				damage = 0.0;
-				
-				if (iAction == Plugin_Changed) damage = damage2;
-				
 				return Plugin_Changed;
 			}
 		}
@@ -711,21 +661,7 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 		{
 			if (g_bPlayerEliminated[attacker] == g_bPlayerEliminated[victim])
 			{
-				Action iAction = Plugin_Continue;
-				
-				float damage2 = damage;
-				Call_StartForward(fOnClientTakeDamage);
-				Call_PushCell(victim);
-				Call_PushCell(attacker);
-				Call_PushFloatRef(damage2);
-				Call_Finish(iAction);
-				
-				if (iAction == Plugin_Handled) return Plugin_Continue;
-				
 				damage = 0.0;
-				
-				if (iAction == Plugin_Changed) damage = damage2;
-				
 				return Plugin_Changed;
 			}
 		}
@@ -1172,7 +1108,7 @@ public Action Hook_FlashlightBeamSetTransmit(int ent,int other)
 	}
 	else
 	{
-		if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 		{
 			return Plugin_Handled;
 		}
@@ -1221,7 +1157,7 @@ public Action Hook_FlashlightEndSetTransmit(int ent,int other)
 	}
 	else
 	{
-		if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 		{
 			return Plugin_Handled;
 		}
@@ -2378,7 +2314,7 @@ static void ClientProcessInteractiveGlow(int client)
 	{
 		ClientRemoveInteractiveGlow(client);
 		
-		if (IsEntityClassname(iEnt, "prop_dynamic", false))
+		if (IsEntityClassname(iEnt, "prop_dynamic", false) || IsEntityClassname(iEnt, "tf_taunt_prop", false))
 		{
 			char sTargetName[64];
 			GetEntPropString(iEnt, Prop_Data, "m_iName", sTargetName, sizeof(sTargetName));
@@ -3380,7 +3316,7 @@ void ClientOnJump(int client)
 			int iOverride = GetConVarInt(g_cvPlayerInfiniteSprintOverride);
 			if ((!g_bRoundInfiniteSprint && iOverride != 1) || iOverride == 0)
 			{
-				if(g_iPlayerSprintPoints[client] > 10)
+				if(g_iPlayerSprintPoints[client] > 2)
 				{
 					g_iPlayerSprintPoints[client] -= 7;
 					if (g_iPlayerSprintPoints[client] < 0) g_iPlayerSprintPoints[client] = 0;
@@ -5568,7 +5504,7 @@ stock void ClientUpdateListeningFlags(int client, bool bReset=false)
 		{
 			if (!g_bPlayerEliminated[i])
 			{
-				if (g_bSpecialRound && g_iSpecialRoundType == SPECIALROUND_SINGLEPLAYER)
+				if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 				{
 					if (DidClientEscape(i))
 					{
