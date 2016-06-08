@@ -6235,6 +6235,8 @@ void SpawnPages()
 				}
 				SetEntProp(page, Prop_Send, "m_fEffects", EF_ITEM_BLINK);
 				
+				SetEntityFlags(page, GetEntityFlags(page)|FL_EDICT_ALWAYS);
+				RequestFrame(Page_RemoveAlwaysTransmit, page);
 				SDKHook(page, SDKHook_OnTakeDamage, Hook_PageOnTakeDamage);
 				SDKHook(page, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmit);
 			}
@@ -6271,6 +6273,8 @@ void SpawnPages()
 				{
 					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", PAGE_MODELSCALE);
 				}
+				SetEntityFlags(page2, GetEntityFlags(page2)|FL_EDICT_ALWAYS);
+				RequestFrame(Page_RemoveAlwaysTransmit, page2);
 				SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
 			}
 		}
@@ -6290,6 +6294,11 @@ void SpawnPages()
 	
 	CloseHandle(hPageTrie);
 	CloseHandle(hArray);
+}
+public void Page_RemoveAlwaysTransmit(int iPage)
+{
+	//All the pages are now "registred" by the client, nuke the always transmit flag.
+	SetEntityFlags(iPage, GetEntityFlags(iPage)^FL_EDICT_ALWAYS);
 }
 static bool HandleSpecialRoundState()
 {
