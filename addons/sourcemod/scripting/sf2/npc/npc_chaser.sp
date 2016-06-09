@@ -2687,7 +2687,7 @@ public Action Timer_SlenderChaseBossAttack(Handle timer, any entref)
 							}
 							case 2:
 							{
-								TF2_IgnitePlayer(i, slender);
+								TF2_IgnitePlayer(i, i);
 							}
 							case 3:
 							{

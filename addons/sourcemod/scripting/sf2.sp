@@ -3060,8 +3060,9 @@ public void Hook_TriggerOnStartTouch(const char[] output,int caller,int activato
 	char sName[64];
 	GetEntPropString(caller, Prop_Data, "m_iName", sName, sizeof(sName));
 
+#if defined DEBUG
 	LogSF2Message("[SF2 TRIGGERS LOG] Trigger %i (trigger_multiple) %s start touch by %i (%s)!", caller, sName, activator, IsValidClient(activator) ? "Player" : "Entity");
-	
+#endif	
 	if (StrContains(sName, "sf2_escape_trigger", false) == 0)
 	{
 		if (IsRoundInEscapeObjective())
@@ -3098,9 +3099,9 @@ public void Hook_TriggerOnEndTouch(const char[] sOutput,int caller,int activator
 	
 	char sName[64];
 	GetEntPropString(caller, Prop_Data, "m_iName", sName, sizeof(sName));
-	
+#if defined DEBUG	
 	LogSF2Message("[SF2 TRIGGERS LOG] Trigger %i (trigger_multiple) %s end touch by %i (%s)!", caller, sName, activator, IsValidClient(activator) ? "Player" : "Entity");
-
+#endif
 	if (activator>MaxClients)
 	{
 		SF2NPC_BaseNPC Npc = view_as<SF2NPC_BaseNPC>(NPCGetFromEntIndex(activator));
@@ -3204,6 +3205,10 @@ static void CollectPage(int page,int activator)
 	
 	AcceptEntityInput(page, "FireUser1");
 	AcceptEntityInput(page, "KillHierarchy");
+	
+	int iPage2 = GetEntPropEnt(page, Prop_Send, "m_hOwnerEntity");
+	if (iPage2 > MaxClients)
+		AcceptEntityInput(iPage2, "Kill");
 }
 
 //	==========================================================
@@ -6202,6 +6207,43 @@ void SpawnPages()
 			ScaleVector(vecDir, 1.0);
 			
 			char pageName[50];
+			int page2 = CreateEntityByName("prop_dynamic_override");
+			if (page2 != -1)
+			{
+				TeleportEntity(page2, vecPos, vecAng, NULL_VECTOR);
+				DispatchKeyValue(page2, "targetname", "sf2_page_ex");
+				
+				if (g_bPageRef)
+				{
+					SetEntityModel(page2, g_strPageRefModel);
+				}
+				else
+				{
+					SetEntityModel(page2, PAGE_MODEL);
+				}
+				
+				DispatchKeyValue(page2, "solid", "0");
+				DispatchKeyValue(page2, "parentname", pageName);
+				DispatchSpawn(page2);
+				ActivateEntity(page2);
+				SetVariantInt(i);
+				AcceptEntityInput(page2, "Skin");
+				AcceptEntityInput(page2, "DisableCollision");
+				//SetVariantString(pageName);
+				//AcceptEntityInput(page2, "SetParent");
+				
+				if (g_bPageRef)
+				{
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", g_flPageRefModelScale);
+				}
+				else
+				{
+					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", PAGE_MODELSCALE);
+				}
+				SetEntityFlags(page2, GetEntityFlags(page2)|FL_EDICT_ALWAYS);
+				RequestFrame(Page_RemoveAlwaysTransmit, page2);
+				SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
+			}
 			page = CreateEntityByName("prop_dynamic_override");
 			if (page != -1)
 			{
@@ -6225,6 +6267,8 @@ void SpawnPages()
 				AcceptEntityInput(page, "Skin");
 				AcceptEntityInput(page, "EnableCollision");
 				
+				SetEntPropEnt(page, Prop_Send, "m_hOwnerEntity", page2);
+				
 				if (g_bPageRef)
 				{
 					SetEntPropFloat(page, Prop_Send, "m_flModelScale", g_flPageRefModelScale);
@@ -6239,43 +6283,6 @@ void SpawnPages()
 				RequestFrame(Page_RemoveAlwaysTransmit, page);
 				SDKHook(page, SDKHook_OnTakeDamage, Hook_PageOnTakeDamage);
 				SDKHook(page, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmit);
-			}
-			int page2 = CreateEntityByName("prop_dynamic_override");
-			if (page2 != -1)
-			{
-				TeleportEntity(page2, vecPos, vecAng, NULL_VECTOR);
-				DispatchKeyValue(page2, "targetname", "sf2_page_ex");
-				
-				if (g_bPageRef)
-				{
-					SetEntityModel(page2, g_strPageRefModel);
-				}
-				else
-				{
-					SetEntityModel(page2, PAGE_MODEL);
-				}
-				
-				DispatchKeyValue(page2, "solid", "0");
-				DispatchKeyValue(page2, "parentname", pageName);
-				DispatchSpawn(page2);
-				ActivateEntity(page2);
-				SetVariantInt(i);
-				AcceptEntityInput(page2, "Skin");
-				AcceptEntityInput(page2, "DisableCollision");
-				SetVariantString(pageName);
-				AcceptEntityInput(page2, "SetParent");
-				
-				if (g_bPageRef)
-				{
-					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", g_flPageRefModelScale);
-				}
-				else
-				{
-					SetEntPropFloat(page2, Prop_Send, "m_flModelScale", PAGE_MODELSCALE);
-				}
-				SetEntityFlags(page2, GetEntityFlags(page2)|FL_EDICT_ALWAYS);
-				RequestFrame(Page_RemoveAlwaysTransmit, page2);
-				SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
 			}
 		}
 		
