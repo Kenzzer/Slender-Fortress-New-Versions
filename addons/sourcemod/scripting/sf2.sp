@@ -3203,12 +3203,18 @@ static void CollectPage(int page,int activator)
 	SetEventInt(hEvent, "points", 1);
 	FireEvent(hEvent);
 	
-	AcceptEntityInput(page, "FireUser1");
-	AcceptEntityInput(page, "KillHierarchy");
-	
 	int iPage2 = GetEntPropEnt(page, Prop_Send, "m_hOwnerEntity");
 	if (iPage2 > MaxClients)
 		AcceptEntityInput(iPage2, "Kill");
+	else
+	{
+		iPage2 = GetEntPropEnt(page, Prop_Send, "m_hEffectEntity");
+		if (iPage2 > MaxClients)
+			AcceptEntityInput(iPage2, "Kill");
+	}
+	
+	AcceptEntityInput(page, "FireUser1");
+	AcceptEntityInput(page, "KillHierarchy");
 }
 
 //	==========================================================
@@ -6261,6 +6267,10 @@ void SpawnPages()
 				}
 				
 				DispatchKeyValue(page, "solid", "2");
+				
+				SetEntPropEnt(page, Prop_Send, "m_hOwnerEntity", page2);
+				SetEntPropEnt(page, Prop_Send, "m_hEffectEntity", page2);
+				
 				DispatchSpawn(page);
 				ActivateEntity(page);
 				SetVariantInt(i);
@@ -6268,6 +6278,7 @@ void SpawnPages()
 				AcceptEntityInput(page, "EnableCollision");
 				
 				SetEntPropEnt(page, Prop_Send, "m_hOwnerEntity", page2);
+				SetEntPropEnt(page, Prop_Send, "m_hEffectEntity", page2);
 				
 				if (g_bPageRef)
 				{
