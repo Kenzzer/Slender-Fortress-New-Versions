@@ -480,6 +480,10 @@ void SpecialRoundStart()
 				}
 			}
 		}
+		case SPECIALROUND_INFINITEFLASHLIGHT:
+		{
+			SF_AddSpecialRound(SPECIALROUND_INFINITEFLASHLIGHT);
+		}
 		case SPECIALROUND_DREAMFAKEBOSSES:
 		{
 			CreateTimer(2.0,Timer_SpecialRoundFakeBosses,_,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);

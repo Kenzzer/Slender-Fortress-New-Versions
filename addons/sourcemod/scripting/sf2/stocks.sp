@@ -884,7 +884,7 @@ stock void SF_AddSpecialRound(int iSpecialRound)
 {
 	for (int iArray = 0;iArray < SPECIALROUND_MAXROUNDS; iArray++)
 	{
-		if (g_iArraySpecialRoundType[iArray] == 0)
+		if (g_iArraySpecialRoundType[iArray] == 0 || g_iArraySpecialRoundType[iArray] == iSpecialRound)
 		{
 			g_iArraySpecialRoundType[iArray] = iSpecialRound;
 			break;
