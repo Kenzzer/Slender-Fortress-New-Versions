@@ -6056,9 +6056,8 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		}
 	}
 	//Force them to take their melee wep, it prevents the civilian bug.
-	int iWep = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-	if (iWep > MaxClients)
-		SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", iWep);
+	ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
+	
 	// Remove all hats.
 	if (IsClientInGhostMode(client))
 	{

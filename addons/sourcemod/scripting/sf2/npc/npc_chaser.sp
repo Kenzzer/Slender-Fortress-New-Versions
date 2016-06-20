@@ -961,7 +961,6 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 						// AHAHAHAH! I GOT YOU NOW!
 						iTarget = iBestNewTarget;
 						g_iSlenderTarget[iBossIndex] = EntIndexToEntRef(iBestNewTarget);
-						g_bSlenderGiveUp[iBossIndex] = false;
 						iState = STATE_CHASE;
 					}
 				}
@@ -1266,6 +1265,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 			
 			case STATE_ALERT:
 			{
+				g_bSlenderGiveUp[iBossIndex] = false;
+				
 				g_bSlenderChaseDeathPosition[iBossIndex] = false;
 				
 				// Set our goal position.
@@ -1558,7 +1559,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 							iClosestAreaIndex);
 							
-							if(bPathSuccess)
+							//Disabled until futher improvements.
+							/*if(bPathSuccess)
 							{
 								//Our shortest path was a sucess, let's see if the safe one works.
 								bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
@@ -1580,7 +1582,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 									RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
 									iClosestAreaIndex);
 								}
-							}
+							}*/
 							
 							int iTempAreaIndex = iClosestAreaIndex;
 							int iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
@@ -1600,10 +1602,10 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								float flStartPos[3];
 								NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
 								//If we are close of the goal position but we failed, let's see if player is not in a unreachable area.
-								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 250.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 250.0)
+								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 200.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 200.0)
 								{
 									float jumpDist = g_flSlenderGoalPos[iBossIndex][2] - flStartPos[2];
-									//Jump speed and jump height are not the same thing I know, but if the speed is under the jump dist, then we have no chance to reach this place.
+									//Jump speed and jump dist are not the same thing I know, but if the speed is under the jump dist, then we have no chance to reach this place.
 									if(jumpDist > (g_flSlenderJumpSpeed[iBossIndex]+20.0))
 									{
 										//We can't jump there, give up...
