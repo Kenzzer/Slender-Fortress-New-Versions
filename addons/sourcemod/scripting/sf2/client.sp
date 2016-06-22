@@ -5906,6 +5906,7 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		
 		ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
 	}
+	TFClassType iPlayerClass = TF2_GetPlayerClass(client);
 	
 	if (bRestrictWeapons)
 	{
@@ -5913,7 +5914,6 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		
 		if (g_hRestrictedWeaponsConfig != INVALID_HANDLE)
 		{
-			TFClassType iPlayerClass = TF2_GetPlayerClass(client);
 			Handle hItem = INVALID_HANDLE;
 			
 			int iWeapon = INVALID_ENT_REFERENCE;
@@ -6002,6 +6002,20 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		{
 			SetEntProp(client, Prop_Data, "m_iHealth", iMaxHealth);
 			SetEntProp(client, Prop_Send, "m_iHealth", iMaxHealth);
+		}
+	}
+	//Blocking the spy-cicle completly, attempt to fix a bug. More will be explained in the next versions.
+	if (iPlayerClass == TFClass_Spy)
+	{
+		int iKnife = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+		if (GetEntProp(iKnife, Prop_Send, "m_iItemDefinitionIndex") == 649)
+		{
+			TF2_RemoveWeaponSlotAndWearables(client, TFWeaponSlot_Melee);
+			int iNewWeapon = TF2Items_GiveNamedItem(client, g_hSDKWeaponKnife);
+			if (IsValidEntity(iNewWeapon)) 
+			{
+				EquipPlayerWeapon(client, iNewWeapon);
+			}
 		}
 	}
 	
