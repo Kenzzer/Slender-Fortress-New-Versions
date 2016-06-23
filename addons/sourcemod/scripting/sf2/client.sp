@@ -1438,10 +1438,10 @@ void ClientActivateUltravision(int client)
 		GetClientEyePosition(client, flEyePos);
 		
 		TeleportEntity(ent, flEyePos, view_as<float>({ 90.0, 0.0, 0.0 }), NULL_VECTOR);
-		if(!GetConVarBool(g_cvNightvisionEnabled) || !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
-			DispatchKeyValue(ent, "rendercolor", "0 200 255");
-		else
+		if((GetConVarBool(g_cvNightvisionEnabled) || SF_SpecialRound(SPECIALROUND_NIGHTVISION)) && !IsClientInGhostMode(client))
 			DispatchKeyValue(ent, "rendercolor", "110 255 100");
+		else
+			DispatchKeyValue(ent, "rendercolor", "0 200 255");
 		
 		float flRadius = 0.0;
 		if (g_bPlayerEliminated[client])
@@ -6004,20 +6004,6 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 			SetEntProp(client, Prop_Send, "m_iHealth", iMaxHealth);
 		}
 	}
-	//Blocking the spy-cicle completly, attempt to fix a bug. More will be explained in the next versions.
-	if (iPlayerClass == TFClass_Spy)
-	{
-		int iKnife = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-		if (GetEntProp(iKnife, Prop_Send, "m_iItemDefinitionIndex") == 649)
-		{
-			TF2_RemoveWeaponSlotAndWearables(client, TFWeaponSlot_Melee);
-			int iNewWeapon = TF2Items_GiveNamedItem(client, g_hSDKWeaponKnife);
-			if (IsValidEntity(iNewWeapon)) 
-			{
-				EquipPlayerWeapon(client, iNewWeapon);
-			}
-		}
-	}
 	
 	// Change stats on some weapons.
 	if (!g_bPlayerEliminated[client] || g_bPlayerProxy[client])
@@ -6104,6 +6090,30 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		DebugMessage("END Timer_ClientPostWeapons(%d) -> remove = %d, restrict = %d", client, bRemoveWeapons, bRestrictWeapons);
 	}
 #endif
+}
+
+public Action TF2Items_OnGiveNamedItem(int client, char[] classname, int iItemDefinitionIndex, Handle &hItem)
+{
+	if(!g_bEnabled) return Plugin_Continue;
+	
+	if (iItemDefinitionIndex == 649)
+	{
+		RequestFrame(Frame_ReplaceSpyCicle, client);
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
+public void Frame_ReplaceSpyCicle(int client)
+{
+	if (IsClientInGame(client))
+	{
+		TF2_RemoveWeaponSlot(client, TFWeaponSlot_Melee);
+		int iNewKnife = TF2Items_GiveNamedItem(client, g_hSDKWeaponKnife);
+		EquipPlayerWeapon(client, iNewKnife);
+		ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
+	}
 }
 
 public Action Timer_ApplyCustomModel(Handle timer, any userid)

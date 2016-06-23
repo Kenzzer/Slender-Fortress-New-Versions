@@ -284,22 +284,22 @@ void SpecialRoundCycleFinish()
 		*/
 		if (!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INSANEDIFFICULTY);
-		if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+		if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_LIGHTSOUT);
 			
 		if (!SF_SpecialRound(SPECIALROUND_BEACON))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_BEACON);
 		
-		if (!SF_SpecialRound(SPECIALROUND_NOGRACE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION) && GetRoundState() != SF2RoundState_Intro)
+		if (!SF_SpecialRound(SPECIALROUND_NOGRACE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION) && GetRoundState() != SF2RoundState_Intro && g_hRoundGraceTimer != INVALID_HANDLE)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
 			
-		if (!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+		if (!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NIGHTVISION);
 			
 		/*if (!SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);*/
 			
-		if (!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+		if (!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_INFINITEFLASHLIGHT);
 			
 		if (!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
@@ -308,7 +308,7 @@ void SpecialRoundCycleFinish()
 		if (!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_EYESONTHECLOACK);
 		
-		if (!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2)
+		if (!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2 && GetRoundState() != SF2RoundState_Escape)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_NOPAGEBONUS);
 
 		//Disabled
@@ -324,10 +324,10 @@ void SpecialRoundCycleFinish()
 		if (!bSuprise && !SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 			PushArrayCell(hEnabledRounds, SPECIALROUND_SUPRISE);
 		
-		if (!SF_SpecialRound(SPECIALROUND_LASTRESORT))
+		if (!SF_SpecialRound(SPECIALROUND_LASTRESORT) && GetRoundState() != SF2RoundState_Escape)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_LASTRESORT);
 		
-		if (!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4)
+		if (!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4 && GetRoundState() != SF2RoundState_Escape)
 			PushArrayCell(hEnabledRounds, SPECIALROUND_ESCAPETICKETS);
 		
 		if (!SF_SpecialRound(SPECIALROUND_REVOLUTION))
@@ -465,9 +465,17 @@ void SpecialRoundStart()
 		case SPECIALROUND_LIGHTSOUT,SPECIALROUND_NIGHTVISION:
 		{
 			if (g_iSpecialRoundType == SPECIALROUND_LIGHTSOUT)
+			{
+				SF_RemoveSpecialRound(SPECIALROUND_NIGHTVISION);
+				SF_RemoveSpecialRound(SPECIALROUND_INFINITEFLASHLIGHT);
 				SF_AddSpecialRound(SPECIALROUND_LIGHTSOUT);
+			}
 			else if (g_iSpecialRoundType == SPECIALROUND_NIGHTVISION)
+			{
+				SF_RemoveSpecialRound(SPECIALROUND_NOULTRAVISION);
+				SF_RemoveSpecialRound(SPECIALROUND_LIGHTSOUT);
 				SF_AddSpecialRound(SPECIALROUND_NIGHTVISION);
+			}
 			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (!IsClientInGame(i)) continue;
@@ -480,8 +488,13 @@ void SpecialRoundStart()
 				}
 			}
 		}
+		case SPECIALROUND_BEACON:
+		{
+			SF_AddSpecialRound(SPECIALROUND_BEACON);
+		}
 		case SPECIALROUND_INFINITEFLASHLIGHT:
 		{
+			SF_RemoveSpecialRound(SPECIALROUND_LIGHTSOUT);
 			SF_AddSpecialRound(SPECIALROUND_INFINITEFLASHLIGHT);
 		}
 		case SPECIALROUND_DREAMFAKEBOSSES:
@@ -512,6 +525,7 @@ void SpecialRoundStart()
 		}
 		case SPECIALROUND_NOULTRAVISION:
 		{
+			SF_AddSpecialRound(SPECIALROUND_NOULTRAVISION);
 			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (!IsClientInGame(i)) continue;
@@ -521,7 +535,6 @@ void SpecialRoundStart()
 					ClientDeactivateUltravision(i);
 				}
 			}
-			SF_AddSpecialRound(SPECIALROUND_NOULTRAVISION);
 		}
 		case SPECIALROUND_DUCKS:
 		{
@@ -600,6 +613,10 @@ void SpecialRoundStart()
 		{
 			SF_AddSpecialRound(SPECIALROUND_REVOLUTION);
 			g_iSpecialRoundTime = 0;
+		}
+		case SPECIALROUND_LASTRESORT:
+		{
+			SF_AddSpecialRound(SPECIALROUND_LASTRESORT);
 		}
 		case SPECIALROUND_ESCAPETICKETS:
 		{
