@@ -1537,7 +1537,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				// So by now we should have calculated our master goal position.
 				// Now we use that to create a path.
 				
-				if (bQueueForNewPath)
+				if (bQueueForNewPath && g_flSlenderLastCalculPathTime[iBossIndex] <= GetGameTime()+0.12)
 				{
 					ClearArray(g_hSlenderPath[iBossIndex]);
 					
@@ -1595,6 +1595,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								int iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], g_flSlenderGoalPos[iBossIndex][0]);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][1], 1);
 								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, g_flSlenderGoalPos[iBossIndex][2], 2);
+
 							}
 							else//This check is made to prevent expensive calculations for the server.
 							{
@@ -1602,7 +1603,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								float flStartPos[3];
 								NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
 								//If we are close of the goal position but we failed, let's see if player is not in a unreachable area.
-								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 200.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 200.0)
+								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 180.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 180.0)
 								{
 									float jumpDist = g_flSlenderGoalPos[iBossIndex][2] - flStartPos[2];
 									//Jump speed and jump dist are not the same thing I know, but if the speed is under the jump dist, then we have no chance to reach this place.
@@ -1621,6 +1622,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 									g_bSlenderGiveUp[iBossIndex] = true;
 								}
 							}
+							g_flSlenderLastCalculPathTime[iBossIndex] = GetGameTime();
 							
 							Handle hTempPath = CreateArray(3);
 							while (iTempParentAreaIndex != -1)
@@ -1656,32 +1658,39 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								
 								if (GetArraySize(hTempPath) > 2)
 								{
+									bool bMakeCleanPath = (220.0 <= g_iGeneralDist <= 1200.0);
+									if (bMakeCleanPath) bMakeCleanPath = !SF_IsRaidMap();
 									float flTempPosBefore[3];
 									float flTempPosAfter[3];
 									for (int i = 1; i < GetArraySize(hTempPath)-1; i++)
 									{
-										flTempPosBefore[0] = GetArrayCell(hTempPath, i-1, 0);
-										flTempPosBefore[1] = GetArrayCell(hTempPath, i-1, 1);
-										flTempPosBefore[2] = GetArrayCell(hTempPath, i-1, 2);
-										
-										flTempPosAfter[0] = GetArrayCell(hTempPath, i+1, 0);
-										flTempPosAfter[1] = GetArrayCell(hTempPath, i+1, 1);
-										flTempPosAfter[2] = GetArrayCell(hTempPath, i+1, 2);
-										
-										Handle hTrace = TR_TraceRayFilterEx(flTempPosBefore,
-										flTempPosAfter,
-										MASK_NPCSOLID,
-										RayType_EndPoint,
-										TraceRayBossVisibility,
-										slender);
-									
-										bool bIsVisible = !TR_DidHit(hTrace);
-										
-										if (bIsVisible)
+										if (bMakeCleanPath)
 										{
-											//We can build a better path ignore this one, this will only slow us!!!!
-											i++;
-											continue;
+											flTempPosBefore[0] = GetArrayCell(hTempPath, i-1, 0);
+											flTempPosBefore[1] = GetArrayCell(hTempPath, i-1, 1);
+											flTempPosBefore[2] = GetArrayCell(hTempPath, i-1, 2);
+											
+											flTempPosAfter[0] = GetArrayCell(hTempPath, i+1, 0);
+											flTempPosAfter[1] = GetArrayCell(hTempPath, i+1, 1);
+											flTempPosAfter[2] = GetArrayCell(hTempPath, i+1, 2);
+											
+											Handle hTrace = TR_TraceHullFilterEx(flTempPosBefore,
+											flTempPosAfter, 
+											flSlenderMins, 
+											flSlenderMaxs, 
+											MASK_NPCSOLID, 
+											TraceRayDontHitCharactersOrEntity, 
+											slender);
+										
+											bool bIsVisible = !TR_DidHit(hTrace);
+											
+											if (bIsVisible)
+											{
+												//We can build a better path ignore this one, this will only slow us!!!!
+												//PS: If someone adds flying walls in his map, let me call him an idiot!
+												i++;
+												continue;
+											}
 										}
 										
 										flClosestPoint[0] = view_as<float>(GetArrayCell(hTempPath, i, 0));

@@ -181,6 +181,7 @@ int g_iSlenderInterruptConditions[MAX_BOSSES];
 float g_flSlenderLastFoundPlayer[MAX_BOSSES][MAXPLAYERS + 1];
 float g_flSlenderLastFoundPlayerPos[MAX_BOSSES][MAXPLAYERS + 1][3];
 float g_flSlenderNextPathTime[MAX_BOSSES] = { -1.0, ... };
+float g_flSlenderLastCalculPathTime[MAX_BOSSES] = { -1.0, ... };
 float g_flSlenderCalculatedWalkSpeed[MAX_BOSSES];
 float g_flSlenderCalculatedSpeed[MAX_BOSSES];
 float g_flSlenderCalculatedAirSpeed[MAX_BOSSES];

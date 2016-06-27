@@ -1111,6 +1111,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			g_flSlenderTimeUntilNoPersistence[iBossIndex] = -1.0;
 			g_flSlenderNextJump[iBossIndex] = GetGameTime() + GetProfileFloat(sProfile, "jump_cooldown", 2.0);
 			g_flSlenderNextPathTime[iBossIndex] = GetGameTime();
+			g_flSlenderLastCalculPathTime[iBossIndex] = -1.0;
 			g_hSlenderEntityThink[iBossIndex] = CreateTimer(BOSS_THINKRATE, Timer_SlenderChaseBossThink, EntIndexToEntRef(iBoss), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 			g_iSlenderInterruptConditions[iBossIndex] = 0;
 			g_bSlenderChaseDeathPosition[iBossIndex] = false;
