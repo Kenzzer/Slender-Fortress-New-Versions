@@ -1621,8 +1621,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 									g_bSlenderGiveUp[iBossIndex] = true;
 								}
 							}
-								
 							
+							Handle hTempPath = CreateArray(3);
 							while (iTempParentAreaIndex != -1)
 							{
 								// Build a path of waypoints along the nav mesh for our AI to follow.
@@ -1636,14 +1636,77 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								
 								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
 								
-								int iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
-								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[1], 1);
-								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[2], 2);
+								int iIndex = PushArrayCell(hTempPath, flClosestPoint[0]);
+								SetArrayCell(hTempPath, iIndex, flClosestPoint[1], 1);
+								SetArrayCell(hTempPath, iIndex, flClosestPoint[2], 2);
 								
 								iTempAreaIndex = iTempParentAreaIndex;
 								iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
 							}
+							if (GetArraySize(hTempPath) > 0)
+							{
+								//Push the first pos, we are obiviously going via this one.
+								flClosestPoint[0] = view_as<float>(GetArrayCell(hTempPath, 0, 0));
+								flClosestPoint[1] = view_as<float>(GetArrayCell(hTempPath, 0, 1));
+								flClosestPoint[2] = view_as<float>(GetArrayCell(hTempPath, 0, 2));
 							
+								int iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
+								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[1], 1);
+								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[2], 2);
+								
+								if (GetArraySize(hTempPath) > 2)
+								{
+									float flTempPosBefore[3];
+									float flTempPosAfter[3];
+									for (int i = 1; i < GetArraySize(hTempPath)-1; i++)
+									{
+										flTempPosBefore[0] = GetArrayCell(hTempPath, i-1, 0);
+										flTempPosBefore[1] = GetArrayCell(hTempPath, i-1, 1);
+										flTempPosBefore[2] = GetArrayCell(hTempPath, i-1, 2);
+										
+										flTempPosAfter[0] = GetArrayCell(hTempPath, i+1, 0);
+										flTempPosAfter[1] = GetArrayCell(hTempPath, i+1, 1);
+										flTempPosAfter[2] = GetArrayCell(hTempPath, i+1, 2);
+										
+										Handle hTrace = TR_TraceRayFilterEx(flTempPosBefore,
+										flTempPosAfter,
+										MASK_NPCSOLID,
+										RayType_EndPoint,
+										TraceRayBossVisibility,
+										slender);
+									
+										bool bIsVisible = !TR_DidHit(hTrace);
+										
+										if (bIsVisible)
+										{
+											//We can build a better path ignore this one, this will only slow us!!!!
+											i++;
+											continue;
+										}
+										
+										flClosestPoint[0] = view_as<float>(GetArrayCell(hTempPath, i, 0));
+										flClosestPoint[1] = view_as<float>(GetArrayCell(hTempPath, i, 1));
+										flClosestPoint[2] = view_as<float>(GetArrayCell(hTempPath, i, 2));
+								
+										iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
+										SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[1], 1);
+										SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[2], 2);
+									}
+								}
+								
+								//We did all the required step to build a clean path, now set the FINAL position!
+								int iPosIndex = GetArraySize(hTempPath) - 1;
+								
+								flClosestPoint[0] = view_as<float>(GetArrayCell(hTempPath, iPosIndex, 0));
+								flClosestPoint[1] = view_as<float>(GetArrayCell(hTempPath, iPosIndex, 1));
+								flClosestPoint[2] = view_as<float>(GetArrayCell(hTempPath, iPosIndex, 2));
+										
+								iIndex = PushArrayCell(g_hSlenderPath[iBossIndex], flClosestPoint[0]);
+								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[1], 1);
+								SetArrayCell(g_hSlenderPath[iBossIndex], iIndex, flClosestPoint[2], 2);
+							}
+							//Temp path's job done, destroy it.
+							delete hTempPath;
 							// Set our goal position to the start node (hopefully there's something in the array).
 							if (GetArraySize(g_hSlenderPath[iBossIndex]) > 0)
 							{
@@ -1654,40 +1717,14 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								g_flSlenderGoalPos[iBossIndex][2] = view_as<float>(GetArrayCell(g_hSlenderPath[iBossIndex], iPosIndex, 2));
 							}
 #if defined DEBUG
-							iTempAreaIndex = iClosestAreaIndex;
-							iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
-							
-							Handle hPositions = CreateArray(3);
-							
-							PushArrayArray(hPositions, g_flSlenderGoalPos[iBossIndex], 3);
-							
-							while (iTempParentAreaIndex != -1)
-							{
-								float flTempAreaCenter[3], flParentAreaCenter[3];
-								NavMeshArea_GetCenter(iTempAreaIndex, flTempAreaCenter);
-								NavMeshArea_GetCenter(iTempParentAreaIndex, flParentAreaCenter);
-								
-								iNavDirection = NavMeshArea_ComputeDirection(iTempAreaIndex, flParentAreaCenter);
-								NavMeshArea_ComputePortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flHalfWidth);
-								NavMeshArea_ComputeClosestPointInPortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flClosestPoint);
-								
-								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
-								
-								PushArrayArray(hPositions, flClosestPoint, 3);
-								
-								iTempAreaIndex = iTempParentAreaIndex;
-								iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
-							}
+
 							int iColor[4] = { 0, 255, 0, 255 };
-							float flStartPos[3];
-							NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
-							PushArrayArray(hPositions, flStartPos, 3);
 							
-							for (int i = GetArraySize(hPositions) - 1; i > 0; i--)
+							for (int i = GetArraySize(g_hSlenderPath[iBossIndex]) - 1; i > 0; i--)
 							{
 								float flFromPos[3], flToPos[3];
-								GetArrayArray(hPositions, i, flFromPos, 3);
-								GetArrayArray(hPositions, i - 1, flToPos, 3);
+								GetArrayArray(g_hSlenderPath[iBossIndex], i, flFromPos, 3);
+								GetArrayArray(g_hSlenderPath[iBossIndex], i - 1, flToPos, 3);
 								
 								TE_SetupBeamPoints(flFromPos,
 									flToPos,
@@ -1705,7 +1742,6 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 									
 								TE_SendToAll();
 							}
-							CloseHandle(hPositions);
 #endif
 						}
 						else

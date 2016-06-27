@@ -413,7 +413,7 @@ static bool g_bRoundWaitingForPlayers = false;
 // Special round variables.
 bool g_bSpecialRound = false;
 
-bool g_bSpecialRoundint = false;
+bool g_bSpecialRoundNew = false;
 bool g_bSpecialRoundContinuous = false;
 int g_iSpecialRoundCount = 1;
 bool g_bPlayerPlayedSpecialRound[MAXPLAYERS + 1] = { true, ... };
@@ -1216,7 +1216,7 @@ static void StartPlugin()
 	
 	// Reset special round.
 	g_bSpecialRound = false;
-	g_bSpecialRoundint = false;
+	g_bSpecialRoundNew = false;
 	g_bSpecialRoundContinuous = false;
 	g_iSpecialRoundCount = 1;
 	SF_RemoveAllSpecialRound();
@@ -6327,7 +6327,7 @@ static bool HandleSpecialRoundState()
 	bool bOld = g_bSpecialRound;
 	bool bContinuousOld = g_bSpecialRoundContinuous;
 	g_bSpecialRound = false;
-	g_bSpecialRoundint = false;
+	g_bSpecialRoundNew = false;
 	g_bSpecialRoundContinuous = false;
 	
 	bool bForceNew = false;
@@ -6375,10 +6375,10 @@ static bool HandleSpecialRoundState()
 	{
 		if (bForceNew || !bOld || !bContinuousOld)
 		{
-			g_bSpecialRoundint = true;
+			g_bSpecialRoundNew = true;
 		}
 		
-		if (g_bSpecialRoundint)
+		if (g_bSpecialRoundNew)
 		{
 			if (GetConVarInt(g_cvSpecialRoundBehavior) == 1)
 			{
@@ -6386,7 +6386,7 @@ static bool HandleSpecialRoundState()
 			}
 			else
 			{
-				// int special round, but it's not continuous.
+				// new special round, but it's not continuous.
 				g_bSpecialRoundContinuous = false;
 			}
 		}
@@ -6397,7 +6397,7 @@ static bool HandleSpecialRoundState()
 	}
 	
 #if defined DEBUG
-	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END HandleSpecialRoundState() -> g_bSpecialRound = %d (count = %d, int = %d, continuous = %d)", g_bSpecialRound, g_iSpecialRoundCount, g_bSpecialRoundint, g_bSpecialRoundContinuous);
+	if (GetConVarInt(g_cvDebugDetail) > 0) DebugMessage("END HandleSpecialRoundState() -> g_bSpecialRound = %d (count = %d, int = %d, continuous = %d)", g_bSpecialRound, g_iSpecialRoundCount, g_bSpecialRoundNew, g_bSpecialRoundContinuous);
 #endif
 }
 
@@ -6722,7 +6722,7 @@ void InitializeNewGame()
 	// Was a new special round initialized?
 	if (g_bSpecialRound)
 	{
-		if (g_bSpecialRoundint)
+		if (g_bSpecialRoundNew)
 		{
 			// Reset round count.
 			g_iSpecialRoundCount = 1;
