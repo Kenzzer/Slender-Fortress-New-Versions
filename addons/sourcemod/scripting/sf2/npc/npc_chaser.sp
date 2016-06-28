@@ -1658,7 +1658,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 								
 								if (GetArraySize(hTempPath) > 2)
 								{
-									bool bMakeCleanPath = (220.0 <= g_iGeneralDist <= 1200.0);
+									bool bMakeCleanPath = (g_iGeneralDist >= 80.0);
 									if (bMakeCleanPath) bMakeCleanPath = !SF_IsRaidMap();
 									float flTempPosBefore[3];
 									float flTempPosAfter[3];
