@@ -1684,6 +1684,8 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 										
 											bool bIsVisible = !TR_DidHit(hTrace);
 											
+											CloseHandle(hTrace);
+											
 											if (bIsVisible)
 											{
 												//We can build a better path ignore this one, this will only slow us!!!!
