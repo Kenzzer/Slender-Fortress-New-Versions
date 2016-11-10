@@ -6,9 +6,9 @@
 		{
 			"CTFPlayer::WantsLagCompensationOnEntity"
 			{
-				"windows"	"324"
-				"linux"		"325"
-				"mac"		"325"
+				"windows"	"325"
+				"linux"		"326"
+				"mac"		"326"
 			}
 			
 			"CBaseEntity::ShouldTransmit"
@@ -19,9 +19,9 @@
 			}
 			"CTFPlayer::EquipWearable"
 			{
-				"windows"	"427"
-				"linux"		"428"
-				"mac"		"428"
+				"windows"	"428"
+				"linux"		"429"
+				"mac"		"429"
 			}
 		}
 		"Signatures"
