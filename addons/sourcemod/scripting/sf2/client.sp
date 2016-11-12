@@ -3969,10 +3969,10 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 		if(!g_bRoundGrace)
 		{
 			flPos[2]+=1.0;
-			int iTargetAreaIndex = NavMesh_GetNearestArea(flPos);
-			if (iTargetAreaIndex != -1)
+			CNavArea targetAreaIndex = NavMesh_GetNearestArea(flPos);
+			if (targetAreaIndex != INVALID_NAV_AREA)
 			{
-				if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_DONT_HIDE && g_iPlayerCampingStrikes[client]>GetConVarInt(g_cvExitCampingStrikes))
+				if (targetAreaIndex.Attributes & NAV_MESH_DONT_HIDE && g_iPlayerCampingStrikes[client]>GetConVarInt(g_cvExitCampingStrikes))
 				{
 					//EXIT CAMPER!
 					g_bPlayerIsExitCamping[client] = true;

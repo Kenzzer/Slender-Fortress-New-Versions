@@ -1541,51 +1541,26 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				{
 					ClearArray(g_hSlenderPath[iBossIndex]);
 					
-					int iCurrentAreaIndex = NavMesh_GetNearestArea(flMyPos);
-					if (iCurrentAreaIndex != -1)
+					CNavArea CurrentArea = NavMesh_GetNearestArea(flMyPos);
+					if (CurrentArea != INVALID_NAV_AREA)
 					{
-						int iGoalAreaIndex = NavMesh_GetNearestArea(g_flSlenderGoalPos[iBossIndex]);
-						if (iGoalAreaIndex != -1)
+						CNavArea GoalArea = NavMesh_GetNearestArea(g_flSlenderGoalPos[iBossIndex]);
+						if (GoalArea != INVALID_NAV_AREA)
 						{
-							float flCenter[3], flCenterPortal[3], flClosestPoint[3];
-							int iClosestAreaIndex = 0;
+							float flCenterPortal[3], flClosestPoint[3];
+							CNavArea closestArea = CNavArea(0);
 							
 							g_iGeneralDist = 0;
 							
-							bool bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-							iGoalAreaIndex,
+							bool bPathSuccess = NavMesh_BuildPath(CurrentArea,
+							GoalArea,
 							g_flSlenderGoalPos[iBossIndex],
 							SlenderChaseBossShortestPathCost,
 							RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-							iClosestAreaIndex);
+							closestArea);
 							
-							//Disabled until futher improvements.
-							/*if(bPathSuccess)
-							{
-								//Our shortest path was a sucess, let's see if the safe one works.
-								bool bSafePathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-								iGoalAreaIndex,
-								g_flSlenderGoalPos[iBossIndex],
-								SlenderChaseBossShortestPathCost,
-								RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-								iClosestAreaIndex,
-								(g_iGeneralDist*2.5),
-								NPCChaserGetStepSize(iBossIndex)*2.0);
-								
-								if(!bSafePathSuccess)
-								{
-									//No safe path, use the shortest path.
-									bPathSuccess = NavMesh_BuildPath(iCurrentAreaIndex,
-									iGoalAreaIndex,
-									g_flSlenderGoalPos[iBossIndex],
-									SlenderChaseBossShortestPathCost,
-									RoundToFloor(NPCChaserGetStepSize(iBossIndex)),
-									iClosestAreaIndex);
-								}
-							}*/
-							
-							int iTempAreaIndex = iClosestAreaIndex;
-							int iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+							CNavArea tempArea = closestArea;
+							CNavArea parentArea = tempArea.Parent;
 							int iNavDirection;
 							float flHalfWidth;
 							
@@ -1601,7 +1576,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 							{
 								//Sometimes the path fails, for multiple reasons.
 								float flStartPos[3];
-								NavMeshArea_GetCenter(iCurrentAreaIndex, flStartPos);
+								CurrentArea.GetCenter(flStartPos);
 								//If we are close of the goal position but we failed, let's see if player is not in a unreachable area.
 								if((FloatAbs(g_flSlenderGoalPos[iBossIndex][0] - flStartPos[0])) <= 180.0 && (FloatAbs(g_flSlenderGoalPos[iBossIndex][1] - flStartPos[1])) <= 180.0)
 								{
@@ -1613,37 +1588,26 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 										g_bSlenderGiveUp[iBossIndex] = true;
 									}
 								}
-								//Some maps have non-npcs teleporters like citadel let's see if we are on the same nav area
-								//I think this connected check should be done before the calculation.
-								if(!NavMeshArea_IsConnected(iCurrentAreaIndex, iGoalAreaIndex) && NPCChaserGetTeleporter(iBossIndex,0) == INVALID_ENT_REFERENCE)
-								{
-									//Nope we aren't, give up...
-									//PrintToChatAll("Wait come back!");
-									g_bSlenderGiveUp[iBossIndex] = true;
-								}
 							}
 							g_flSlenderLastCalculPathTime[iBossIndex] = GetGameTime();
 							
 							Handle hTempPath = CreateArray(3);
-							while (iTempParentAreaIndex != -1)
+							while (parentArea != INVALID_NAV_AREA)
 							{
-								// Build a path of waypoints along the nav mesh for our AI to follow.
-								// Path order is first come, first served, so when we got our waypoint list,
-								// we have to reverse it so that the starting waypoint would be in front.
+								float flTempAreaCenter[3], flParentAreaCenter[3];
+								tempArea.GetCenter(flTempAreaCenter);
+								parentArea.GetCenter(flParentAreaCenter);
 								
-								NavMeshArea_GetCenter(iTempParentAreaIndex, flCenter);
-								iNavDirection = NavMeshArea_ComputeDirection(iTempAreaIndex, flCenter);
-								NavMeshArea_ComputePortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flHalfWidth);
-								NavMeshArea_ComputeClosestPointInPortal(iTempAreaIndex, iTempParentAreaIndex, iNavDirection, flCenterPortal, flClosestPoint);
+								iNavDirection = tempArea.ComputeDirection(flParentAreaCenter);
+								tempArea.ComputePortal(parentArea, iNavDirection, flCenterPortal, flHalfWidth);
+								tempArea.ComputeClosestPointInPortal(parentArea, iNavDirection, flCenterPortal, flClosestPoint);
 								
-								flClosestPoint[2] = NavMeshArea_GetZ(iTempAreaIndex, flClosestPoint);
+								flClosestPoint[2] = tempArea.GetZ(flClosestPoint);
 								
-								int iIndex = PushArrayCell(hTempPath, flClosestPoint[0]);
-								SetArrayCell(hTempPath, iIndex, flClosestPoint[1], 1);
-								SetArrayCell(hTempPath, iIndex, flClosestPoint[2], 2);
+								PushArrayArray(g_hSlenderPath[iBossIndex], flClosestPoint, 3);
 								
-								iTempAreaIndex = iTempParentAreaIndex;
-								iTempParentAreaIndex = NavMeshArea_GetParent(iTempAreaIndex);
+								tempArea = parentArea;
+								parentArea = tempArea.Parent;
 							}
 							if (GetArraySize(hTempPath) > 0)
 							{
@@ -2246,10 +2210,10 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 	float flTraceEndPos[3];
 	Handle hTrace;
 	bool bCanJump = true;
-	int iTargetAreaIndex = NavMesh_GetNearestArea(flMyPos);
-	if (iTargetAreaIndex != -1)
+	CNavArea targetAreaIndex = NavMesh_GetNearestArea(flMyPos);
+	if (targetAreaIndex != INVALID_NAV_AREA)
 	{
-		if (NavMeshArea_GetFlags(iTargetAreaIndex) & NAV_MESH_NO_JUMP)
+		if (targetAreaIndex.Attributes & NAV_MESH_NO_JUMP)
 		{
 			bCanJump = false;
 		}
@@ -2518,9 +2482,9 @@ void SlenderChaseBossProcessMovement(int iBossIndex)
 }
 
 // Shortest-path cost function for NavMesh_BuildPath.
-public int SlenderChaseBossShortestPathCost(int iAreaIndex,int iFromAreaIndex,int iLadderIndex, any iStepSize)
+public int SlenderChaseBossShortestPathCost(CNavArea area, CNavArea fromArea, CNavLadder ladder, any iStepSize)
 {
-	if (iFromAreaIndex == -1)
+	if (fromArea == INVALID_NAV_AREA)
 	{
 		return 0;
 	}
@@ -2528,23 +2492,22 @@ public int SlenderChaseBossShortestPathCost(int iAreaIndex,int iFromAreaIndex,in
 	{
 		int iDist;
 		float flAreaCenter[3], flFromAreaCenter[3];
-		NavMeshArea_GetCenter(iAreaIndex, flAreaCenter);
-		NavMeshArea_GetCenter(iFromAreaIndex, flFromAreaCenter);
+		area.GetCenter(flAreaCenter);
+		fromArea.GetCenter(flFromAreaCenter);
 		
-		if (iLadderIndex != -1)
+		if (ladder != INVALID_NAV_LADDER)
 		{
-			iDist = RoundFloat(NavMeshLadder_GetLength(iLadderIndex));
+			iDist = RoundFloat(ladder.Length);
 		}
 		else
 		{
 			iDist = RoundFloat(GetVectorDistance(flAreaCenter, flFromAreaCenter));
 		}
 		
-		int iCost = iDist + NavMeshArea_GetCostSoFar(iFromAreaIndex);
+		int iCost = iDist + fromArea.CostSoFar;
 		
-		int iAreaFlags = NavMeshArea_GetFlags(iAreaIndex);
-		if (iAreaFlags & NAV_MESH_CROUCH) iCost += 20;
-		if (iAreaFlags & NAV_MESH_JUMP) iCost += (5 * iDist);
+		if (area.Attributes & NAV_MESH_CROUCH) iCost += 20;
+		if (area.Attributes & NAV_MESH_JUMP) iCost += (5 * iDist);
 		
 		if ((flAreaCenter[2] - flFromAreaCenter[2]) > iStepSize) iCost += iStepSize;
 		

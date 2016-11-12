@@ -2014,8 +2014,8 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 					float flTargetPos[3];
 					GetClientAbsOrigin(iTeleportTarget, flTargetPos);
 					
-					int iTargetAreaIndex = NavMesh_GetNearestArea(flTargetPos);
-					if (iTargetAreaIndex != -1)
+					CNavArea TargetArea = NavMesh_GetNearestArea(flTargetPos);
+					if (TargetArea != INVALID_NAV_AREA)
 					{
 						bool bShouldBeBehindObstruction = false;
 						if (NPCGetTeleportType(iBossIndex) == 2)
@@ -2025,29 +2025,31 @@ public Action Timer_SlenderTeleportThink(Handle timer, any iBossIndex)
 						
 						// Search outwards until travel distance is at maximum range.
 						Handle hAreaArray = CreateArray(2);
-						Handle hAreas = CreateStack();
-						NavMesh_CollectSurroundingAreas(hAreas, iTargetAreaIndex, g_flSlenderTeleportMaxRange[iBossIndex]);
+						ArrayStack hAreas = CreateStack();
+						NavMesh_CollectSurroundingAreas(hAreas, TargetArea, g_flSlenderTeleportMaxRange[iBossIndex]);
 						
 						{
 							int iPoppedAreas;
 						
 							while (!IsStackEmpty(hAreas))
 							{
+								CNavArea Area = INVALID_NAV_AREA;
 								int iAreaIndex = -1;
 								PopStackCell(hAreas, iAreaIndex);
+								Area = CNavArea(iAreaIndex);
 								
 								// Check flags.
-								if (NavMeshArea_GetFlags(iAreaIndex) & NAV_MESH_NO_HOSTAGES)
+								if (Area.Attributes & NAV_MESH_NO_HOSTAGES)
 								{
 									// Don't spawn/teleport at areas marked with the "NO HOSTAGES" flag.
 									continue;
 								}
 								// Check if the nav area has a func prefer on it.
-								if (bIgnoreFuncNavPrefer && NavHasFuncPrefer(iAreaIndex))
+								if (bIgnoreFuncNavPrefer && NavHasFuncPrefer(Area.Index))
 									continue;
 								
-								int iIndex = PushArrayCell(hAreaArray, iAreaIndex);
-								SetArrayCell(hAreaArray, iIndex, float(NavMeshArea_GetCostSoFar(iAreaIndex)), 1);
+								int iIndex = PushArrayCell(hAreaArray, Area.Index);
+								SetArrayCell(hAreaArray, iIndex, float(Area.CostSoFar), 1);
 								iPoppedAreas++;
 							}
 							
@@ -3168,14 +3170,14 @@ stock bool SpawnProxy(int client,int iBossIndex,float flTeleportPos[3])
 				float flTargetPos[3];
 				GetClientAbsOrigin(iTeleportTarget, flTargetPos);
 				
-				int iTargetAreaIndex = NavMesh_GetNearestArea(flTargetPos);
-				if (iTargetAreaIndex != -1)
+				CNavArea TargetArea = NavMesh_GetNearestArea(flTargetPos);
+				if (TargetArea != INVALID_NAV_AREA)
 				{
 					
 					// Search outwards until travel distance is at maximum range.
 					Handle hAreaArray = CreateArray(2);
-					Handle hAreas = CreateStack();
-					NavMesh_CollectSurroundingAreas(hAreas, iTargetAreaIndex, g_flSlenderTeleportMaxRange[iBossIndex]);
+					ArrayStack hAreas = CreateStack();
+					NavMesh_CollectSurroundingAreas(hAreas, TargetArea, g_flSlenderTeleportMaxRange[iBossIndex]);
 					{
 						int iPoppedAreas;
 						
