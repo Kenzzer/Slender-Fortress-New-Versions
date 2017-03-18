@@ -513,6 +513,9 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 	
 	if (NPCGetFlags(iBossIndex) & SFF_MARKEDASFAKE) return Plugin_Stop;
 	
+	//Keep track of the boss's last known nav area through its hitbox
+	if (g_iSlenderHitbox[iBossIndex] > MaxClients) SDK_UpdateLastKnownArea(g_iSlenderHitbox[iBossIndex]);
+	
 	float flSlenderVelocity[3], flMyPos[3], flMyEyeAng[3];
 	float flBuffer[3];
 	
@@ -1532,7 +1535,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				}
 			}
 			
-			if (NavMesh_Exists())
+			if (NavMesh_Exists() && g_iSlenderHitbox[iBossIndex] > MaxClients)
 			{
 				// So by now we should have calculated our master goal position.
 				// Now we use that to create a path.
@@ -1541,7 +1544,7 @@ public Action Timer_SlenderChaseBossThink(Handle timer, any entref)
 				{
 					ClearArray(g_hSlenderPath[iBossIndex]);
 					
-					CNavArea CurrentArea = NavMesh_GetNearestArea(flMyPos);
+					CNavArea CurrentArea = SDK_GetLastKnownArea(g_iSlenderHitbox[iBossIndex]);
 					if (CurrentArea != INVALID_NAV_AREA)
 					{
 						CNavArea GoalArea = NavMesh_GetNearestArea(g_flSlenderGoalPos[iBossIndex]);

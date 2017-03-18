@@ -3,6 +3,7 @@
 #endif
 #define _sf2_stocks_included
 
+#define VALID_MINIMUM_MEMORY_ADDRESS 0x10000
 
 #define SF2_FLASHLIGHT_WIDTH 512.0 // How wide the player's Flashlight should be in world units.
 #define SF2_FLASHLIGHT_LENGTH 1024.0 // How far the player's Flashlight can reach in world units.
@@ -619,6 +620,44 @@ stock float FloatMax(float a, float b)
 {
 	if (a > b) return a;
 	return b;
+}
+
+//	==========================================================
+//	NAV FUNCTIONS
+//	==========================================================
+
+stock CNavArea SDK_GetLastKnownArea(int iEntity)//Only parse entities that their server class inherits from CBaseCombatCharacter and nothing else!
+{
+	if (g_hSDKGetLastKnownArea != null)
+	{
+		Address lastNavArea = SDKCall(g_hSDKGetLastKnownArea, iEntity);
+		if (!IsValidAddress(lastNavArea)) return INVALID_NAV_AREA;
+		
+		int iNavID = GetNavAreaIDFromNavAreaPointer(lastNavArea);
+		return NavMesh_FindAreaByID(iNavID);
+	}
+	return INVALID_NAV_AREA;
+}
+
+stock void SDK_UpdateLastKnownArea(int iEntity)
+{
+	if (g_hSDKGetLastKnownArea != null)
+	{
+		SDKCall(g_hSDKUpdateLastKnownArea, iEntity);
+	}
+}
+
+stock int GetNavAreaIDFromNavAreaPointer(Address pNavArea)
+{
+	return LoadFromAddress(view_as<Address>(view_as<int>(pNavArea)+(g_iOffset_m_id*4)), NumberType_Int32);
+}
+
+bool IsValidAddress(Address addr)
+{
+	if (addr == Address_Null) return false;
+	if (addr <= view_as<Address>(VALID_MINIMUM_MEMORY_ADDRESS)) return false;
+	
+	return true;
 }
 
 //	==========================================================

@@ -3968,8 +3968,7 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 		}
 		if(!g_bRoundGrace)
 		{
-			flPos[2]+=1.0;
-			CNavArea targetAreaIndex = NavMesh_GetNearestArea(flPos);
+			CNavArea targetAreaIndex = SDK_GetLastKnownArea(client);
 			if (targetAreaIndex != INVALID_NAV_AREA)
 			{
 				if (targetAreaIndex.Attributes & NAV_MESH_DONT_HIDE && g_iPlayerCampingStrikes[client]>GetConVarInt(g_cvExitCampingStrikes))

@@ -577,6 +577,10 @@ Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKPointIsWithin;
+Handle g_hSDKGetLastKnownArea;
+Handle g_hSDKUpdateLastKnownArea;
+
+int g_iOffset_m_id;
 
 //Fail Timer
 Handle g_hTimerFail;
@@ -1023,11 +1027,29 @@ static void SetupHooks()
 					g_hSDKEquipWearable = EndPrepSDKCall();
 				}
 			}
+			delete hGameConf;
 		}
 	}
 	if( g_hSDKEquipWearable == INVALID_HANDLE )
 	{
 		SetFailState("Failed to retrieve CTFPlayer::EquipWearable offset from SF2 gamedata!");
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConfig, SDKConf_Virtual, "CBaseCombatCharacter::GetLastKnownArea");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_ByValue);
+	g_hSDKGetLastKnownArea = EndPrepSDKCall();
+	if(g_hSDKGetLastKnownArea == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve CBaseCombatCharacter::GetLastKnownArea offset from SF2 gamedata!");
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConfig, SDKConf_Virtual, "CBaseCombatCharacter::UpdateLastKnownArea");
+	g_hSDKUpdateLastKnownArea = EndPrepSDKCall();
+	if(g_hSDKUpdateLastKnownArea == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve CBaseCombatCharacter::UpdateLastKnownArea offset from SF2 gamedata!");
 	}
 	
 	StartPrepSDKCall(SDKCall_Player);
@@ -1071,7 +1093,9 @@ static void SetupHooks()
 	
 	DHookAddParam(g_hSDKShouldTransmit, HookParamType_ObjectPtr);
 	
-	CloseHandle(hConfig);
+	g_iOffset_m_id = GameConfGetOffset(hConfig, "CNavArea::m_id");
+	
+	delete hConfig;
 }
 
 static void SetupClassDefaultWeapons()

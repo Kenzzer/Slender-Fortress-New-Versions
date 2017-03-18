@@ -4,6 +4,16 @@
 	{
 		"Offsets"
 		{
+			"CBaseCombatCharacter::GetLastKnownArea"
+			{
+				"linux"		"315"
+				"windows"	"314"
+			}
+			"CBaseCombatCharacter::UpdateLastKnownArea"
+			{
+				"linux"		"318"
+				"windows"	"317"
+			}
 			"CTFPlayer::WantsLagCompensationOnEntity"
 			{
 				"windows"	"326"
@@ -22,6 +32,11 @@
 				"windows"	"429"
 				"linux"		"430"
 				"mac"		"430"
+			}
+			"CNavArea::m_id"
+			{
+				"linux"		"34"
+				"windows"	"34"
 			}
 		}
 		"Signatures"
