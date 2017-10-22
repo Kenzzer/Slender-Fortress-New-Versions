@@ -6,32 +6,29 @@
 		{
 			"CBaseCombatCharacter::GetLastKnownArea"
 			{
-				"linux"		"315"
-				"windows"	"314"
+				"linux"		"316"
+				"windows"	"315"
 			}
 			"CBaseCombatCharacter::UpdateLastKnownArea"
 			{
-				"linux"		"318"
-				"windows"	"317"
+				"linux"		"319"
+				"windows"	"318"
 			}
 			"CTFPlayer::WantsLagCompensationOnEntity"
 			{
-				"windows"	"326"
-				"linux"		"327"
-				"mac"		"327"
+				"windows"	"327"
+				"linux"		"328"
 			}
 			
 			"CBaseEntity::ShouldTransmit"
 			{
 				"windows"	"18"
 				"linux"	"19"
-				"mac"	"19"
 			}
 			"CTFPlayer::EquipWearable"
 			{
 				"windows"	"429"
-				"linux"		"430"
-				"mac"		"430"
+				"linux"		"431"
 			}
 			"CNavArea::m_id"
 			{
