@@ -16,8 +16,8 @@
 			}
 			"CTFPlayer::WantsLagCompensationOnEntity"
 			{
-				"windows"	"327"
 				"linux"		"328"
+				"windows"	"326"
 			}
 			
 			"CBaseEntity::ShouldTransmit"
@@ -42,7 +42,7 @@
 			{
 				"library" "server"
 				"linux"	"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
-				"windows" "\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"
+				"windows" "\x55\x8B\xEC\x53\x56\x57\x8B\xB9\xA0\x01\x00\x00\x33\xD2\x85\xFF\x7E\x2A\x8B\xB1\x2A\x2A\x2A\x2A\x8B\x5D\x08"
 			}
 			"CTFPlayer::PlaySpecificSequence"
 			{
