@@ -9,6 +9,7 @@
 
 static Handle g_hBossProfileList = INVALID_HANDLE;
 static Handle g_hSelectableBossProfileList = INVALID_HANDLE;
+static Handle g_hSelectableBossProfileQueueList = INVALID_HANDLE;
 
 static Handle g_hBossProfileNames = INVALID_HANDLE;
 static Handle g_hBossProfileData = INVALID_HANDLE;
@@ -218,6 +219,11 @@ Command
 */
 public Action Command_Pack(int client,int args)
 {
+	if (!GetConVarBool(g_cvBossPackEndOfMapVote) || !g_bBossPackVoteEnabled)
+	{
+		CPrintToChat(client,"{red}Boss pack vote is disabled on this server.");
+		return Plugin_Handled;
+	}
 	KvRewind(g_hBossPackConfig);
 	if(!KvJumpToKey(g_hBossPackConfig, "packs"))
 		return Plugin_Handled;
@@ -228,6 +234,34 @@ public Action Command_Pack(int client,int args)
 	if(StrEqual(bossPackName,""))
 		Format(bossPackName,sizeof(bossPackName),"Core Pack");
 	CPrintToChat(client,"{olive}Pack:{lightgreen}%s",bossPackName);
+	return Plugin_Handled;
+}
+
+public Action Command_NextPack(int client,int args)
+{
+	if (!GetConVarBool(g_cvBossPackEndOfMapVote) || !g_bBossPackVoteEnabled)
+	{
+		CPrintToChat(client,"{red}Boss pack vote is disabled on this server.");
+		return Plugin_Handled;
+	}
+	char nextpack[128];
+	GetConVarString(g_cvBossProfilePack, nextpack, sizeof(nextpack));
+	if (strcmp(nextpack, "") == 0)
+	{
+		CPrintToChat(client,"{olive}%t{lightgreen}%t.","SF2 Prefix","Pending Vote");
+		return Plugin_Handled;
+	}
+	
+	KvRewind(g_hBossPackConfig);
+	if(!KvJumpToKey(g_hBossPackConfig, "packs"))
+		return Plugin_Handled;
+	if(!KvJumpToKey(g_hBossPackConfig, nextpack))
+		return Plugin_Handled;
+	char bossPackName[64];
+	KvGetString(g_hBossPackConfig, "name", bossPackName, sizeof(bossPackName), nextpack);
+	if(StrEqual(bossPackName,""))
+		Format(bossPackName,sizeof(bossPackName),"Core Pack");
+	CPrintToChat(client,"{olive}Naxt pack:{lightgreen}%s",bossPackName);
 	return Plugin_Handled;
 }
 
@@ -249,7 +283,7 @@ void ClearBossProfiles()
 	
 	if (g_hSelectableBossProfileList != INVALID_HANDLE)
 	{
-		CloseHandle(g_hSelectableBossProfileList);
+		delete g_hSelectableBossProfileList;
 		g_hSelectableBossProfileList = INVALID_HANDLE;
 	}
 	
@@ -287,6 +321,11 @@ void ReloadBossProfiles()
 	if (g_hSelectableBossProfileList == INVALID_HANDLE)
 	{
 		g_hSelectableBossProfileList = CreateArray(SF2_MAX_PROFILE_NAME_LENGTH);
+	}
+	
+	if (g_hSelectableBossProfileQueueList != INVALID_HANDLE)
+	{
+		delete g_hSelectableBossProfileQueueList;
 	}
 	
 	char configPath[PLATFORM_MAX_PATH];
@@ -381,6 +420,9 @@ void ReloadBossProfiles()
 	{
 		g_bBossPackVoteEnabled = false;
 	}
+	g_hSelectableBossProfileQueueList = CloneArray(g_hSelectableBossProfileList);
+	
+	SetConVarString(g_cvBossProfilePack, "");
 }
 
 static void LoadProfilesFromFile(const char[] configPath)
@@ -497,6 +539,8 @@ static bool LoadBossProfile(Handle kv, const char[] sProfile, char[] sLoadFailRe
 		return false;
 	}
 	
+	Format(sLoadFailReasonBuffer, iLoadFailReasonBufferLen, "unknown!");
+	
 	float flBossFOV = KvGetFloat(kv, "fov", 90.0);
 	if (flBossFOV < 0.0)
 	{
@@ -550,6 +594,12 @@ static bool LoadBossProfile(Handle kv, const char[] sProfile, char[] sLoadFailRe
 		}
 	}
 	
+	/*Deprecated stuff*/
+	if (KvGetFloat(kv, "jump_cooldown", 0.0) != 0.0)
+	{
+		PrintToServer("\"jump_cooldown\" is marked as deprecated, thanks to remove it from the boss profile.");
+	}
+	
 	float flBossDefaultSpeed = KvGetFloat(kv, "speed", 150.0);
 	float flBossSpeedEasy = KvGetFloat(kv, "speed_easy", flBossDefaultSpeed);
 	float flBossSpeedHard = KvGetFloat(kv, "speed_hard", flBossDefaultSpeed);
@@ -578,6 +628,7 @@ static bool LoadBossProfile(Handle kv, const char[] sProfile, char[] sLoadFailRe
 	if (KvGetNum(kv, "view_shake", 1)) iBossFlags |= SFF_HASVIEWSHAKE;
 	if (KvGetNum(kv, "copy")) iBossFlags |= SFF_COPIES;
 	if (KvGetNum(kv, "wander_move", 1)) iBossFlags |= SFF_WANDERMOVE;
+	if (KvGetNum(kv, "attack_props", 0)) iBossFlags |= SFF_ATTACKPROPS;
 	
 	// Try validating unique profile.
 	int iUniqueProfileIndex = -1;
@@ -837,8 +888,6 @@ void InitiateBossPackVote(int Initiator)
 	KvRewind(g_hBossPackConfig);
 	if (!KvJumpToKey(g_hBossPackConfig, "packs")) return;
 	if (!KvGotoFirstSubKey(g_hBossPackConfig)) return;
-	char currentpack[128];
-	GetConVarString(g_cvBossProfilePack, currentpack, sizeof(currentpack));
 	Handle voteMenu = NativeVotes_Create(Menu_BossPackVote, NativeVotesType_Custom_Mult);
 	NativeVotes_SetInitiator(voteMenu, Initiator);
 	char Tittle[255];
@@ -854,7 +903,7 @@ void InitiateBossPackVote(int Initiator)
 			
 			char bossPack[128];
 			KvGetSectionName(g_hBossPackConfig, bossPack, sizeof(bossPack));
-			if(!StrEqual(bossPack,currentpack))
+			if(strcmp(bossPack,MapbossPack) != 0)
 			{
 				char bossPackName[64];
 				KvGetString(g_hBossPackConfig, "name", bossPackName, sizeof(bossPackName), bossPack);
@@ -1188,18 +1237,25 @@ int GetBossProfileTeleportType(int iProfileIndex)
 }
 
 // Code originally from FF2. Credits to the original authors Rainbolt Dash and FlaminSarge.
-stock bool GetRandomStringFromProfile(const char[] sProfile, const char[] strKeyValue, char[] buffer,int bufferlen,int index=-1)
+stock bool GetRandomStringFromProfile(const char[] sProfile, const char[] strKeyValue, char[] buffer,int bufferlen,int index = -1,int iAttackIndex = -1)
 {
 	strcopy(buffer, bufferlen, "");
 	
 	if (!IsProfileValid(sProfile)) return false;
 	
 	KvRewind(g_hConfig);
-	KvJumpToKey(g_hConfig, sProfile);
-	
+	if (!KvJumpToKey(g_hConfig, sProfile)) return false;
 	if (!KvJumpToKey(g_hConfig, strKeyValue)) return false;
 	
 	char s[32], s2[PLATFORM_MAX_PATH];
+	if (iAttackIndex != -1)
+	{
+		IntToString(iAttackIndex, s, sizeof(s));
+		KvGetString(g_hConfig, s, buffer, bufferlen);
+		TrimString(buffer);
+		if (StrEqual(buffer,""))
+			KvJumpToKey(g_hConfig, s);
+	}
 	
 	int i = 1;
 	for (;;)
@@ -1232,4 +1288,27 @@ Handle GetBossProfileList()
 Handle GetSelectableBossProfileList()
 {
 	return g_hSelectableBossProfileList;
+}
+
+/**
+ * Returns an array of boss that didn't play in game yet.
+ */
+Handle GetSelectableBossProfileQueueList()
+{
+	if (GetArraySize(g_hSelectableBossProfileQueueList) <= 0)//If every boss were selected at least once, refill the list.
+	{
+		delete g_hSelectableBossProfileQueueList;
+		g_hSelectableBossProfileQueueList = CloneArray(GetSelectableBossProfileList());
+	}
+	if (g_hSelectableBossProfileQueueList == INVALID_HANDLE || g_hSelectableBossProfileQueueList == null)
+		g_hSelectableBossProfileQueueList = CloneArray(GetSelectableBossProfileList());
+	return g_hSelectableBossProfileQueueList;
+}
+void RemoveBossProfileFromQueueList(const char[] sProfile)
+{
+	int selectIndex = FindStringInArray(GetSelectableBossProfileQueueList(), sProfile);
+	if (selectIndex != -1)
+	{
+		RemoveFromArray(GetSelectableBossProfileQueueList(), selectIndex);
+	}
 }

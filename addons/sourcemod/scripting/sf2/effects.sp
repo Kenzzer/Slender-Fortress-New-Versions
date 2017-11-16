@@ -267,6 +267,7 @@ void SlenderRemoveEffects(int iSlender,bool bKill=false)
 				AcceptEntityInput(iEffect, "Kill");
 		}
 	}
+	
 	iEffect = -1;
 	while((iEffect = FindEntityByClassname(iEffect, "env_steam")) > MaxClients)
 	{
@@ -275,6 +276,21 @@ void SlenderRemoveEffects(int iSlender,bool bKill=false)
 			AcceptEntityInput(iEffect, "TurnOff");
 			if(bKill)
 				AcceptEntityInput(iEffect, "Kill");
+		}
+	}
+	
+	iEffect = -1;
+	while((iEffect = FindEntityByClassname(iEffect, "tf_taunt_prop")) > MaxClients)
+	{
+		if(GetEntProp(iEffect,Prop_Send,"moveparent") == iSlender)
+		{
+			if(bKill)
+			{
+				AcceptEntityInput(iEffect, "Kill");
+				int iEnt = GetEntPropEnt(iEffect, Prop_Send, "m_hOwnerEntity");
+				if (iEnt > MaxClients)
+					AcceptEntityInput(iEnt, "Kill");
+			}
 		}
 	}
 }

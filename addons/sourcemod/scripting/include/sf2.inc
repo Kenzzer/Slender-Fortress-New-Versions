@@ -16,6 +16,7 @@
 #define DIFFICULTY_NORMAL 1.0
 #define DIFFICULTY_HARD 2.0
 #define DIFFICULTY_INSANE 3.5
+#define DIFFICULTY_NIGHTMARE 5.5
 
 // Music system flags.
 #define MUSICF_PAGES1PERCENT (1 << 0)
@@ -55,6 +56,14 @@ enum
 	SPECIALROUND_REVOLUTION,
 	SPECIALROUND_DISTORTION,
 	SPECIALROUND_MULTIEFFECT,
+	SPECIALROUND_BOO,
+	SPECIALROUND_REALISM,
+	SPECIALROUND_VOTE,
+	SPECIALROUND_COFFEE,
+	SPECIALROUND_PAGEDETECTOR,
+	SPECIALROUND_GLITCHEDPAGE,
+	SPECIALROUND_CLASSSCRAMBLE,
+	SPECIALROUND_EARTHQUAKE,
 	SPECIALROUND_MAXROUNDS
 };
 
@@ -66,7 +75,8 @@ enum
 	STATE_ALERT,
 	STATE_CHASE,
 	STATE_ATTACK,
-	STATE_STUN
+	STATE_STUN,
+	MAX_STATE
 };
 
 enum SoundType
@@ -83,6 +93,7 @@ enum
 	Difficulty_Normal,
 	Difficulty_Hard,
 	Difficulty_Insane,
+	Difficulty_Nightmare,
 	Difficulty_Max
 };
 
@@ -147,6 +158,12 @@ forward SF2_OnBossSpawn(iBossIndex);
 
 forward SF2_OnBossChangeState(iBossIndex, iOldState, iNewState);
 
+forward Action:SF2_OnBossAnimationUpdate(iBossIndex);
+
+forward Action:SF2_OnBossGetSpeed(client, &Float:flSpeed);
+
+forward Action:SF2_OnBossGetWalkSpeed(client, &Float:flWalkSpeed);
+
 forward SF2_OnBossRemoved(iBossIndex);
 
 forward SF2_OnPagesSpawned();
@@ -186,7 +203,6 @@ forward Action:SF2_OnGroupGiveQueuePoints(iGroupIndex, &iAddAmount);
 forward SF2_OnClientDamagedByBoss(client, iBossIndex, inflictor, Float:flDamage, iDamageType);
 
 forward SF2_OnClientSpawnedAsProxy(client);
-
 
 /**
  * Returns a bool about the gamemode's state.
@@ -304,6 +320,8 @@ native SF2_GetClientProxyControlAmount(client);
  */
 native Float:SF2_GetClientProxyControlRate(client);
 
+native bool:SF2_DidClientEscape(client);
+
 native SF2_SetClientProxyMaster(client, iBossIndex);
 
 native SF2_SetClientProxyControlAmount(client, iAmount);
@@ -317,6 +335,8 @@ native SF2_GetMaxBossCount();
 native SF2_EntIndexToBossIndex(iEntIndex);
 
 native SF2_BossIndexToEntIndex(iBossIndex);
+
+native SF2_BossIndexToEntIndexEx(iBossIndex); //Don't use this function unless you know what it does!!!! Most will not!
 
 native SF2_BossIDToBossIndex(iBossID);
 
@@ -332,6 +352,8 @@ native SF2_GetBossMaster(iBossIndex);
 
 native SF2_GetBossState(iBossIndex);
 
+native Float:SF2_GetBossFOV(iBossIndex);
+
 native bool:SF2_IsBossProfileValid(const String:sProfile[]);
 
 native SF2_GetBossProfileNum(const String:sProfile[], const String:sKey[], iDefaultValue=0);
@@ -343,6 +365,8 @@ native bool:SF2_GetBossProfileString(const String:sProfile[], const String:sKey[
 native bool:SF2_GetBossProfileVector(const String:sProfile[], const String:sKey[], Float:flBuffer[3], const Float:flDefaultValue[3]=NULL_VECTOR);
 
 native bool:SF2_GetRandomStringFromBossProfile(const String:sProfile, const String:sKey[], String:sBuffer[], iBufferLen, iIndex=-1);
+
+native bool:SF2_IsSurvivalMap();
 
 public SharedPlugin:__pl_sf2 = 
 {

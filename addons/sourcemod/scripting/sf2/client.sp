@@ -3,7 +3,7 @@
 #endif
 #define _sf2_client_included
 
-#define GHOST_MODEL "models/props_halloween/ghost_no_hat.mdl"
+#define GHOST_MODEL "models/empty.mdl"
 #define SF2_OVERLAY_DEFAULT "overlays/slender/newcamerahud_3"
 #define SF2_OVERLAY_DEFAULT_NO_FILMGRAIN "overlays/slender/nofilmgrain"
 #define SF2_OVERLAY_GHOST "overlays/slender/ghostcamera"
@@ -27,6 +27,9 @@ static char g_strPlayerLagCompensationWeapons[][] =
 	"tf_weapon_sniperrifle_decap",
 	"tf_weapon_sniperrifle_classic"
 };
+
+//Client Special Round Timer
+static Handle g_hClientSpecialRoundTimer[MAXPLAYERS + 1];
 
 // Deathcam data.
 static int g_iPlayerDeathCamBoss[MAXPLAYERS + 1] = { -1, ... };
@@ -71,6 +74,7 @@ static int g_iPlayerInteractiveGlowTargetEntity[MAXPLAYERS + 1] = { INVALID_ENT_
 // Constant glow data.
 static int g_iPlayerConstantGlowEntity[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ... };
 static bool g_bPlayerConstantGlowEnabled[MAXPLAYERS + 1] = { false, ... };
+static Handle g_hClientGlowTimer[MAXPLAYERS + 1];
 
 // Jumpscare data.
 static int g_iPlayerJumpScareBoss[MAXPLAYERS + 1] = { -1, ... };
@@ -80,7 +84,6 @@ static float g_flPlayerScareBoostEndTime[MAXPLAYERS + 1] = { -1.0, ... };
 
 // Anti-camping data.
 static int g_iPlayerCampingStrikes[MAXPLAYERS + 1] = { 0, ... };
-static float g_fPlayerExitCampingPoints[MAXPLAYERS + 1];
 static Handle g_hPlayerCampingTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static float g_flPlayerCampingLastPosition[MAXPLAYERS + 1][3];
 static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1];
@@ -89,8 +92,15 @@ static bool g_bPlayerCampingFirstTime[MAXPLAYERS + 1];
 static int g_iClientMaxFrameDeathAnim[MAXPLAYERS + 1];
 static int g_iClientFrame[MAXPLAYERS + 1];
 
+// Client model
+static char g_sOldClientModel[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
+
 //Proxy model
 char g_sClientProxyModel[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
+
+//Nav Data
+static CNavArea g_lastNavArea[MAXPLAYERS + 1];
+static float g_flClientAllowedTimeNearEscape[MAXPLAYERS + 1];
 
 //	==========================================================
 //	GENERAL CLIENT HOOK FUNCTIONS
@@ -110,6 +120,54 @@ public MRESReturn Hook_ClientWantsLagCompensationOnEntity(int client, Handle hRe
 	return MRES_Supercede;
 }
 
+public Action CH_ShouldCollide(int ent1,int ent2, bool &result)
+{
+	SF2RoundState state = GetRoundState();
+	if (state == SF2RoundState_Intro || state == SF2RoundState_Outro) return Plugin_Continue;
+	
+	if (MaxClients >= ent1 > 0)
+	{
+		if (IsClientInGhostMode(ent1))
+		{
+			result = false;
+			return Plugin_Changed;
+		}
+	}
+	if (MaxClients >= ent2 > 0)
+	{
+		if (IsClientInGhostMode(ent2))
+		{
+			result = false;
+			return Plugin_Changed;
+		}
+	}
+	return Plugin_Continue;
+}
+
+public Action CH_PassFilter(int ent1,int ent2, bool &result)
+{
+	SF2RoundState state = GetRoundState();
+	if (state == SF2RoundState_Intro || state == SF2RoundState_Outro) return Plugin_Continue;
+	
+	if (MaxClients >= ent1 > 0)
+	{
+		if (IsClientInGhostMode(ent1))
+		{
+			result = false;
+			return Plugin_Changed;
+		}
+	}
+	if (MaxClients >= ent2 > 0)
+	{
+		if (IsClientInGhostMode(ent2))
+		{
+			result = false;
+			return Plugin_Changed;
+		}
+	}
+	return Plugin_Continue;
+}
+
 float ClientGetScareBoostEndTime(int client)
 {
 	return g_flPlayerScareBoostEndTime[client];
@@ -120,32 +178,46 @@ void ClientSetScareBoostEndTime(int client, float time)
 	g_flPlayerScareBoostEndTime[client] = time;
 }
 
+public Action Hook_HealthKitOnTouch(int iHealthKit, int client)
+{
+	if (MaxClients >= client > 0 && IsClientInGame(client))
+	{
+		if (!g_bPlayerEliminated[client] && TF2_GetPlayerClass(client) == TFClass_Medic) return Plugin_Handled;
+		if (IsClientInGhostMode(client)) return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
 public void Hook_ClientPreThink(int client)
 {
 	if (!g_bEnabled) return;
 	
-	ClientProcessViewAngles(client);
-	ClientProcessVisibility(client);
-	ClientProcessStaticShake(client);
 	ClientProcessFlashlightAngles(client);
 	ClientProcessInteractiveGlow(client);
+	ClientProcessStaticShake(client);
+	ClientProcessViewAngles(client);
 	
 	if (IsClientInGhostMode(client))
 	{
+		SetEntityFlags(client,GetEntityFlags(client)^FL_EDICT_ALWAYS);
 		SetEntPropFloat(client, Prop_Send, "m_flNextAttack", GetGameTime() + 2.0);
 		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 520.0);
-		if(TF2_IsPlayerInCondition(client,TFCond_HalloweenKart))
+		//SetEntityGravity(client, 0.3);
+		if(TF2_IsPlayerInCondition(client,TFCond_HalloweenKart) || !TF2_IsPlayerInCondition(client, TFCond_SwimmingNoEffects))
 		{
 			TF2_RemoveCondition(client,TFCond_HalloweenKart);
-			ClientSetGhostModeState(client, false);
-			TF2_RespawnPlayer(client);
-			PrintToChat(client,"\x08FF4040FFToo bad, you tried to glitch the game, nice try >:)");
+			ClientHandleGhostMode(client, true);
 		}
 	}
 	else if (!g_bPlayerEliminated[client] || g_bPlayerProxy[client])
 	{
 		if (!IsRoundEnding() && !IsRoundInWarmup() && !DidClientEscape(client))
 		{
+			SetEntPropFloat(client, Prop_Send, "m_flModelScale", 1.0);
+			SetEntPropFloat(client, Prop_Send, "m_flHeadScale", 1.0);
+			SetEntPropFloat(client, Prop_Send, "m_flTorsoScale", 1.0);
+			SetEntPropFloat(client, Prop_Send, "m_flHandScale", 1.0);
+		
 			int iRoundState = view_as<int>(GameRules_GetRoundState());
 		
 			// No double jumping for players in play.
@@ -290,10 +362,12 @@ public void Hook_ClientPreThink(int client)
 					if (IsClientSprinting(client)) 
 					{
 						SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", flSprintSpeed);
+						SetEntPropFloat(client, Prop_Send, "m_flCurrentTauntMoveSpeed", flSprintSpeed-170.0);
 					}
 					else 
 					{
 						SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", flWalkSpeed);
+						SetEntPropFloat(client, Prop_Send, "m_flCurrentTauntMoveSpeed", flWalkSpeed-20.0);
 					}
 					
 					if (ClientCanBreath(client) && !g_bPlayerBreath[client])
@@ -311,23 +385,32 @@ public void Hook_ClientPreThink(int client)
 				{
 					case TFClass_Scout:
 					{
-						if (iRoundState == 4)
-						{
-							if (bSpeedup) SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 405.0);
-							else SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
-						}
+						if (bSpeedup || g_bProxySurvivalRageMode) SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 380.0);
+						else SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
 					}
 					case TFClass_Medic:
 					{
-						if (iRoundState == 4)
+						if (bSpeedup || g_bProxySurvivalRageMode) SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 360.0);
+						else SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
+					}
+					default:
+					{
+						if (g_bProxySurvivalRageMode)
 						{
-							if (bSpeedup) SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 385.0);
-							else SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 300.0);
+							float flRageSpeed = ClientGetDefaultSprintSpeed(client)+20.0;
+							SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", flRageSpeed);
 						}
 					}
 				}
 			}
 		}
+	}
+	if (g_bPlayerEliminated[client] && IsClientInPvP(client))
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flModelScale", 1.0);
+		SetEntPropFloat(client, Prop_Send, "m_flHeadScale", 1.0);
+		SetEntPropFloat(client, Prop_Send, "m_flTorsoScale", 1.0);
+		SetEntPropFloat(client, Prop_Send, "m_flHandScale", 1.0);
 	}
 	
 	// Calculate player stress levels.
@@ -368,9 +451,26 @@ public void Hook_ClientPreThink(int client)
 			float flFrequencyMax = GetConVarFloat(g_cvPlayerShakeFrequencyMax);
 			float flFrequency = flFrequencyMax * flPercent;
 			
-			UTIL_ScreenShake(client, flAmplitude, 0.5, flFrequency);
+			UTIL_ClientScreenShake(client, flAmplitude, 0.5, flFrequency);
 		}
 	}
+	
+	if(g_flLastVisibilityProcess[client]+0.30>=GetGameTime()) return;
+	
+
+	if (!g_bPlayerEliminated[client])
+	{
+		CNavArea targetArea = SDK_GetLastKnownArea(client);//SDK_GetLastKnownArea(client) =/= g_lastNavArea[client], SDK_GetLastKnownArea() retrives the nav area stored by the server
+		if (targetArea != INVALID_NAV_AREA)
+		{
+			ClientNavAreaUpdate(client, g_lastNavArea[client], targetArea);
+			g_lastNavArea[client] = targetArea;
+		}
+	}
+	
+	g_flLastVisibilityProcess[client] = GetGameTime();
+	
+	ClientProcessVisibility(client);
 }
 
 public Action Hook_ClientSetTransmit(int client,int other)
@@ -379,7 +479,13 @@ public Action Hook_ClientSetTransmit(int client,int other)
 	
 	if (other != client)
 	{
-		if (IsClientInGhostMode(client) && !IsClientInGhostMode(other)) return Plugin_Handled;
+		if (IsClientInGhostMode(client) && !IsClientInGhostMode(other))
+		{
+#if defined DEBUG
+			SendDebugMessageToPlayer(client, DEBUG_GHOSTMODE, 0, "{green}Prevented myself from being transmited to %N.", other);
+#endif
+			return Plugin_Handled;
+		}
 		
 		if (!IsRoundEnding())
 		{
@@ -493,20 +599,23 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 	if (IsRoundInWarmup()) return Plugin_Continue;
 	
 	Action iAction = Plugin_Continue;
-		
+	
 	float damage2 = damage;
 	Call_StartForward(fOnClientTakeDamage);
 	Call_PushCell(victim);
 	Call_PushCell(attacker);
 	Call_PushFloatRef(damage2);
 	Call_Finish(iAction);
-		
+	
 	if (iAction == Plugin_Changed) 
 	{
 		damage = damage2;
 		return Plugin_Changed;
 	}
 	
+	char inflictorClass[32];
+	if(inflictor >= 0) GetEdictClassname(inflictor, inflictorClass, sizeof(inflictorClass));
+
 	if(IsValidClient(attacker) && IsValidClient(victim) && IsClientInPvP(victim) && GetClientTeam(victim) == TFTeam_Red && GetClientTeam(attacker) == TFTeam_Red && victim != attacker)
 	{
 		damage = 0.0;
@@ -541,14 +650,60 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 							float p[3], s[3];
 							MakeVectorFromPoints(flMyPos, flHisPos, p);
 							MakeVectorFromPoints(flMyPos, flMyDirection, s);
-							if (GetVectorDotProduct(p, s) <= 0.0)
+							if (GetVectorDotProduct(p, s) <= 0.0)//We can backstab him m8
 							{
+								if (GetClientTeam(victim) == GetClientTeam(attacker) && TF2_GetPlayerClass(victim) == TFClass_Sniper)
+								{
+									//look if the player has a razorback
+									int iWearable = INVALID_ENT_REFERENCE;
+									while ((iWearable = FindEntityByClassname(iWearable, "tf_wearable")) != -1)
+									{
+										if (GetEntPropEnt(iWearable, Prop_Send, "m_hOwnerEntity") == victim && GetEntProp(iWearable, Prop_Send, "m_iItemDefinitionIndex") == 57)
+										{
+											AcceptEntityInput(iWearable, "Kill");
+											damage = 0.0;
+											EmitSoundToClient(victim, "Player.Spy_Shield_Break", _, _, SNDLEVEL_TRAFFIC, SND_NOFLAGS, 0.7, 100);
+											EmitSoundToClient(attacker, "Player.Spy_Shield_Break", _, _, SNDLEVEL_TRAFFIC, SND_NOFLAGS, 0.7, 100);
+
+											SetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack", GetGameTime() + 2.0);
+											SetEntPropFloat(attacker, Prop_Send, "m_flNextAttack", GetGameTime() + 2.0);
+											SetEntPropFloat(attacker, Prop_Send, "m_flStealthNextChangeTime", GetGameTime() + 2.0);
+											int vm = GetEntPropEnt(attacker, Prop_Send, "m_hViewModel");
+											if (vm > MaxClients)
+											{
+												int iMeleeIndex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+												int anim = 15;
+												switch (iMeleeIndex)
+												{
+													case 727: anim = 41;
+													case 4, 194, 665, 794, 803, 883, 892, 901, 910: anim = 10;
+													case 638: anim = 31;
+												}
+												SetEntProp(vm, Prop_Send, "m_nSequence", anim);
+											}
+											return Plugin_Changed;
+										}
+									}
+								}
 								damage = float(GetEntProp(victim, Prop_Send, "m_iHealth")) * 2.0;
 								
 								Handle hCvar = FindConVar("tf_weapon_criticals");
 								if (hCvar != INVALID_HANDLE && GetConVarBool(hCvar)) damagetype |= DMG_ACID;
 								
-								g_bBackStabbed[victim] = true;
+								if (!IsClientCritUbercharged(victim))
+								{
+									if (GetClientTeam(victim) == GetClientTeam(attacker))
+									{
+										int iPistol = GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary);
+										if (iPistol > MaxClients && GetEntProp(iPistol, Prop_Send, "m_iItemDefinitionIndex") == 525) //Give one crit fort the backstab
+										{
+											int iCrits = GetEntProp(attacker, Prop_Send, "m_iRevengeCrits");
+											iCrits++;
+											SetEntProp(attacker, Prop_Send, "m_iRevengeCrits", iCrits);
+										}
+									}
+									g_bBackStabbed[victim] = true;
+								}
 								return Plugin_Changed;
 							}
 						}
@@ -561,6 +716,11 @@ public Action Hook_ClientOnTakeDamage(int victim,int &attacker,int &inflictor, f
 				{
 					damage = 0.0;
 					return Plugin_Changed;
+				}
+				
+				if (attacker == victim)//Don't allow proxy to self regenerate control.
+				{
+					return Plugin_Continue;
 				}
 				
 				if (g_bPlayerProxy[attacker])
@@ -803,10 +963,12 @@ void ClientEscape(int client)
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
 	
 	HandlePlayerHUD(client);
-	
-	char sName[MAX_NAME_LENGTH];
-	GetClientName(client, sName, sizeof(sName));
-	CPrintToChatAll("%t", "SF2 Player Escaped", sName);
+	if (!SF_SpecialRound(SPECIALROUND_REALISM))
+	{
+		char sName[MAX_NAME_LENGTH];
+		GetClientName(client, sName, sizeof(sName));
+		CPrintToChatAll("%t", "SF2 Player Escaped", sName);
+	}
 	
 	CheckRoundWinConditions();
 	
@@ -1006,6 +1168,8 @@ void ClientBreakFlashlight(int client)
 {
 	if (IsClientFlashlightBroken(client)) return;
 	
+	ClientDeactivateUltravision(client);
+	
 	g_bPlayerFlashlightBroken[client] = true;
 	
 	ClientSetFlashlightBatteryLife(client, 0.0);
@@ -1072,16 +1236,7 @@ public Action Hook_FlashlightBeamSetTransmit(int ent,int other)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	int iOwner = -1;
-	int iSpotlight = -1;
-	while ((iSpotlight = FindEntityByClassname(iSpotlight, "point_spotlight")) != -1)
-	{
-		if (GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity") == iSpotlight)
-		{
-			iOwner = iSpotlight;
-			break;
-		}
-	}
+	int iOwner = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwner == -1) return Plugin_Continue;
 	
@@ -1102,13 +1257,6 @@ public Action Hook_FlashlightBeamSetTransmit(int ent,int other)
 	if (iClient == other)
 	{
 		if (!GetEntProp(iClient, Prop_Send, "m_nForceTauntCam") || !GetEntProp(iClient, Prop_Send, "m_iObserverMode"))
-		{
-			return Plugin_Handled;
-		}
-	}
-	else
-	{
-		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
 		{
 			return Plugin_Handled;
 		}
@@ -1121,16 +1269,7 @@ public Action Hook_FlashlightEndSetTransmit(int ent,int other)
 {
 	if (!g_bEnabled) return Plugin_Continue;
 
-	int iOwner = -1;
-	int iSpotlight = -1;
-	while ((iSpotlight = FindEntityByClassname(iSpotlight, "point_spotlight")) != -1)
-	{
-		if (GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity") == iSpotlight)
-		{
-			iOwner = iSpotlight;
-			break;
-		}
-	}
+	int iOwner = GetEntPropEnt(ent, Prop_Data, "m_hOwnerEntity");
 	
 	if (iOwner == -1) return Plugin_Continue;
 	
@@ -1155,16 +1294,10 @@ public Action Hook_FlashlightEndSetTransmit(int ent,int other)
 			return Plugin_Handled;
 		}
 	}
-	else
-	{
-		if (g_bSpecialRound && SF_SpecialRound(SPECIALROUND_SINGLEPLAYER))
-		{
-			return Plugin_Handled;
-		}
-	}
 	
 	return Plugin_Continue;
 }
+
 
 public Action Timer_DrainFlashlight(Handle timer, any userid)
 {
@@ -1374,15 +1507,18 @@ void ClientHandleFlashlight(int client)
 {
 	if (!IsValidClient(client) || !IsPlayerAlive(client)) return;
 	
+	bool bNightVision = (GetConVarBool(g_cvNightvisionEnabled) || SF_SpecialRound(SPECIALROUND_NIGHTVISION));
+	
 	if (IsClientUsingFlashlight(client)) 
 	{
 		ClientTurnOffFlashlight(client);
 		ClientStartRechargingFlashlightBattery(client);
+		ClientDeactivateUltravision(client);
 		ClientActivateUltravision(client);
 		
 		g_flPlayerFlashlightNextInputTime[client] = GetGameTime() + SF2_FLASHLIGHT_COOLDOWN;
 		
-		EmitSoundToAll(FLASHLIGHT_CLICKSOUND, client, SNDCHAN_STATIC, SNDLEVEL_DRYER);
+		if (!bNightVision) EmitSoundToAll(FLASHLIGHT_CLICKSOUND, client, SNDCHAN_STATIC, SNDLEVEL_DRYER);
 	}
 	else
 	{
@@ -1390,7 +1526,7 @@ void ClientHandleFlashlight(int client)
 		if (!g_bPlayerEliminated[client])
 		{
 			bool bCanUseFlashlight = true;
-			if (GetConVarBool(g_cvNightvisionEnabled) || (g_bSpecialRound && (SF_SpecialRound(SPECIALROUND_LIGHTSOUT) || SF_SpecialRound(SPECIALROUND_NIGHTVISION)))) 
+			if (SF_SpecialRound(SPECIALROUND_LIGHTSOUT) || SF_IsRaidMap())
 			{
 				// Unequip the flashlight please.
 				bCanUseFlashlight = false;
@@ -1398,13 +1534,16 @@ void ClientHandleFlashlight(int client)
 			
 			if (!IsClientFlashlightBroken(client) && bCanUseFlashlight)
 			{
-				ClientTurnOnFlashlight(client);
-				ClientStartDrainingFlashlightBattery(client);
 				ClientDeactivateUltravision(client);
+				if (bNightVision)
+					ClientActivateUltravision(client, bNightVision);
+				else
+					ClientTurnOnFlashlight(client);
+				ClientStartDrainingFlashlightBattery(client);
 				
 				g_flPlayerFlashlightNextInputTime[client] = GetGameTime();
 				
-				EmitSoundToAll(FLASHLIGHT_CLICKSOUND, client, SNDCHAN_STATIC, SNDLEVEL_DRYER);
+				EmitSoundToAll((bNightVision) ? FLASHLIGHT_CLICKSOUND_NIGHTVISION : FLASHLIGHT_CLICKSOUND, client, SNDCHAN_STATIC, SNDLEVEL_DRYER);
 			}
 			else
 			{
@@ -1419,17 +1558,18 @@ bool IsClientUsingUltravision(int client)
 	return g_bPlayerUltravision[client];
 }
 
-void ClientActivateUltravision(int client)
+void ClientActivateUltravision(int client, bool bNightVision = false)
 {
 	if (!IsClientInGame(client) || IsClientUsingUltravision(client)) return;
 	
-	if(SF_SpecialRound(SPECIALROUND_NOULTRAVISION)) return;
+	if (!g_bPlayerEliminated[client] && (SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !bNightVision)) return;
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START ClientActivateUltravision(%d)", client);
 #endif
 	
 	g_bPlayerUltravision[client] = true;
+	g_bPlayerFlashlight[client] = bNightVision;
 	
 	int ent = CreateEntityByName("light_dynamic");
 	if (ent != -1)
@@ -1438,7 +1578,7 @@ void ClientActivateUltravision(int client)
 		GetClientEyePosition(client, flEyePos);
 		
 		TeleportEntity(ent, flEyePos, view_as<float>({ 90.0, 0.0, 0.0 }), NULL_VECTOR);
-		if((GetConVarBool(g_cvNightvisionEnabled) || SF_SpecialRound(SPECIALROUND_NIGHTVISION)) && !IsClientInGhostMode(client))
+		if (bNightVision && !g_bPlayerEliminated[client])
 			DispatchKeyValue(ent, "rendercolor", "110 255 100");
 		else
 			DispatchKeyValue(ent, "rendercolor", "0 200 255");
@@ -1451,9 +1591,9 @@ void ClientActivateUltravision(int client)
 		else
 		{
 			flRadius = GetConVarFloat(g_cvUltravisionRadiusRed);
+			if(bNightVision)
+				flRadius = GetConVarFloat(g_cvNightvisionRadius);
 		}
-		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
-			flRadius = GetConVarFloat(g_cvNightvisionRadius); //To-do make a cvar for this.//Done
 		
 		SetVariantFloat(flRadius);
 		AcceptEntityInput(ent, "spotlight_radius");
@@ -1462,7 +1602,7 @@ void ClientActivateUltravision(int client)
 		
 		SetVariantInt(-15); // Start dark, then fade in via the Timer_UltravisionFadeInEffect timer func.
 		AcceptEntityInput(ent, "brightness");
-		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
+		if (bNightVision && !g_bPlayerEliminated[client])
 		{
 			SetVariantInt(4);
 			AcceptEntityInput(ent, "brightness");
@@ -1483,7 +1623,7 @@ void ClientActivateUltravision(int client)
 		AcceptEntityInput(ent, "TurnOn");
 		SetEntityRenderFx(ent, RENDERFX_SOLID_SLOW);
 		SetEntityRenderColor(ent, 100, 200, 255, 255);
-		if(GetConVarBool(g_cvNightvisionEnabled) || (SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !g_bPlayerEliminated[client]))
+		if (bNightVision && !g_bPlayerEliminated[client])
 			SetEntityRenderColor(ent, 110, 255, 100, 255);
 		
 		g_iPlayerUltravisionEnt[client] = EntIndexToEntRef(ent);
@@ -1571,22 +1711,22 @@ static float ClientGetDefaultWalkSpeed(int client)
 
 static float ClientGetDefaultSprintSpeed(int client)
 {
-	float flReturn = 300.0;
+	float flReturn = 340.0;
 	float flReturn2 = flReturn;
 	Action iAction = Plugin_Continue;
 	TFClassType iClass = TF2_GetPlayerClass(client);
 	
 	switch (iClass)
 	{
-		case TFClass_Scout: flReturn = 300.0;
-		case TFClass_Sniper: flReturn = 300.0;
-		case TFClass_Soldier: flReturn = 275.0;
-		case TFClass_DemoMan: flReturn = 285.0;
-		case TFClass_Heavy: flReturn = 270.0;
-		case TFClass_Medic: flReturn = 300.0;
-		case TFClass_Pyro: flReturn = 300.0;
-		case TFClass_Spy: flReturn = 300.0;
-		case TFClass_Engineer: flReturn = 300.0;
+		case TFClass_Scout: flReturn = 340.0;
+		case TFClass_Sniper: flReturn = 340.0;
+		case TFClass_Soldier: flReturn = 325.0;
+		case TFClass_DemoMan: flReturn = 335.0;
+		case TFClass_Heavy: flReturn = 320.0;
+		case TFClass_Medic: flReturn = 340.0;
+		case TFClass_Pyro: flReturn = 340.0;
+		case TFClass_Spy: flReturn = 340.0;
+		case TFClass_Engineer: flReturn = 340.0;
 	}
 	
 	// Call our forward.
@@ -1763,10 +1903,6 @@ void ClientProcessStaticShake(int client)
 void ClientProcessVisibility(int client)
 {
 	if (!IsClientInGame(client) || !IsPlayerAlive(client)) return;
-	
-	if(g_flLastVisibilityProcess[client]+0.11>=GetGameTime()) return;
-	
-	g_flLastVisibilityProcess[client] = GetGameTime();
 	
 	char sProfile[SF2_MAX_PROFILE_NAME_LENGTH];
 	
@@ -2284,6 +2420,62 @@ public Action Timer_ClientFadeOutLastStaticSound(Handle timer, any userid)
 }
 
 //	==========================================================
+//	SPECIAL ROUND FUNCTIONS
+//	==========================================================
+
+void ClientSetSpecialRoundTimer(int iClient, float flTime, Timer callback, any data=INVALID_HANDLE, int flags=0)
+{
+	g_hClientSpecialRoundTimer[iClient] = CreateTimer(flTime, callback, data, flags);
+}
+
+public Action Timer_ClientPageDetector(Handle timer, int userid)
+{
+	if (!SF_SpecialRound(SPECIALROUND_PAGEDETECTOR)) return;
+	if (GetRoundState() == SF2RoundState_Escape) return;
+	
+	int iClient = GetClientOfUserId(userid);
+	if (g_hClientSpecialRoundTimer[iClient] != timer) return;
+	
+	if (!IsValidClient(iClient)) return;
+	
+	if (g_bPlayerEliminated[iClient]) return;
+	
+	float flDistance = 99999.0, flClientPos[3], flPagePos[3];
+	GetClientAbsOrigin(iClient, flClientPos);
+	
+	char sModel[255];
+	
+	int ent = -1;
+	while ((ent = FindEntityByClassname(ent, "*")) != -1)
+	{
+		if (!IsEntityClassname(ent, "prop_dynamic", false)) continue;
+		
+		GetEntPropString(ent, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
+		int iParent = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+		if (sModel[0] && iParent > MaxClients)
+		{
+			int iParent2 = GetEntPropEnt(ent, Prop_Send, "m_hEffectEntity");
+			if (iParent2 > MaxClients)
+			{
+				if (strcmp(sModel, g_strPageRefModel) == 0 || strcmp(sModel, PAGE_MODEL) == 0)
+				{
+					GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", flPagePos);
+					if (GetVectorDistance(flClientPos, flPagePos, false) < flDistance)
+						flDistance = GetVectorDistance(flClientPos, flPagePos, false);
+				}
+			}
+		}
+	}
+	float flNextBeepTime = flDistance/800.0;
+	
+	if (flNextBeepTime > 5.0) flNextBeepTime = 5.0;
+	if (flNextBeepTime < 0.1) flNextBeepTime = 0.1;
+	
+	EmitSoundToClient(iClient,PAGE_DETECTOR_BEEP, _, _, _, _, _, 100-RoundToNearest(flNextBeepTime*10.0));
+	g_hClientSpecialRoundTimer[iClient] = CreateTimer(flNextBeepTime, Timer_ClientPageDetector, userid);
+}
+
+//	==========================================================
 //	INTERACTIVE GLOW FUNCTIONS
 //	==========================================================
 
@@ -2390,11 +2582,11 @@ bool ClientCreateInteractiveGlow(int client,int iEnt, const char[] sAttachment="
 		ActivateEntity(ent);
 		SetEntityRenderMode(ent, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(ent, 0, 0, 0, 0);
-		SetEntProp(ent, Prop_Send, "m_bGlowEnabled", 1);
 		SetEntPropFloat(ent, Prop_Send, "m_flModelScale", flModelScale);
 		
 		int iFlags = GetEntProp(ent, Prop_Send, "m_fEffects");
 		SetEntProp(ent, Prop_Send, "m_fEffects", iFlags | (1 << 0));
+		SetEntProp(ent, Prop_Send, "m_bGlowEnabled", true);
 		
 		SetVariantString("!activator");
 		AcceptEntityInput(ent, "SetParent", iEnt);
@@ -2449,7 +2641,7 @@ float ClientCalculateBreathingCooldown(int client)
 	flAverage += (SF2_PLAYER_BREATH_COOLDOWN_MAX * 6.7765 * Pow((float(g_iPlayerSprintPoints[client]) / 100.0), 1.65));
 	iAverageNum++;
 	
-	flAverage /= float(iAverageNum)
+	flAverage /= float(iAverageNum);
 	
 	if (flAverage < SF2_PLAYER_BREATH_COOLDOWN_MIN) flAverage = SF2_PLAYER_BREATH_COOLDOWN_MIN;
 	
@@ -2545,8 +2737,8 @@ void ClientStartSprint(int client)
 
 static void ClientSprintTimer(int client, bool bRecharge=false)
 {
-	float flRate = 0.28;
-	if (bRecharge) flRate = 0.8;
+	float flRate = (SF_SpecialRound(SPECIALROUND_COFFEE)) ? 0.38 : 0.28;
+	if (bRecharge) flRate = (SF_SpecialRound(SPECIALROUND_COFFEE)) ? 1.4 : 0.8;
 	
 	float flVelocity[3];
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", flVelocity);
@@ -2745,6 +2937,7 @@ void ClientResetProxy(int client, bool bResetFull=true)
 		
 			if (bResetFull)
 			{
+				ClientDisableConstantGlow(client);
 				SetVariantString("");
 				AcceptEntityInput(client, "SetCustomModel");
 			}
@@ -2765,7 +2958,11 @@ void ClientResetProxy(int client, bool bResetFull=true)
 void ClientStartProxyAvailableTimer(int client)
 {
 	g_bPlayerProxyAvailable[client] = false;
-	g_hPlayerProxyAvailableTimer[client] = CreateTimer(GetConVarFloat(g_cvPlayerProxyWaitTime), Timer_ClientProxyAvailable, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+	float flCooldown = GetConVarFloat(g_cvPlayerProxyWaitTime);
+	if (g_bProxySurvivalRageMode) flCooldown -= 10.0;
+	if (flCooldown <= 0.0) flCooldown = 0.0;
+	
+	g_hPlayerProxyAvailableTimer[client] = CreateTimer(flCooldown, Timer_ClientProxyAvailable, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 }
 
 void ClientStartProxyForce(int client,int iSlenderID, const float flPos[3])
@@ -2963,14 +3160,14 @@ void ClientEnableProxy(int client,int iBossIndex)
 	NPCGetProfile(iBossIndex, sProfile, sizeof(sProfile));
 	
 	ClientSetGhostModeState(client, false);
+	ClientDisableConstantGlow(client);
 	
 	ClientStopProxyForce(client);
 	
 	g_bPlayerProxy[client] = true;
 	ChangeClientTeamNoSuicide(client, TFTeam_Blue);
+	PvP_SetPlayerPvPState(client, false, true, false);
 	TF2_RespawnPlayer(client);
-	
-	PvP_SetPlayerPvPState(client, false, false, false);
 	
 	// Speed recalculation. Props to the creators of FF2/VSH for this snippet.
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.001);
@@ -3012,9 +3209,31 @@ void ClientEnableProxy(int client,int iBossIndex)
 	
 	CreateTimer(0.33, Timer_ApplyCustomModel, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 	
+	for (int iNPCIndex = 0; iNPCIndex < MAX_BOSSES; iNPCIndex++)
+	{	
+		if (NPCGetUniqueID(iNPCIndex) == -1) continue;
+		SlenderRemoveGlow(iNPCIndex);
+		int iAqua[4] = {0, 255, 255, 255};
+		SlenderAddGlow(iNPCIndex, _, iAqua);
+	}
+	
+	//SDKHook(client, SDKHook_ShouldCollide, Hook_ClientProxyShouldCollide);
+	
 	Call_StartForward(fOnClientSpawnedAsProxy);
 	Call_PushCell(client);
 	Call_Finish();
+}
+public bool Hook_ClientProxyShouldCollide(int ent,int collisiongroup,int contentsmask, bool originalResult)
+{
+	if (!g_bEnabled || !g_bPlayerProxy[ent] || IsClientInPvP(ent))
+	{
+		SDKUnhook(ent, SDKHook_ShouldCollide, Hook_ClientProxyShouldCollide);
+		return originalResult;
+	}
+	if ((contentsmask & MASK_RED))
+		return true;
+	//To-do add no collision proxy-boss here, the collision boss-proxy is done, see npc_chaser.sp
+	return originalResult;
 }
 //RequestFrame//
 public void ProxyDeathAnimation(any client)
@@ -3039,6 +3258,8 @@ public Action Timer_ClientProxyControl(Handle timer, any userid)
 	if (timer != g_hPlayerProxyControlTimer[client]) return;
 	
 	g_iPlayerProxyControl[client]--;
+	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
+		g_iPlayerProxyControl[client] -= 5;
 	if (g_iPlayerProxyControl[client] <= 0)
 	{
 		// ForcePlayerSuicide isn't really dependable, since the player doesn't suicide until several seconds after spawning has passed.
@@ -3065,7 +3286,15 @@ void ClientDisableConstantGlow(int client)
 	g_bPlayerConstantGlowEnabled[client] = false;
 	
 	int iGlow = EntRefToEntIndex(g_iPlayerConstantGlowEntity[client]);
-	if (iGlow && iGlow != INVALID_ENT_REFERENCE) AcceptEntityInput(iGlow, "Kill");
+	if (iGlow && iGlow != INVALID_ENT_REFERENCE) 
+	{
+		int iGlowManager = GetEntPropEnt(iGlow, Prop_Send, "m_hOwnerEntity");
+		AcceptEntityInput(iGlow, "Kill");
+		if (iGlowManager > MaxClients)
+		{
+			AcceptEntityInput(iGlowManager, "Kill");
+		}
+	}
 	
 	g_iPlayerConstantGlowEntity[client] = INVALID_ENT_REFERENCE;
 	
@@ -3073,21 +3302,16 @@ void ClientDisableConstantGlow(int client)
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("END ClientDisableConstantGlow(%d)", client);
 #endif
 }
-public Action DelayClientGlow(Handle timer,any client)
-{
-	//To-Do change this bad code.
-	if(IsValidClient(client))
-	{
-		ClientDisableConstantGlow(client);
-		if (!DidClientEscape(client))
-		{
-			ClientEnableConstantGlow(client, "head");
-		}
-	}
-}
-bool ClientEnableConstantGlow(int client, const char[] sAttachment="")
+
+bool ClientEnableConstantGlow(int client, const char[] sAttachment="", int iColor[4] = {255, 255, 255, 255})
 {
 	if (DoesClientHaveConstantGlow(client)) return true;
+	
+	/*if (g_hClientGlowTimer[client] == null)
+	{
+		g_hClientGlowTimer[client] = CreateTimer(0.5, Timer_UpdateClientGlow, GetClientUserId(client));
+		GetEntPropString(client, Prop_Data, "m_ModelName", g_sOldClientModel[client], sizeof(g_sOldClientModel[]));
+	}*/
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START ClientEnableConstantGlow(%d)", client);
@@ -3131,8 +3355,12 @@ bool ClientEnableConstantGlow(int client, const char[] sAttachment="")
 		ActivateEntity(iGlow);
 		SetEntityRenderMode(iGlow, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(iGlow, 0, 0, 0, 0);
-		SetEntProp(iGlow, Prop_Send, "m_bGlowEnabled", 1);
-		SetEntPropFloat(iGlow, Prop_Send, "m_flModelScale", flModelScale);
+		int iGlowManager = TF2_CreateGlow(iGlow);
+		DHookEntity(g_hSDKShouldTransmit, true, iGlowManager);
+		DHookEntity(g_hSDKShouldTransmit, true, iGlow);
+		//Set our desired glow color
+		SetVariantColor(iColor);
+		AcceptEntityInput(iGlowManager, "SetGlowColor");
 		
 #if defined DEBUG
 		if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("tf_taunt_prop -> set model and model scale");
@@ -3163,6 +3391,9 @@ bool ClientEnableConstantGlow(int client, const char[] sAttachment="")
 		if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("tf_taunt_prop -> set parent attachment to %s", sAttachment);
 #endif
 		
+		SetEntPropEnt(iGlow, Prop_Send, "m_hOwnerEntity", iGlowManager);
+		
+		Network_HookEntity(iGlow);
 		SDKHook(iGlow, SDKHook_SetTransmit, Hook_ConstantGlowSetTransmit);
 		
 #if defined DEBUG
@@ -3177,6 +3408,46 @@ bool ClientEnableConstantGlow(int client, const char[] sAttachment="")
 #endif
 	
 	return false;
+}
+
+public Action Timer_UpdateClientGlow(Handle timer, int userid)
+{
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0 || iClient > MaxClients)
+	{
+		for (int i = 1; i <= MaxClients; i++)//Find the previous client index owning that timer and reset it. 
+		{
+			if (g_hClientGlowTimer[i] == timer)
+			{
+				g_hClientGlowTimer[i] = null;
+				break;
+			}
+		}
+		return Plugin_Stop;
+	}
+	if (!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || !DoesClientHaveConstantGlow(iClient))
+	{
+		g_hClientGlowTimer[iClient] = null;
+		return Plugin_Stop;
+	}
+	
+	char sClientModel[128];
+	GetEntPropString(iClient, Prop_Data, "m_ModelName", sClientModel, sizeof(sClientModel));
+	
+	if (strcmp(sClientModel, g_sOldClientModel[iClient]) != 0)
+	{
+		ClientDisableConstantGlow(iClient);
+		ClientEnableConstantGlow(iClient);
+		strcopy(g_sOldClientModel[iClient], sizeof(g_sOldClientModel[]), sClientModel);
+	}
+	return Plugin_Continue;
+}
+
+public bool ClientGlowFilter(int iClient)
+{
+	if (g_bPlayerEliminated[iClient])
+		return false;
+	return true;
 }
 
 void ClientResetJumpScare(int client)
@@ -3462,8 +3733,10 @@ void ClientStartDeathCam(int client,int iBossIndex, const float vecLookPos[3])
 			if (flValue > 0.0) TF2_IgnitePlayer(client, client);
 		}
 		
+		int iSlender = NPCGetEntIndex(iBossIndex);
+		if (iSlender > MaxClients) SDKHooks_TakeDamage(client, iSlender, iSlender, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
 		SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
-		ForcePlayerSuicide(client);//Sometimes SDKHooks_TakeDamage doesn't work (probably because of point_viewcontrol), the player still alive and result in a endless round.
+		ForcePlayerSuicide(client);//Sometimes SDKHooks_TakeDamage doesn't work (probably because of point_viewcontrol), the player is still alive and result in a endless round.
 		SetVariantInt(9001);//Maybe it doesn't work like SDKHooks_TakeDamage, maybe not. Tbh I don't want to test this one.
 		AcceptEntityInput(client, "RemoveHealth");
 		return;
@@ -3564,7 +3837,12 @@ public Action Timer_ClientResetDeathCamEnd(Handle timer, any userid)
 		}
 		if (!(NPCGetFlags(iDeathCamBoss) & SFF_FAKE))
 		{
-			KillClient(client);
+			int iSlender = NPCGetEntIndex(iDeathCamBoss);
+			if (iSlender > MaxClients) SDKHooks_TakeDamage(client, iSlender, iSlender, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
+			SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
+			ForcePlayerSuicide(client);//Sometimes SDKHooks_TakeDamage doesn't work (probably because of point_viewcontrol), the player is still alive and result in a endless round.
+			SetVariantInt(9001);//Maybe it doesn't work like SDKHooks_TakeDamage, maybe not. Tbh I don't want to test this one.
+			AcceptEntityInput(client, "RemoveHealth");
 		}
 		else
 			SlenderMarkAsFake(iDeathCamBoss);	
@@ -3576,6 +3854,38 @@ public Action Timer_ClientResetDeathCamEnd(Handle timer, any userid)
 	}
 	ClientResetDeathCam(client);
 }
+//	==========================================================
+//	NAV AREA FUNCTIONS
+//	==========================================================
+void ClientNavAreaUpdate(int client, CNavArea newArea, CNavArea oldArea)
+{
+	if (GetRoundState() != SF2RoundState_Active) return;
+	
+	if (g_bPlayerEliminated[client]) return;
+	
+	if (newArea == INVALID_NAV_AREA) return;
+	
+	if ((oldArea != INVALID_NAV_AREA && oldArea.Attributes & NAV_MESH_DONT_HIDE) || newArea.Attributes & NAV_MESH_DONT_HIDE)
+	{
+		g_flClientAllowedTimeNearEscape[client] -= 0.3;//Remove 0.3sec this function is called every ~0.3sec
+	}
+	else
+	{
+		g_flClientAllowedTimeNearEscape[client] += 0.1;//Forgive the player of 0.1
+	}
+	if (g_flClientAllowedTimeNearEscape[client] <= 0.0 && SF_IsSurvivalMap())
+	{
+		g_bPlayerIsExitCamping[client] = true;
+	}
+	else
+	{
+		g_bPlayerIsExitCamping[client] = false;
+	}
+#if defined DEBUG
+	SendDebugMessageToPlayer(client, DEBUG_NAV, 1, "Old area: %i DHF:%s, New area: %i DHF:%s, is considered as exit camper: %s", oldArea.Index, (oldArea.Attributes & NAV_MESH_DONT_HIDE) ? "true" : "false", newArea.Index, (newArea.Attributes & NAV_MESH_DONT_HIDE) ? "true" : "false", (g_bPlayerIsExitCamping[client]) ? "true" : "false" );
+#endif
+}
+
 
 //	==========================================================
 //	GHOST MODE FUNCTIONS
@@ -3583,9 +3893,15 @@ public Action Timer_ClientResetDeathCamEnd(Handle timer, any userid)
 
 static bool g_bPlayerGhostMode[MAXPLAYERS + 1] = { false, ... };
 static int g_iPlayerGhostModeTarget[MAXPLAYERS + 1] = { INVALID_ENT_REFERENCE, ... };
+static int g_iGhostModelIndex;
 static Handle g_hPlayerGhostModeConnectionCheckTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 static float g_flPlayerGhostModeConnectionTimeOutTime[MAXPLAYERS + 1] = { -1.0, ... };
 static float g_flPlayerGhostModeConnectionBootTime[MAXPLAYERS + 1] = { -1.0, ... };
+
+void SF2_SetGhostModel(int iModelIndex)
+{
+	g_iGhostModelIndex = iModelIndex;
+}
 
 /**
  *	Enables/Disables ghost mode on the player.
@@ -3594,6 +3910,10 @@ void ClientSetGhostModeState(int client, bool bState)
 {
 	if (bState == g_bPlayerGhostMode[client]) return;
 	
+	Handle message = StartMessageAll("PlayerTauntSoundLoopEnd", USERMSG_RELIABLE);
+	BfWriteByte(message, client);
+	EndMessage();
+	
 	if (bState && !IsClientInGame(client)) return;
 	
 	g_bPlayerGhostMode[client] = bState;
@@ -3601,6 +3921,13 @@ void ClientSetGhostModeState(int client, bool bState)
 	
 	if (bState)
 	{
+#if defined DEBUG
+		SendDebugMessageToPlayer(client, DEBUG_GHOSTMODE, 0, "{green}Entered ghost mode.");
+#endif
+		//Strip the always edict flag
+		SetEntityFlags(client,GetEntityFlags(client)^FL_EDICT_ALWAYS);
+		//Remove the fire cond
+		TF2_RemoveCondition(client,TFCond_OnFire);
 		//Call the spawn event.
 		TF2_RespawnPlayer(client);
 		
@@ -3615,7 +3942,6 @@ void ClientSetGhostModeState(int client, bool bState)
 		SetEntProp(client, Prop_Send, "m_iDesiredPlayerClass", iDesiredClass);
 		
 		ClientHandleGhostMode(client, true);
-		TF2Attrib_SetByName(client, "mod see enemy health", 1.0);
 		if (GetConVarBool(g_cvGhostModeConnectionCheck))
 		{
 			g_hPlayerGhostModeConnectionCheckTimer[client] = CreateTimer(0.0, Timer_GhostModeConnectionCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -3627,15 +3953,19 @@ void ClientSetGhostModeState(int client, bool bState)
 	}
 	else
 	{
-		TF2Attrib_SetByName(client, "mod see enemy health", 0.0);
+#if defined DEBUG
+		SendDebugMessageToPlayer(client, DEBUG_GHOSTMODE, 0, "{green}Exited ghost mode.");
+#endif
 		g_hPlayerGhostModeConnectionCheckTimer[client] = INVALID_HANDLE;
 		g_flPlayerGhostModeConnectionTimeOutTime[client] = -1.0;
 		g_flPlayerGhostModeConnectionBootTime[client] = -1.0;
 	
 		if (IsClientInGame(client))
 		{
-			TF2_RemoveCondition(client, TFCond_HalloweenGhostMode);
+			SetEntProp(client, Prop_Data, "m_takedamage", DAMAGE_YES);
+			TF2_RemoveCondition(client, TFCond_SwimmingNoEffects);
 			SetEntProp(client, Prop_Send, "m_CollisionGroup", COLLISION_GROUP_PLAYER);
+			Client_ModelOverrides(client);
 		}
 	}
 }
@@ -3682,7 +4012,6 @@ public Action Timer_GhostModeConnectionCheck(Handle timer, any userid)
 	
 	return Plugin_Continue;
 }
-
 /**
  *	Makes sure that the player is a ghost when ghost mode is activated.
  */
@@ -3694,26 +4023,37 @@ void ClientHandleGhostMode(int client, bool bForceSpawn=false)
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("START ClientHandleGhostMode(%d, %d)", client, bForceSpawn);
 #endif
 	
-	if (!TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode) || bForceSpawn)
+	if (!TF2_IsPlayerInCondition(client, TFCond_SwimmingNoEffects) || bForceSpawn)
 	{
-		TF2_AddCondition(client, TFCond_HalloweenGhostMode, -1.0);
-		SetEntProp(client, Prop_Send, "m_CollisionGroup", COLLISION_GROUP_DEBRIS);
+		TF2_StripWearables(client);
+		TF2_AddCondition(client, TFCond_SwimmingNoEffects, -1.0);
+		TF2_AddCondition(client, TFCond_Stealthed, -1.0);
+		SetEntProp(client, Prop_Data, "m_takedamage", DAMAGE_NO);
+		SetEntProp(client, Prop_Send, "m_CollisionGroup", COLLISION_GROUP_DEBRIS_TRIGGER);//Fix client predictions!
+		Client_ModelOverrides(client, g_iGhostModelIndex);
 		
 		// Set first observer target.
 		ClientGhostModeNextTarget(client);
 		ClientActivateUltravision(client);
 		
-		if(g_iPlayerPreferences[client][PlayerPreference_GhostOverlay])
-		{
-			// screen overlay timer
-			g_hPlayerOverlayCheck[client] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			TriggerTimer(g_hPlayerOverlayCheck[client], true);
-		}
+		// screen overlay timer
+		g_hPlayerOverlayCheck[client] = CreateTimer(0.0, Timer_PlayerOverlayCheck, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+		TriggerTimer(g_hPlayerOverlayCheck[client], true);
+		
+		CreateTimer(0.2, Timer_ClientGhostStripWearables, GetClientUserId(client));
 	}
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("END ClientHandleGhostMode(%d, %d)", client, bForceSpawn);
 #endif
+}
+
+public Action Timer_ClientGhostStripWearables(Handle timer, int userid)
+{
+	int iClient = GetClientOfUserId(userid);
+	if (iClient <= 0 || iClient > MaxClients) return;
+	if (!IsClientInGhostMode(iClient)) return;
+	TF2_StripWearables(iClient);
 }
 
 void ClientGhostModeNextTarget(int client)
@@ -3761,6 +4101,15 @@ void ClientGhostModeNextTarget(int client)
 bool IsClientInGhostMode(int client)
 {
 	return g_bPlayerGhostMode[client];
+}
+
+public Action Hook_GhostNoTouch(int iEntity, int iOther)
+{
+	if (0 < iOther <= MaxClients && IsClientInGame(iOther))
+	{
+		if (IsClientInGhostMode(iOther)) return Plugin_Handled;
+	}
+	return Plugin_Continue;
 }
 
 //	==========================================================
@@ -3896,13 +4245,13 @@ stock void ClientResetCampingStats(int client)
 #endif
 
 	g_iPlayerCampingStrikes[client] = 0;
-	g_fPlayerExitCampingPoints[client] = 0.0;
 	g_bPlayerIsExitCamping[client] = false;
 	g_hPlayerCampingTimer[client] = INVALID_HANDLE;
 	g_bPlayerCampingFirstTime[client] = true;
 	g_flPlayerCampingLastPosition[client][0] = 0.0;
 	g_flPlayerCampingLastPosition[client][1] = 0.0;
 	g_flPlayerCampingLastPosition[client][2] = 0.0;
+	g_flClientAllowedTimeNearEscape[client] = GetConVarFloat(g_cvExitCampingTimeAllowed);
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 2) DebugMessage("END ClientResetCampingStats(%d)", client);
@@ -3965,21 +4314,6 @@ public Action Timer_ClientCheckCamp(Handle timer, any userid)
 		{
 			bCamping = true;
 			//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is afk, or camping", client, client);
-		}
-		if(!g_bRoundGrace)
-		{
-			CNavArea targetAreaIndex = SDK_GetLastKnownArea(client);
-			if (targetAreaIndex != INVALID_NAV_AREA)
-			{
-				if (targetAreaIndex.Attributes & NAV_MESH_DONT_HIDE && g_iPlayerCampingStrikes[client]>GetConVarInt(g_cvExitCampingStrikes))
-				{
-					//EXIT CAMPER!
-					g_bPlayerIsExitCamping[client] = true;
-					//LogSF2Message("[SF2 AFK TIMER] Client %i (%N) is exit-camping!", client, client);
-				}
-				else
-					g_bPlayerIsExitCamping[client] = false;
-			}
 		}
 		if(bCamping)
 		{
@@ -4249,6 +4583,10 @@ public Action Timer_PlayerOverlayCheck(Handle timer, any userid)
 		strcopy(sMaterial, sizeof(sMaterial), SF2_OVERLAY_GHOST);
 	}
 	else if (IsRoundInWarmup() || g_bPlayerEliminated[client] || DidClientEscape(client) && !IsClientInGhostMode(client))
+	{
+		return Plugin_Continue;
+	}
+	else if (SF_SpecialRound(SPECIALROUND_REALISM))
 	{
 		return Plugin_Continue;
 	}
@@ -4711,7 +5049,7 @@ stock void ClientUpdateMusicSystem(int client, bool bInitialize=false)
 				// player.
 				
 				float flBossDist = NPCGetDistanceFromEntity(iBossToUse, client);
-				float flScalar = flBossDist / 700.0
+				float flScalar = flBossDist / 700.0;
 				if (flScalar > 1.0) flScalar = 1.0;
 				float flStressAdd = 0.1 * (1.0 - flScalar);
 				
@@ -4752,6 +5090,8 @@ stock void ClientMusicStart(int client, const char[] sNewMusic, float flVolume=-
 		GetBossMusic(g_strPlayerMusic[client],sizeof(g_strPlayerMusic[]));
 	if (flVolume >= 0.0) g_flPlayerMusicVolume[client] = flVolume;
 	if (flTargetVolume >= 0.0) g_flPlayerMusicTargetVolume[client] = flTargetVolume;
+	
+	if (g_flPlayerMusicTargetVolume[client] > g_iPlayerPreferences[client][PlayerPreference_MusicVolume]) g_flPlayerMusicTargetVolume[client] = g_iPlayerPreferences[client][PlayerPreference_MusicVolume];
 	
 	if (!bCopyOnly)
 	{
@@ -5131,11 +5471,11 @@ public Action Timer_PlayerFadeIn20DollarsMusic(Handle timer, any userid)
 	if (iBossIndex == -1) return Plugin_Stop;
 	
 	g_flPlayer20DollarsMusicVolumes[client][iBossIndex] += 0.07;
-	if (g_flPlayer20DollarsMusicVolumes[client][iBossIndex] > 1.0) g_flPlayer20DollarsMusicVolumes[client][iBossIndex] = 1.0;
+	if (g_flPlayer20DollarsMusicVolumes[client][iBossIndex] > g_iPlayerPreferences[client][PlayerPreference_MusicVolume]) g_flPlayer20DollarsMusicVolumes[client][iBossIndex] = g_iPlayerPreferences[client][PlayerPreference_MusicVolume];
 
 	if (g_strPlayer20DollarsMusic[client][0]) EmitSoundToClient(client, g_strPlayer20DollarsMusic[client], _, MUSIC_CHAN, _, SND_CHANGEVOL, g_flPlayer20DollarsMusicVolumes[client][iBossIndex]);
 	
-	if (g_flPlayer20DollarsMusicVolumes[client][iBossIndex] >= 1.0)
+	if (g_flPlayer20DollarsMusicVolumes[client][iBossIndex] >= g_iPlayerPreferences[client][PlayerPreference_MusicVolume])
 	{
 		g_hPlayer20DollarsMusicTimer[client][iBossIndex] = INVALID_HANDLE;
 		return Plugin_Stop;
@@ -5205,11 +5545,11 @@ public Action Timer_PlayerFadeInAlertMusic(Handle timer, any userid)
 	if (iBossIndex == -1) return Plugin_Stop;
 	
 	g_flPlayerAlertMusicVolumes[client][iBossIndex] += 0.07;
-	if (g_flPlayerAlertMusicVolumes[client][iBossIndex] > 1.0) g_flPlayerAlertMusicVolumes[client][iBossIndex] = 1.0;
+	if (g_flPlayerAlertMusicVolumes[client][iBossIndex] > g_iPlayerPreferences[client][PlayerPreference_MusicVolume]) g_flPlayerAlertMusicVolumes[client][iBossIndex] = g_iPlayerPreferences[client][PlayerPreference_MusicVolume];
 
 	if (g_strPlayerAlertMusic[client][0]) EmitSoundToClient(client, g_strPlayerAlertMusic[client], _, MUSIC_CHAN, _, SND_CHANGEVOL, g_flPlayerAlertMusicVolumes[client][iBossIndex]);
 	
-	if (g_flPlayerAlertMusicVolumes[client][iBossIndex] >= 1.0)
+	if (g_flPlayerAlertMusicVolumes[client][iBossIndex] >= g_iPlayerPreferences[client][PlayerPreference_MusicVolume])
 	{
 		g_hPlayerAlertMusicTimer[client][iBossIndex] = INVALID_HANDLE;
 		return Plugin_Stop;
@@ -5279,11 +5619,11 @@ public Action Timer_PlayerFadeInChaseMusic(Handle timer, any userid)
 	if (iBossIndex == -1) return Plugin_Stop;
 	
 	g_flPlayerChaseMusicVolumes[client][iBossIndex] += 0.07;
-	if (g_flPlayerChaseMusicVolumes[client][iBossIndex] > 1.0) g_flPlayerChaseMusicVolumes[client][iBossIndex] = 1.0;
+	if (g_flPlayerChaseMusicVolumes[client][iBossIndex] > g_iPlayerPreferences[client][PlayerPreference_MusicVolume]) g_flPlayerChaseMusicVolumes[client][iBossIndex] = g_iPlayerPreferences[client][PlayerPreference_MusicVolume];
 
 	if (g_strPlayerChaseMusic[client][0]) EmitSoundToClient(client, g_strPlayerChaseMusic[client], _, MUSIC_CHAN, _, SND_CHANGEVOL, g_flPlayerChaseMusicVolumes[client][iBossIndex]);
 	
-	if (g_flPlayerChaseMusicVolumes[client][iBossIndex] >= 1.0)
+	if (g_flPlayerChaseMusicVolumes[client][iBossIndex] >= g_iPlayerPreferences[client][PlayerPreference_MusicVolume])
 	{
 		g_hPlayerChaseMusicTimer[client][iBossIndex] = INVALID_HANDLE;
 		return Plugin_Stop;
@@ -5467,7 +5807,7 @@ stock void ClientUpdateListeningFlags(int client, bool bReset=false)
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (i == client || !IsClientInGame(i)) continue;
+		if (i == client || !IsClientInGame(i) || IsClientSourceTV(i)) continue;
 		
 		if (bReset || IsRoundEnding() || GetConVarBool(g_cvAllChat))
 		{
@@ -5639,12 +5979,13 @@ void ClientSaveCookies(int client)
 	
 	// Save and reset our queue points.
 	char s[64];
-	Format(s, sizeof(s), "%d ; %d ; %d ; %d ; %d ; %d", g_iPlayerQueuePoints[client], 
+	Format(s, sizeof(s), "%d ; %d ; %d ; %d ; %d ; %d ; %d", g_iPlayerQueuePoints[client], 
 		g_iPlayerPreferences[client][PlayerPreference_ShowHints], 
 		g_iPlayerPreferences[client][PlayerPreference_MuteMode], 
 		g_iPlayerPreferences[client][PlayerPreference_FilmGrain],
 		g_iPlayerPreferences[client][PlayerPreference_EnableProxySelection],
-		g_iPlayerPreferences[client][PlayerPreference_GhostOverlay]);
+		RoundToNearest(g_iPlayerPreferences[client][PlayerPreference_MusicVolume]*100.0),
+		g_iPlayerPreferences[client][PlayerPreference_PvPAutoSpawn]);
 		
 	SetClientCookie(client, g_hCookie, s);
 }
@@ -5677,25 +6018,64 @@ stock void ClientViewPunch(int client, const float angleOffset[3])
 public Action Hook_ConstantGlowSetTransmit(int ent,int other)
 {
 	if (!g_bEnabled) return Plugin_Continue;
+	if (!Network_ClientHasSeenEntity(other, ent)) return Plugin_Continue;
 	
-	int iOwner = -1;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i)) continue;
-		if (EntRefToEntIndex(g_iPlayerConstantGlowEntity[i]) == ent)
-		{
-			iOwner = i;
-			break;
-		}
-	}
+	int iOwner = GetEntPropEnt(ent, Prop_Send, "moveparent");
 	
 	if (iOwner != -1)
 	{
-		if (!IsPlayerAlive(iOwner) || g_bPlayerEliminated[iOwner]) return Plugin_Handled;
-		if (!IsPlayerAlive(other) || (!g_bPlayerProxy[other] && !IsClientInGhostMode(other))) return Plugin_Handled;
+		int iGlowManager = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+		if (iGlowManager > MaxClients)
+		{
+			AcceptEntityInput(iGlowManager, "Disable");
+			AcceptEntityInput(iGlowManager, "Enable");
+		}
+		
+		if (iOwner == other) return Plugin_Handled;
+		
+		if (!IsPlayerAlive(iOwner) || !IsPlayerAlive(other) || !g_bPlayerEliminated[other]) 
+		{
+			return Plugin_Handled;
+		}
+		
+		if (IsClientInGhostMode(other) || (g_bPlayerProxy[iOwner] && g_bPlayerProxy[other]))
+		{
+			return Plugin_Continue;
+		}
+		
+		if (g_bPlayerProxy[other])
+		{
+			if (TF2_GetPlayerClass(iOwner) == TFClass_Medic || TF2_IsPlayerInCondition(iOwner, TFCond_Taunting))
+			{
+				return Plugin_Continue;
+			}
+			
+			if (TF2_GetPlayerClass(iOwner) != TFClass_Spy)//Allow proxies to see someone's glow if they are moving near by, and they aren't a spy.
+			{
+				float vecSpeed[3];
+				SDK_GetSmoothedVelocity(iOwner, vecSpeed);
+				if (GetVectorLength(vecSpeed, false) >= 100.0)
+				{
+					float flOwnerPos[3], flProxyPos[3];
+					GetClientEyePosition(iOwner, flOwnerPos);
+					GetClientEyePosition(other, flProxyPos);
+					
+					if (GetVectorDistance(flOwnerPos, flProxyPos) <= (700.0 + ((g_bPlayerHasRegenerationItem[iOwner]) ? 300.0 : 0.0)))//To-do add a cvar for that.
+					{
+						return Plugin_Continue;
+					}
+				}
+			}
+			
+			float vecSpeed[3];
+			SDK_GetSmoothedVelocity(other, vecSpeed);
+			if (GetVectorLength(vecSpeed, false) < 100.0)//Don't show if not moving slowly.
+			{
+				return Plugin_Continue;
+			}
+		}
 	}
-	
-	return Plugin_Continue;
+	return Plugin_Handled;
 }
 
 stock void ClientSetFOV(int client,int iFOV)
@@ -5720,8 +6100,6 @@ stock void TF2_GetClassName(TFClassType iClass, char[] sBuffer,int sBufferLen)
 		default: strcopy(sBuffer, sBufferLen, "");
 	}
 }
-
-#define EF_DIMLIGHT (1 << 2)
 
 stock void ClientSDKFlashlightTurnOn(int client)
 {
@@ -5783,7 +6161,7 @@ stock bool IsPointVisibleToPlayer(int client, const float pos[3], bool bCheckFOV
 		}
 	}
 	
-	Handle hTrace = TR_TraceRayFilterEx(eyePos, pos, CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_MIST, RayType_EndPoint, TraceRayDontHitCharactersOrEntity, client);
+	Handle hTrace = TR_TraceRayFilterEx(eyePos, pos, CONTENTS_SOLID | CONTENTS_MOVEABLE | CONTENTS_MIST | CONTENTS_GRATE, RayType_EndPoint, TraceRayDontHitCharactersOrEntity, client);
 	bool bHit = TR_DidHit(hTrace);
 	CloseHandle(hTrace);
 	
@@ -5810,7 +6188,10 @@ void SF2_RefreshRestrictions()
 	for(int client=1;client <=MaxClients;client++)
 	{
 		if(IsValidClient(client))
+		{
+			ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
 			g_hPlayerPostWeaponsTimer[client]=CreateTimer(1.0,Timer_ClientPostWeapons,GetClientUserId(client));
+		}
 	}
 }
 public Action Timer_ClientPostWeapons(Handle timer, any userid)
@@ -5821,6 +6202,8 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 	if (IsClientInGame(client) && !IsPlayerAlive(client)) return;
 	
 	if (timer != g_hPlayerPostWeaponsTimer[client]) return;
+	
+	g_bPlayerHasRegenerationItem[client] = false;
 	
 #if defined DEBUG
 	if (GetConVarInt(g_cvDebugDetail) > 0) 
@@ -5838,11 +6221,12 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		
 		iOldWeaponItemIndexes[i] = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
 	}
-	
 #endif
 	
 	bool bRemoveWeapons = true;
 	bool bRestrictWeapons = true;
+	bool bUseStock = false;
+	bool bRemoveWearables = false;
 	
 	if (IsRoundEnding())
 	{
@@ -5858,6 +6242,14 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 	{
 		bRemoveWeapons = false;
 		bRestrictWeapons = false;
+	}
+	
+	if (g_bPlayerProxy[client])
+	{
+		bRestrictWeapons = true;
+		bRemoveWeapons = true;
+		bUseStock = true;
+		bRemoveWearables = true;
 	}
 	
 	if (IsRoundInWarmup()) 
@@ -5905,6 +6297,10 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		
 		ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
 	}
+	
+	if (bRemoveWearables)
+		TF2_StripWearables(client);
+	
 	TFClassType iPlayerClass = TF2_GetPlayerClass(client);
 	
 	if (bRestrictWeapons)
@@ -5922,7 +6318,7 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 				
 				if (IsValidEdict(iWeapon))
 				{
-					if (IsWeaponRestricted(iPlayerClass, GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex")))
+					if (bUseStock || IsWeaponRestricted(iPlayerClass, GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex")))
 					{
 						hItem = INVALID_HANDLE;
 						TF2_RemoveWeaponSlotAndWearables(client, iSlot);
@@ -5990,6 +6386,11 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 								EquipPlayerWeapon(client, iNewWeapon);
 							}
 						}
+					}
+					else
+					{
+						if (!g_bPlayerHasRegenerationItem[client])
+							g_bPlayerHasRegenerationItem[client] = IsRegenWeapon(iWeapon);
 					}
 				}
 			}
@@ -6070,10 +6471,23 @@ public Action Timer_ClientPostWeapons(Handle timer, any userid)
 		}
 	}
 	
+	float flHealthFromPack = 1.0;
+	if (!g_bPlayerEliminated[client])
+	{
+		if (g_bPlayerHasRegenerationItem[client])
+			flHealthFromPack = 0.40;
+		if (TF2_GetPlayerClass(client) == TFClass_Medic)
+			flHealthFromPack = 0.0;
+	}
+	
+	TF2Attrib_SetByDefIndex(client, 109, flHealthFromPack);
+	
 #if defined DEBUG
+	int iWeapon = INVALID_ENT_REFERENCE;
+	
 	for (int i = 0; i <= 5; i++)
 	{
-		int iWeapon = GetPlayerWeaponSlot(client, i);
+		iWeapon = GetPlayerWeaponSlot(client, i);
 		if (!IsValidEdict(iWeapon)) continue;
 		
 		iNewWeaponItemIndexes[i] = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
@@ -6095,11 +6509,11 @@ public Action TF2Items_OnGiveNamedItem(int client, char[] classname, int iItemDe
 {
 	if(!g_bEnabled) return Plugin_Continue;
 	
-	if (iItemDefinitionIndex == 649)
+	/*if (iItemDefinitionIndex == 649)
 	{
 		RequestFrame(Frame_ReplaceSpyCicle, client);
 		return Plugin_Handled;
-	}
+	}*/
 	
 	return Plugin_Continue;
 }
@@ -6112,6 +6526,25 @@ public void Frame_ReplaceSpyCicle(int client)
 		int iNewKnife = TF2Items_GiveNamedItem(client, g_hSDKWeaponKnife);
 		EquipPlayerWeapon(client, iNewKnife);
 		ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
+	}
+}
+
+public void Frame_ClientHealArrow(int client)
+{
+	if (IsClientInGame(client) && IsClientInPvP(client))
+	{
+		int iEnt = -1;
+		while ((iEnt = FindEntityByClassname(iEnt, "tf_projectile_healing_bolt")) != -1)
+		{
+			int iThrowerOffset = FindDataMapInfo(iEnt, "m_hThrower");
+			int iOwnerEntity = GetEntPropEnt(iEnt, Prop_Data, "m_hOwnerEntity");
+			if (iOwnerEntity != client && iThrowerOffset != -1) iOwnerEntity = GetEntDataEnt2(iEnt, iThrowerOffset);
+			if (iOwnerEntity == client)
+			{
+				SetEntProp(iEnt, Prop_Data, "m_iInitialTeamNum", GetClientTeam(client));
+				SetEntProp(iEnt, Prop_Send, "m_iTeamNum", GetClientTeam(client));
+			}
+		}
 	}
 }
 
@@ -6148,14 +6581,11 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 			CreateTimer(0.5,ClientCheckProxyModel,GetClientUserId(client),TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 			//PrintToChatAll("Proxy model:%s",g_sClientProxyModel[client]);
 		}
-		int ent = -1;
-		while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
-		{
-			if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client)
-			{
-				AcceptEntityInput(ent, "Kill");
-			}
-		}
+		
+		ClientDisableConstantGlow(client);
+		int iGreen[4] = {114, 158, 66, 255};
+		ClientEnableConstantGlow(client, "head", iGreen);
+		
 		if (IsPlayerAlive(client))
 		{
 			// Play any sounds, if any.
@@ -6169,6 +6599,7 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 				
 				EmitSoundToAll(sBuffer, client, iChannel, iLevel, iFlags, flVolume, iPitch);
 			}
+			
 			bool Zombie = view_as<bool>(GetProfileNum(sProfile, "proxies_zombie", 0));
 			if(Zombie)
 			{
@@ -6201,6 +6632,8 @@ public Action Timer_ApplyCustomModel(Handle timer, any userid)
 				else
 					SetEntProp(client, Prop_Send, "m_nForcedSkin", 5);
 			}	
+			
+			ClientSwitchToWeaponSlot(client, TFWeaponSlot_Melee);
 		}
 	}
 }
@@ -6214,7 +6647,7 @@ public Action ClientCheckProxyModel(Handle timer, any userid)
 	
 	char sModel[PLATFORM_MAX_PATH];
 	GetEntPropString(client, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
-	if (!StrEqual(sModel,g_sClientProxyModel[client]))
+	if (strcmp(sModel,g_sClientProxyModel[client]) != 0)
 	{
 		SetVariantString(g_sClientProxyModel[client]);
 		AcceptEntityInput(client, "SetCustomModel");
@@ -6222,6 +6655,22 @@ public Action ClientCheckProxyModel(Handle timer, any userid)
 	}
 	return Plugin_Continue;
 }
+
+bool IsRegenWeapon(int iWeapon)
+{
+	Address attribRegen = TF2Attrib_GetByDefIndex(iWeapon, 1003);
+	if (attribRegen != Address_Null) return true;
+	attribRegen = TF2Attrib_GetByDefIndex(iWeapon, 490);
+	if (attribRegen != Address_Null) return true;
+	attribRegen = TF2Attrib_GetByDefIndex(iWeapon, 190);
+	if (attribRegen != Address_Null) return true;
+	attribRegen = TF2Attrib_GetByDefIndex(iWeapon, 130);
+	if (attribRegen != Address_Null) return true;
+	attribRegen = TF2Attrib_GetByDefIndex(iWeapon, 57);
+	if (attribRegen != Address_Null) return true;
+	return false;
+}
+
 bool IsWeaponRestricted(TFClassType iClass,int iItemDef)
 {
 	if (g_hRestrictedWeaponsConfig == INVALID_HANDLE) return false;
@@ -6306,4 +6755,12 @@ public Action Timer_RespawnPlayer(Handle timer, any userid)
 	if (IsPlayerAlive(client)) return;
 	
 	TF2_RespawnPlayer(client);
+}
+
+void Client_ModelOverrides(int iEntity, int iModelIndex = 0)
+{
+    for(int i=0; i<4; i++)
+    {
+        SetEntProp(iEntity, Prop_Send, "m_nModelIndexOverrides", iModelIndex, _, i);
+    }
 }

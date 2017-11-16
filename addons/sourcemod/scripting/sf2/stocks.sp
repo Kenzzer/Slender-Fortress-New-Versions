@@ -53,12 +53,17 @@
 
 #define MAX_BUTTONS 26
 
-#define FSOLID_CUSTOMRAYTEST 0x0001
-#define FSOLID_CUSTOMBOXTEST 0x0002
-#define FSOLID_NOT_SOLID 0x0004
-#define FSOLID_TRIGGER 0x0008
+#define SOLID_NONE			0	// no solid model
+#define SOLID_BSP			1	// a BSP tree
+#define SOLID_BBOX			2	// an AABB
+#define SOLID_OBB			3	// an OBB (not implemented yet)
+#define SOLID_OBB_YAW		4	// an OBB, constrained so that it can only yaw
+#define SOLID_CUSTOM		5	// Always call into the entity for tests
+#define SOLID_VPHYSICS		6	// solid vphysics object, get vcollide from the model and collide with that
+#define SOLID_LAST			7
 
 #define COLLISION_GROUP_DEBRIS 1
+#define COLLISION_GROUP_DEBRIS_TRIGGER 2
 #define COLLISION_GROUP_PLAYER 5
 
 #define EFL_FORCE_CHECK_TRANSMIT (1 << 7)
@@ -67,27 +72,88 @@
 
 #define TF_WEAPON_PHLOGISTINATOR 594
 
+// m_nSolidType
+#define SOLID_NONE 0 // no solid model
+#define SOLID_BSP 1 // a BSP tree
+#define SOLID_BBOX 2 // an AABB
+#define SOLID_OBB 3 // an OBB (not implemented yet)
+#define SOLID_OBB_YAW 4 // an OBB, constrained so that it can only yaw
+#define SOLID_CUSTOM 5 // Always call into the entity for tests
+#define SOLID_VPHYSICS 6 // solid vphysics object, get vcollide from the model and collide with that
+// m_usSolidFlags
+#define FSOLID_CUSTOMRAYTEST 0x0001 // Ignore solid type + always call into the entity for ray tests
+#define FSOLID_CUSTOMBOXTEST 0x0002 // Ignore solid type + always call into the entity for swept box tests
+#define FSOLID_NOT_SOLID 0x0004 // Are we currently not solid?
+#define FSOLID_TRIGGER 0x0008 // This is something may be collideable but fires touch functions
+							// even when it's not collideable (when the FSOLID_NOT_SOLID flag is set)
+#define FSOLID_NOT_STANDABLE 0x0010 // You can't stand on this
+#define FSOLID_VOLUME_CONTENTS 0x0020 // Contains volumetric contents (like water)
+#define FSOLID_FORCE_WORLD_ALIGNED 0x0040 // Forces the collision rep to be world-aligned even if it's SOLID_BSP or SOLID_VPHYSICS
+#define FSOLID_USE_TRIGGER_BOUNDS 0x0080 // Uses a special trigger bounds separate from the normal OBB
+#define FSOLID_ROOT_PARENT_ALIGNED 0x0100 // Collisions are defined in root parent's local coordinate space
+#define FSOLID_TRIGGER_TOUCH_DEBRIS 0x0200 // This trigger will touch debris objects
 
-//TFCond TFCond_SpawnOutline = view_as<TFCond>(114);
+#define	DAMAGE_NO				0
+#define DAMAGE_EVENTS_ONLY		1
+#define	DAMAGE_YES				2
+#define	DAMAGE_AIM				3
+
+#define EF_BONEMERGE			0x001 	// Performs bone merge on client side
+#define	EF_BRIGHTLIGHT 			0x002	// DLIGHT centered at entity origin
+#define	EF_DIMLIGHT 			0x004	// player flashlight
+#define	EF_NOINTERP				0x008	// don't interpolate the next frame
+#define	EF_NOSHADOW				0x010	// Don't cast no shadow
+#define	EF_NODRAW				0x020	// don't draw entity
+#define	EF_NORECEIVESHADOW		0x040	// Don't receive no shadow
+#define	EF_BONEMERGE_FASTCULL	0x080	// For use with EF_BONEMERGE. If this is set, then it places this ent's origin at its
+										// parent and uses the parent's bbox + the max extents of the aiment.
+										// Otherwise, it sets up the parent's bones every frame to figure out where to place
+										// the aiment, which is inefficient because it'll setup the parent's bones even if
+										// the parent is not in the PVS.
+#define	EF_ITEM_BLINK			0x100	// blink an item so that the user notices it.
+#define	EF_PARENT_ANIMATES		0x200	// always assume that the parent entity is animating
 
 // hull defines, mostly used for space checking.
-float HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 }
-float HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 }
+float HULL_HUMAN_MINS[3] = { -13.0, -13.0, 0.0 };
+float HULL_HUMAN_MAXS[3] = { 13.0, 13.0, 72.0 };
 
-float HULL_TF2PLAYER_MINS[3] = { -24.5, -24.5, 0.0 }
-float HULL_TF2PLAYER_MAXS[3] = { 24.5,  24.5, 83.0 }
+float HULL_TF2PLAYER_MINS[3] = { -24.5, -24.5, 0.0 };
+float HULL_TF2PLAYER_MAXS[3] = { 24.5,  24.5, 83.0 };
+
+static bool g_bClientAndEntityNetwork[2049][MAXPLAYERS+1];
 
 //  ==========================================================
 //	Map Functions
 //  ==========================================================
+
 stock bool SF_IsSurvivalMap()
 {
 	return view_as<bool>(g_bIsSurvivalMap || (GetConVarInt(g_cvSurvivalMap) == 1));
 }
+
 stock bool SF_IsRaidMap()
 {
 	return view_as<bool>(g_bIsRaidMap || (GetConVarInt(g_cvRaidMap) == 1));
 }
+
+int SDK_StartTouch(int iEntity, int iOther)
+{
+	if(g_hSDKStartTouch != INVALID_HANDLE)
+	{
+		return SDKCall(g_hSDKStartTouch, iEntity, iOther);
+	}
+	return -1;
+}
+
+int SDK_EndTouch(int iEntity, int iOther)
+{
+	if(g_hSDKEndTouch != INVALID_HANDLE)
+	{
+		return SDKCall(g_hSDKEndTouch, iEntity, iOther);
+	}
+	return -1;
+}
+
 bool SDK_PointIsWithin(int iFunc, float flPos[3])
 {
 	if(g_hSDKPointIsWithin != INVALID_HANDLE)
@@ -97,9 +163,62 @@ bool SDK_PointIsWithin(int iFunc, float flPos[3])
 
 	return false;
 }
+
 //	==========================================================
-//	ENTITY FUNCTIONS
+//	ENTITY & ENTITY NETWORK FUNCTIONS
 //	==========================================================
+
+stock void Network_HookEntity(int iEnt)
+{
+	Network_ResetEntity(iEnt);
+	SDKHook(iEnt, SDKHook_SetTransmit, NetworkHook_EntityTransmission);
+}
+
+public Action NetworkHook_EntityTransmission(int iEntity, int iClient)
+{
+	if (!Network_ClientHasSeenEntity(iClient, iEntity))
+	{
+		DataPack networkData = new DataPack();
+		networkData.WriteCell(EntIndexToEntRef(iEntity));
+		networkData.WriteCell(GetClientUserId(iClient));
+		RequestFrame(Frame_UpdateClientEntityInfo, networkData);
+	}
+	return Plugin_Continue;
+}
+
+public void Frame_UpdateClientEntityInfo(DataPack networkData)
+{
+	networkData.Reset(); 
+	int iRef = networkData.ReadCell();
+	int userid = networkData.ReadCell();
+	delete networkData;
+	int iEntity = EntRefToEntIndex(iRef);
+	int iClient = GetClientOfUserId(userid);
+	
+	if (iEntity > 0 && iClient > 0)
+		g_bClientAndEntityNetwork[iEntity][iClient] = true;
+}
+
+stock void Network_ResetClient(int iClient)
+{
+	for (int i = 0; i < 2049; i++)
+	{
+		g_bClientAndEntityNetwork[i][iClient] = false;
+	}
+}
+
+stock void Network_ResetEntity(int iEnt)
+{
+	for (int i = 0; i <= MaxClients; i++)
+	{
+		g_bClientAndEntityNetwork[iEnt][i] = false;
+	}
+}
+
+stock bool Network_ClientHasSeenEntity(int iClient, int iEnt)
+{
+	return g_bClientAndEntityNetwork[iEnt][iClient];
+}
 
 stock bool IsEntityClassname(int iEnt, const char[] classname, bool bCaseSensitive=true)
 {
@@ -183,31 +302,106 @@ stock bool IsSpaceOccupiedNPC(const float pos[3], const float mins[3], const flo
 	return bHit;
 }
 
-stock void EntitySetAnimation(int iEntity, const char[] sAnimation, bool bDefaultAnimation=true, float flPlaybackRate=1.0)
+int EntitySetAnimation(int iEntity, const char[] sName, float flPlaybackRate = 1.0, int iForceSequence = -1)
 {
-	//The min and max playbackrate are -12/12
-	if(flPlaybackRate<-12.0) flPlaybackRate=-12.0;
-	if(flPlaybackRate>12.0) flPlaybackRate=12.0;
-	// Set m_nSequence to 0 to fix an animation glitch with HL2/GMod models.
-	SetEntProp(iEntity, Prop_Send, "m_nSequence", 0);
-	
-	if (bDefaultAnimation)
+	int iSequence = iForceSequence;
+	if (iForceSequence == -1)
 	{
-		SetVariantString(sAnimation);
-		AcceptEntityInput(iEntity, "SetDefaultAnimation");
-	}
-	else
-	{
-		SetVariantString("");
-		AcceptEntityInput(iEntity, "SetDefaultAnimation");
+		iSequence = CBaseAnimating_LookupSequence(iEntity, sName);
 	}
 	
-	SetVariantString(sAnimation);
-	AcceptEntityInput(iEntity, "SetAnimation");
-	SetVariantFloat(flPlaybackRate);
-	AcceptEntityInput(iEntity, "SetPlaybackRate");
+	SDKCall(g_hSDKResetSequence, iEntity, iSequence);
+	
+	if (flPlaybackRate<-12.0) flPlaybackRate = -12.0;
+	if (flPlaybackRate>12.0) flPlaybackRate = 12.0;
+	SetEntPropFloat(iEntity, Prop_Send, "m_flPlaybackRate", flPlaybackRate);
+	return iSequence;
 }
 
+stock void EntitySetBlendAnimation(int iEntity, const char[] sParameter, float flSpeed)
+{
+	int iParameter = utils_EntityLookupPoseParameter(iEntity, sParameter);
+	if (iParameter < 0)
+		return;
+	float flNewValue;
+	utils_StudioSetPoseParameter(iEntity, iParameter, flSpeed, flNewValue);
+	SetEntPropFloat(iEntity, Prop_Send, "m_flPoseParameter", flNewValue, iParameter);
+	//PrintToChatAll("called");
+}
+
+void SDK_Entity_VPhysicsInitNormal(int iEntity, int solidType, int nSolidFlags, bool createAsleep, int pSolid = 0)
+{
+	if (g_hSDKCBaseEntityVPhysicsInitNormal != INVALID_HANDLE)
+	{
+		SDKCall(g_hSDKCBaseEntityVPhysicsInitNormal, iEntity, solidType, nSolidFlags, createAsleep, pSolid);
+	}
+}
+
+stock void SDK_GetVectors(int iEntity, float vecForward[3], float vecRight[3], float vecUp[3])
+{
+	if (g_hSDKGetVectors != INVALID_HANDLE)
+	{
+		SDKCall(g_hSDKGetVectors, iEntity, vecForward, vecRight, vecUp);
+		return;
+	}
+}
+
+stock void SDK_GetSmoothedVelocity(int iEntity, float flVector[3])
+{
+	if (g_hSDKGetSmoothedVelocity == INVALID_HANDLE)
+	{
+		LogError("SDKCall for GetSmoothedVelocity is invalid!");
+		return;
+	}
+	SDKCall(g_hSDKGetSmoothedVelocity, iEntity, flVector);
+}
+// ===========================================================
+// CAmmoDef
+// ===========================================================
+stock int GetAmmoIndex(const char[] sAmmoName)
+{
+	if (g_hSDKGetAmmoDef != null)
+	{
+		Address CAmmoDef = SDKCall(g_hSDKGetAmmoDef);
+		if (CAmmoDef >= view_as<Address>(2000))
+		{
+			if (g_hSDKAmmoDefIndex != null)
+			{
+				return SDKCall(g_hSDKAmmoDefIndex, CAmmoDef, sAmmoName);
+			}
+		}
+	}
+	return -1;
+}
+
+//  =========================================================
+//  GLOW FUNCTIONS
+//
+//I borrowed this glow creation code from Pelipoika, cause It's efficient and clean 
+stock int TF2_CreateGlow(int iEnt)
+{
+	char oldEntName[64];
+	GetEntPropString(iEnt, Prop_Data, "m_iName", oldEntName, sizeof(oldEntName));
+
+	char strName[126], strClass[64];
+	GetEntityClassname(iEnt, strClass, sizeof(strClass));
+	Format(strName, sizeof(strName), "%s%i", strClass, iEnt);
+	DispatchKeyValue(iEnt, "targetname", strName);
+	
+	int ent = CreateEntityByName("tf_glow");
+	DispatchKeyValue(ent, "target", strName);
+	Format(strName, sizeof(strName), "tf_glow_%i", iEnt);
+	DispatchKeyValue(ent, "targetname", strName);
+	DispatchKeyValue(ent, "Mode", "0");
+	DispatchSpawn(ent);
+	
+	AcceptEntityInput(ent, "Enable");
+	
+	//Change name back to old name because we don't need it anymore.
+	SetEntPropString(iEnt, Prop_Data, "m_iName", oldEntName);
+
+	return ent;
+}
 //	==========================================================
 //	CLIENT ENTITY FUNCTIONS
 //	==========================================================
@@ -228,6 +422,7 @@ stock void SDK_PlaySpecificSequence(int client, const char[] strSequence)
 		SDKCall(g_hSDKPlaySpecificSequence, client, strSequence);
 	}
 }
+
 stock void SDK_EquipWearable(int client, int entity)
 {
 	if(g_hSDKEquipWearable != INVALID_HANDLE)
@@ -235,13 +430,83 @@ stock void SDK_EquipWearable(int client, int entity)
 		SDKCall( g_hSDKEquipWearable, client, entity );
 	}
 }
+
 stock void KillClient(int client)
 {
-	ForcePlayerSuicide(client);
 	SDKHooks_TakeDamage(client, 0, 0, 9001.0, 0x80 | DMG_PREVENT_PHYSICS_FORCE, _, view_as<float>({ 0.0, 0.0, 0.0 }));
+	ForcePlayerSuicide(client);
 	SetVariantInt(9001);
 	AcceptEntityInput(client, "RemoveHealth");
 }
+
+#define SF_IGNORE_LOS	0x0004
+#define SF_NO_DISGUISED_SPY_HEALING	0x0008
+
+/* Hack around server code logic to call CTFPlayerShared::StopHealing */
+stock void SDK_StopHealing(int iHealer, int iClient)
+{
+	int iEntity = CreateEntityByName("obj_dispenser");
+	if(iEntity > MaxClients)
+	{
+		int iTeam = GetClientTeam(iClient);
+		DispatchSpawn(iEntity);
+		float vecPos[3];
+		GetClientEyePosition(iClient, vecPos);
+		TeleportEntity(iEntity, vecPos, NULL_VECTOR, NULL_VECTOR);
+
+		char strTeam[5];
+		IntToString(iTeam, strTeam, sizeof(strTeam));
+		DispatchKeyValue(iEntity, "teamnum", strTeam);
+
+		SetVariantInt(iTeam);
+		AcceptEntityInput(iEntity, "setteam");
+		AcceptEntityInput(iEntity, "setbuilder", iHealer);
+		SetVariantInt(999);
+		AcceptEntityInput(iEntity, "SetHealth");
+
+		//Set various property to get the dispenser working asap
+		SetEntProp(iEntity, Prop_Data, "m_spawnflags", SF_IGNORE_LOS);
+		SetEntPropEnt(iEntity, Prop_Send, "m_hBuilder", iHealer);
+		SetEntProp(iEntity, Prop_Send, "m_bBuilding", false);
+		SetEntProp(iEntity, Prop_Send, "m_bDisabled", false);
+		SetEntProp(iEntity, Prop_Send, "m_bCarryDeploy", false);
+		
+		// Remove the team glow outline.
+		/*int flags = GetEntProp(iEntity, Prop_Send, "m_fEffects");
+		flags |= EF_NODRAW;
+		SetEntProp(iEntity, Prop_Send, "m_fEffects", flags);*/
+		
+		//Start the healing
+		SDK_StartTouch(iEntity, iClient);
+		SetEntProp(iEntity, Prop_Send, "m_bCarryDeploy", true);
+		//SDK_EndTouch(iEntity, iClient);
+		CreateTimer(10.0, Timer_KillEntity, EntIndexToEntRef(iEntity));
+	}
+}
+
+int SDK_SwitchWeapon(int client, int weapon)
+{
+	if(g_hSDKWeaponSwitch != INVALID_HANDLE)
+	{
+		return SDKCall(g_hSDKWeaponSwitch, client, weapon, 0);
+	}
+
+	return -1;
+}
+
+stock bool IsClientCritUbercharged(int client)
+{
+	if (TF2_IsPlayerInCondition(client, TFCond_Ubercharged) ||
+		TF2_IsPlayerInCondition(client, TFCond_UberchargeFading) ||
+		TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) ||
+		TF2_IsPlayerInCondition(client, TFCond_UberchargedOnTakeDamage) ||
+		TF2_IsPlayerInCondition(client, TFCond_UberchargedCanteen))
+	{
+		return true;
+	}
+	return false;
+}
+
 stock bool IsClientCritBoosted(int client)
 {
 	if (TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged) ||
@@ -263,14 +528,14 @@ stock bool IsClientCritBoosted(int client)
 		char sNetClass[64];
 		GetEntityNetClass(iActiveWeapon, sNetClass, sizeof(sNetClass));
 		
-		if (StrEqual(sNetClass, "CTFFlameThrower"))
+		if (strcmp(sNetClass, "CTFFlameThrower") == 0)
 		{
 			if (GetEntProp(iActiveWeapon, Prop_Send, "m_bCritFire")) return true;
 		
 			int iItemDef = GetEntProp(iActiveWeapon, Prop_Send, "m_iItemDefinitionIndex");
 			if (iItemDef == 594 && TF2_IsPlayerInCondition(client, TFCond_CritMmmph)) return true;
 		}
-		else if (StrEqual(sNetClass, "CTFMinigun"))
+		else if (strcmp(sNetClass, "CTFMinigun") == 0)
 		{
 			if (GetEntProp(iActiveWeapon, Prop_Send, "m_bCritShot")) return true;
 		}
@@ -279,13 +544,57 @@ stock bool IsClientCritBoosted(int client)
 	return false;
 }
 
+stock void TF2_StripWearables(int client)
+{
+	int iEntity = MaxClients+1;
+	while((iEntity = FindEntityByClassname(iEntity, "tf_wearable")) > MaxClients)
+	{
+		if(GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity") == client)
+		{
+			AcceptEntityInput(iEntity, "Kill");
+		}
+	}
+
+	iEntity = MaxClients+1;
+	while((iEntity = FindEntityByClassname(iEntity, "tf_powerup_bottle")) > MaxClients)
+	{
+		if(GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity") == client)
+		{
+			AcceptEntityInput(iEntity, "Kill");
+		}
+	}
+}
+
+stock void TF2_ChangePlayerName(int iClient, const char[] sNewName, bool bPrintInChat = false)
+{
+	char sOldName[64];
+	GetEntPropString(iClient, Prop_Data, "m_szNetname", sOldName, sizeof(sOldName));
+	
+	/*Event event_namechange = CreateEvent("player_changename");
+	event_namechange.SetInt("userid", GetClientUserId(iClient));
+	event_namechange.SetString("oldname", sOldName);
+	event_namechange.SetString("newname", sNewName);
+	event_namechange.Fire();*/
+	
+	int players[MAXPLAYERS+1];
+	int playersNum;
+	for (int player = 1; player <= MaxClients; player++)
+	{
+		if (!IsClientInGame(player)) continue;
+		players[playersNum++] = player;
+	}
+	UTIL_SayText2(players, playersNum, iClient, bPrintInChat, "#TF_Name_Change", sOldName, sNewName);
+	
+	
+	SetEntPropString(iClient, Prop_Data, "m_szNetname", sNewName);
+}
+
 stock void ClientSwitchToWeaponSlot(int client,int iSlot)
 {
 	int iWeapon = GetPlayerWeaponSlot(client, iSlot);
-	if (iWeapon == -1) return;
+	if (iWeapon < MaxClients) return;
 	
-	// EquipPlayerWeapon(client, iWeapon); // doesn't work with TF2 that well.
-	SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", iWeapon);
+	SDK_SwitchWeapon(client, iWeapon);
 }
 
 stock void ChangeClientTeamNoSuicide(int client,int team, bool bRespawn=true)
@@ -301,7 +610,28 @@ stock void ChangeClientTeamNoSuicide(int client,int team, bool bRespawn=true)
 	}
 }
 
-stock void UTIL_ScreenShake(int client, float amplitude, float duration, float frequency)
+stock void UTIL_SayText2(int[] players, int playersNum, int iEntity, bool bChat, const char[] msg_name, const char[] param1="", const char[] param2="", const char[] param3="", const char[] param4="")
+{
+	BfWrite message = UserMessageToBfWrite(StartMessage("SayText2", players, playersNum, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS)); 
+	
+	message.WriteByte(iEntity);
+	
+	message.WriteByte(bChat);
+
+	message.WriteString(msg_name); 
+	
+	message.WriteString(param1); 
+	
+	message.WriteString(param2); 
+	
+	message.WriteString(param3);
+
+	message.WriteString(param4);
+	
+	EndMessage();
+}
+
+stock void UTIL_ClientScreenShake(int client, float amplitude, float duration, float frequency)
 {
 	Handle hBf = StartMessageOne("Shake", client);
 	if (hBf != INVALID_HANDLE)
@@ -336,6 +666,14 @@ stock bool IsValidClient(int client)
 	return view_as<bool>((client > 0 && client <= MaxClients && IsClientInGame(client)));
 }
 
+stock void PrintToSourceTV(const char[] Message)
+{
+	int iClient = GetClientOfUserId(g_iSourceTVUserID);
+	if (MaxClients >= iClient > 0 && IsClientInGame(iClient) && IsClientSourceTV(iClient))
+	{
+		CPrintToChat(iClient, Message);
+	}
+}
 //	==========================================================
 //	TF2-SPECIFIC FUNCTIONS
 //	==========================================================
@@ -346,6 +684,7 @@ stock bool TF2_IsMiniCritBuffed(int iClient)
         || TF2_IsPlayerInCondition(iClient, TFCond_Buffed)
     );
 }
+
 stock bool TF2_IsPlayerCritBuffed(int iClient)
 {
     return (TF2_IsPlayerInCondition(iClient, TFCond_Kritzkrieged)
@@ -360,6 +699,7 @@ stock bool TF2_IsPlayerCritBuffed(int iClient)
 		|| TF2_IsPlayerInCondition(iClient, TFCond_CritOnDamage)
     );
 }
+
 stock bool IsTauntWep(int iWeapon)
 {
 	int Index = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
@@ -367,6 +707,7 @@ stock bool IsTauntWep(int iWeapon)
 		return true;
 	return false;
 }
+
 stock void FindHealthBar()
 {
 	g_ihealthBar = FindEntityByClassname(-1, "monster_resource");
@@ -380,6 +721,7 @@ stock void FindHealthBar()
 		}
 	}
 }
+
 stock void ForceTeamWin(int team)
 {
 	int ent = FindEntityByClassname(-1, "team_control_point_master");
@@ -556,23 +898,125 @@ stock void TF2_RemoveWeaponSlotAndWearables(int client,int iSlot)
 	TF2_RemoveWeaponSlot(client, iSlot);
 }
 
-stock void TE_SetupTFParticleEffect(int iParticleSystemIndex, const float flOrigin[3], const float flStart[3]=NULL_VECTOR,int iAttachType=0,int iEntIndex=-1,int iAttachmentPointIndex=0, bool bControlPoint1=false, const float flControlPoint1Offset[3]=NULL_VECTOR)
+void TE_Particle(int iParticleIndex, float origin[3]=NULL_VECTOR, float start[3]=NULL_VECTOR, float angles[3]=NULL_VECTOR, int entindex=-1, int attachtype=-1, int attachpoint=-1, bool resetParticles=true)
 {
-	TE_Start("TFParticleEffect");
-	TE_WriteFloat("m_vecOrigin[0]", flOrigin[0]);
-	TE_WriteFloat("m_vecOrigin[1]", flOrigin[1]);
-	TE_WriteFloat("m_vecOrigin[2]", flOrigin[2]);
-	TE_WriteFloat("m_vecStart[0]", flStart[0]);
-	TE_WriteFloat("m_vecStart[1]", flStart[1]);
-	TE_WriteFloat("m_vecStart[2]", flStart[2]);
-	TE_WriteNum("m_iParticleSystemIndex", iParticleSystemIndex);
-	TE_WriteNum("m_iAttachType", iAttachType);
-	TE_WriteNum("entindex", iEntIndex);
-	TE_WriteNum("m_iAttachmentPointIndex", iAttachmentPointIndex);
-	TE_WriteNum("m_bControlPoint1", bControlPoint1);
-	TE_WriteFloat("m_ControlPoint1.m_vecOffset[0]", flControlPoint1Offset[0]);
-	TE_WriteFloat("m_ControlPoint1.m_vecOffset[1]", flControlPoint1Offset[1]);
-	TE_WriteFloat("m_ControlPoint1.m_vecOffset[2]", flControlPoint1Offset[2]);
+    TE_Start("TFParticleEffect");
+    TE_WriteFloat("m_vecOrigin[0]", origin[0]);
+    TE_WriteFloat("m_vecOrigin[1]", origin[1]);
+    TE_WriteFloat("m_vecOrigin[2]", origin[2]);
+    TE_WriteFloat("m_vecStart[0]", start[0]);
+    TE_WriteFloat("m_vecStart[1]", start[1]);
+    TE_WriteFloat("m_vecStart[2]", start[2]);
+    TE_WriteVector("m_vecAngles", angles);
+    TE_WriteNum("m_iParticleSystemIndex", iParticleIndex);
+    TE_WriteNum("entindex", entindex);
+
+    if(attachtype != -1)
+    {
+        TE_WriteNum("m_iAttachType", attachtype);
+    }
+    if(attachpoint != -1)
+    {
+        TE_WriteNum("m_iAttachmentPointIndex", attachpoint);
+    }
+    TE_WriteNum("m_bResetParticles", resetParticles ? 1 : 0);
+}
+
+void TE_DrawBox(int client, float m_vecOrigin[3], float m_vecEndOrigin[3], float m_vecMins[3], float m_vecMaxs[3], float flDur = 0.1, int iLaserIndex, int iColor[4])
+{
+	if( m_vecMins[0] == m_vecMaxs[0] && m_vecMins[1] == m_vecMaxs[1] && m_vecMins[2] == m_vecMaxs[2] )
+	{
+		m_vecMins = view_as<float>({-15.0, -15.0, -15.0});
+		m_vecMaxs = view_as<float>({15.0, 15.0, 15.0});
+	}
+	else
+	{
+		AddVectors(m_vecEndOrigin, m_vecMaxs, m_vecMaxs);
+		AddVectors(m_vecOrigin, m_vecMins, m_vecMins);
+	}
+
+	float vPos1[3], vPos2[3], vPos3[3], vPos4[3], vPos5[3], vPos6[3];
+	vPos1 = m_vecMaxs;
+	vPos1[0] = m_vecMins[0];
+	vPos2 = m_vecMaxs;
+	vPos2[1] = m_vecMins[1];
+	vPos3 = m_vecMaxs;
+	vPos3[2] = m_vecMins[2];
+	vPos4 = m_vecMins;
+	vPos4[0] = m_vecMaxs[0];
+	vPos5 = m_vecMins;
+	vPos5[1] = m_vecMaxs[1];
+	vPos6 = m_vecMins;
+	vPos6[2] = m_vecMaxs[2];
+
+	TE_SendBeam(client, m_vecMaxs, vPos1, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, m_vecMaxs, vPos2, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, m_vecMaxs, vPos3, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos6, vPos1, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos6, vPos2, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos6, m_vecMins, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos4, m_vecMins, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos5, m_vecMins, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos5, vPos1, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos5, vPos3, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos4, vPos3, flDur, iLaserIndex, iColor);
+	TE_SendBeam(client, vPos4, vPos2, flDur, iLaserIndex, iColor);
+}
+
+void TE_SendBeam(int client, float m_vecMins[3], float m_vecMaxs[3], float flDur = 0.1, int iLaserIndex, int iColor[4])
+{
+	TE_SetupBeamPoints(m_vecMins, m_vecMaxs, iLaserIndex, iLaserIndex, 0, 30, flDur, 5.0, 5.0, 1, 0.0, iColor, 30);
+	TE_SendToClient(client);
+}
+
+stock void UTIL_ScreenShake(float center[3], float amplitude, float frequency, float duration, float radius, int command, bool airShake)
+{
+	for(int i=1; i<=MaxClients; i++)
+	{
+		if(IsClientInGame(i) && !IsFakeClient(i))
+		{
+			if(!airShake && command == 0 && !(GetEntityFlags(i) && FL_ONGROUND)) continue;
+
+			float playerPos[3];
+			GetClientAbsOrigin(i, playerPos);
+
+			float localAmplitude = ComputeShakeAmplitude(center, playerPos, amplitude, radius);
+
+			if(localAmplitude < 0.0) continue;
+
+			if(localAmplitude > 0 || command == 1)
+			{
+				Handle msg = StartMessageOne("Shake", i, USERMSG_RELIABLE);
+				if(msg != null)
+				{
+					BfWriteByte(msg, command);
+					BfWriteFloat(msg, localAmplitude);
+					BfWriteFloat(msg, frequency);
+					BfWriteFloat(msg, duration);
+
+					EndMessage();
+				}
+			}
+		}
+	}
+}
+
+stock float ComputeShakeAmplitude(float center[3], float playerPos[3], float amplitude, float radius)
+{
+	if(radius <= 0.0) return amplitude;
+
+	float localAmplitude = -1.0;
+	float delta[3];
+	SubtractVectors(center, playerPos, delta);
+	float distance = GetVectorLength(delta);
+
+	if(distance <= radius)
+	{
+		float perc = 1.0 - (distance / radius);
+		localAmplitude = amplitude * perc;
+	}
+
+	return localAmplitude;
 }
 
 //	==========================================================
@@ -641,7 +1085,7 @@ stock CNavArea SDK_GetLastKnownArea(int iEntity)//Only parse entities that their
 
 stock void SDK_UpdateLastKnownArea(int iEntity)
 {
-	if (g_hSDKGetLastKnownArea != null)
+	if (g_hSDKUpdateLastKnownArea != null)
 	{
 		SDKCall(g_hSDKUpdateLastKnownArea, iEntity);
 	}
@@ -659,7 +1103,6 @@ bool IsValidAddress(Address addr)
 	
 	return true;
 }
-
 //	==========================================================
 //	VECTOR FUNCTIONS
 //	==========================================================
@@ -704,7 +1147,13 @@ stock void VectorTransform(const float offset[3], const float worldpos[3], const
 	buffer[1] = worldpos[1] + right[1] + fwd[1] + up[1];
 	buffer[2] = worldpos[2] + right[2] + fwd[2] + up[2];
 }
-
+stock void GetPositionForward(float vPos[3], float vAng[3], float vReturn[3], float fDistance)
+{
+	float vDir[3];
+	GetAngleVectors(vAng, vDir, NULL_VECTOR, NULL_VECTOR);
+	vReturn = vPos;
+	for(int i=0; i<3; i++) vReturn[i] += vDir[i] * fDistance;
+}
 //	==========================================================
 //	ANGLE FUNCTIONS
 //	==========================================================
@@ -843,24 +1292,12 @@ stock void InsertNodesAroundPoint(Handle hArray, const float flOrigin[3], float 
 public bool TraceRayDontHitEntity(int entity,int mask,any data)
 {
 	if (entity == data) return false;
-	if (IsValidEdict(entity))
-	{
-		char sClass[64];
-		GetEntityNetClass(entity, sClass, sizeof(sClass));
-		if (StrEqual(sClass, "CTFBaseBoss")) return false;
-	}
 	return true;
 }
 
 public bool TraceRayDontHitPlayers(int entity,int mask, any data)
 {
 	if (entity > 0 && entity <= MaxClients) return false;
-	if (IsValidEdict(entity))
-	{
-		char sClass[64];
-		GetEntityNetClass(entity, sClass, sizeof(sClass));
-		if (StrEqual(sClass, "CTFBaseBoss")) return false;
-	}
 	return true;
 }
 
@@ -868,12 +1305,6 @@ public bool TraceRayDontHitPlayersOrEntity(int entity,int mask,any data)
 {
 	if (entity == data) return false;
 	if (entity > 0 && entity <= MaxClients) return false;
-	if (IsValidEdict(entity))
-	{
-		char sClass[64];
-		GetEntityNetClass(entity, sClass, sizeof(sClass));
-		if (StrEqual(sClass, "CTFBaseBoss")) return false;
-	}
 	
 	return true;
 }

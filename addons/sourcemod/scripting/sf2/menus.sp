@@ -129,7 +129,7 @@ void SetupMenus()
 	AddMenuItem(g_hMenuSettings, "0", buffer);
 	Format(buffer, sizeof(buffer), "%t", "SF2 Settings Proxy Menu Title");
 	AddMenuItem(g_hMenuSettings, "0", buffer);
-	Format(buffer, sizeof(buffer), "%t", "SF2 Settings Ghost Overlay Menu Title");
+	Format(buffer, sizeof(buffer), "%t", "SF2 Settings Music Volume Title");
 	AddMenuItem(g_hMenuSettings, "0", buffer);
 	SetMenuExitBackButton(g_hMenuSettings, true);
 	
@@ -206,6 +206,75 @@ void SetupMenus()
 	
 	PvP_SetupMenus();
 }
+
+void RandomizeVoteMenu()
+{
+	char buffer[512];
+	
+	if (g_hMenuVoteDifficulty != INVALID_HANDLE) delete g_hMenuVoteDifficulty;
+	
+	g_hMenuVoteDifficulty = CreateMenu(Menu_VoteDifficulty);
+	SetMenuTitle(g_hMenuVoteDifficulty, "%t%t\n \n", "SF2 Prefix", "SF2 Difficulty Vote Menu Title");
+	
+	switch (GetRandomInt(1,6))//There's probably a better way to do this but I was tired.
+	{
+		case 1:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+		}
+		case 2:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+		}
+		case 3:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+		}
+		case 4:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+		}
+		case 5:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+		}
+		case 6:
+		{
+			Format(buffer, sizeof(buffer), "%t", "SF2 Insane Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "3", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Hard Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "2", buffer);
+			Format(buffer, sizeof(buffer), "%t", "SF2 Normal Difficulty");
+			AddMenuItem(g_hMenuVoteDifficulty, "1", buffer);
+		}
+	}
+}
+
 public int Menu_Main(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
@@ -227,6 +296,17 @@ public int Menu_VoteDifficulty(Handle menu, MenuAction action,int param1,int par
 {
 	if (action == MenuAction_VoteEnd)
 	{
+		int iClientInGame = 0, iClientCallingForNightmare = 0;
+		for (int iClient = 1; iClient <= MaxClients; iClient++)
+		{
+			if (IsClientInGame(iClient) && !g_bPlayerEliminated[iClient])
+			{
+				iClientInGame++;
+				if (g_bPlayerCalledForNightmare[iClient]) iClientCallingForNightmare++;
+			}
+		}
+		bool bPlayersCalledForNightmare = (iClientInGame == iClientCallingForNightmare);
+		
 		char sInfo[64], sDisplay[256], sColor[32];
 		GetMenuItem(menu, param1, sInfo, sizeof(sInfo), _, sDisplay, sizeof(sDisplay));
 		
@@ -234,6 +314,8 @@ public int Menu_VoteDifficulty(Handle menu, MenuAction action,int param1,int par
 		{
 			SetConVarInt(g_cvDifficulty, Difficulty_Insane);
 		}
+		else if ((!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && GetRandomInt(1, 200) <= 2) || bPlayersCalledForNightmare) 
+			SetConVarInt(g_cvDifficulty, Difficulty_Nightmare);
 		else if (IsSpecialRoundRunning() && SF_SpecialRound(SPECIALROUND_NOGRACE))
 		{
 			SetConVarInt(g_cvDifficulty, Difficulty_Hard);
@@ -260,6 +342,14 @@ public int Menu_VoteDifficulty(Handle menu, MenuAction action,int param1,int par
 			{
 				Format(sDisplay, sizeof(sDisplay), "%t", "SF2 Insane Difficulty");
 				strcopy(sColor, sizeof(sColor), "{red}");
+			}
+			case Difficulty_Nightmare:
+			{
+				Format(sDisplay, sizeof(sDisplay), "Nightmare!");
+				strcopy(sColor, sizeof(sColor), "{valve}");
+				for (int i = 0; i < sizeof(g_strSoundNightmareMode)-1; i++)
+					EmitSoundToAll(g_strSoundNightmareMode[i]);
+				SpecialRoundGameText("Nightmare mode!", "leaderboard_streak");
 			}
 			default:
 			{
@@ -496,17 +586,18 @@ public int Menu_Settings(Handle menu, MenuAction action,int param1,int param2)
 			case 5:
 			{
 				char sBuffer[512];
-				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Ghost Overlay Menu Title", param1);
+				Format(sBuffer, sizeof(sBuffer), "%T\n \n", "SF2 Settings Music Volume Title", param1);
 				
 				Handle hPanel = CreatePanel();
 				SetPanelTitle(hPanel, sBuffer);
 				
-				Format(sBuffer, sizeof(sBuffer), "%T", "Yes", param1);
-				DrawPanelItem(hPanel, sBuffer);
-				Format(sBuffer, sizeof(sBuffer), "%T", "No", param1);
-				DrawPanelItem(hPanel, sBuffer);
+				DrawPanelItem(hPanel, "0%");
+				DrawPanelItem(hPanel, "25%");
+				DrawPanelItem(hPanel, "50%");
+				DrawPanelItem(hPanel, "75%");
+				DrawPanelItem(hPanel, "100% (Default)");
 				
-				SendPanelToClient(hPanel, param1, Panel_SettingsGhostOverlay, 30);
+				SendPanelToClient(hPanel, param1, Panel_SettingsMusicVolume, 30);
 				CloseHandle(hPanel);
 			}
 		}
@@ -592,26 +683,15 @@ public int Panel_SettingsProxy(Handle menu, MenuAction action,int param1,int par
 	}
 }
 
-public int Panel_SettingsGhostOverlay(Handle menu, MenuAction action,int param1,int param2)
+public int Panel_SettingsMusicVolume(Handle menu, MenuAction action,int param1,int param2)
 {
 	if (action == MenuAction_Select)
 	{
-		switch (param2)
-		{
-			case 1:
-			{
-				g_iPlayerPreferences[param1][PlayerPreference_GhostOverlay] = true;
-				ClientSaveCookies(param1);
-				CPrintToChat(param1, "%T", "SF2 Enabled Ghost Overlay", param1);
-			}
-			case 2:
-			{
-				g_iPlayerPreferences[param1][PlayerPreference_GhostOverlay] = false;
-				ClientSaveCookies(param1);
-				CPrintToChat(param1, "%T", "SF2 Disabled Ghost Overlay", param1);
-			}
-		}
-		
+		float flDesiredVolume = 0.0;
+		for (int i = 1; i < param2; i++)
+			flDesiredVolume += 0.25;
+		g_iPlayerPreferences[param1][PlayerPreference_MusicVolume] = flDesiredVolume;
+		CPrintToChat(param1, "%t", "SF2 Music Volum Changed", RoundToNearest(flDesiredVolume*100.0));
 		DisplayMenu(g_hMenuSettings, param1, 30);
 	}
 }

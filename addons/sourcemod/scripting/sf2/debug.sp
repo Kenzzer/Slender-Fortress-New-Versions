@@ -3,6 +3,8 @@
 #endif
 #define _sf2_debug_included
 
+#include <profiler>
+
 
 #define DEBUG_BOSS_TELEPORTATION (1 << 0)
 #define DEBUG_BOSS_CHASE (1 << 1)
@@ -12,6 +14,11 @@
 #define DEBUG_BOSS_HITBOX (1 << 5)
 #define DEBUG_BOSS_STUN (1 << 6)
 #define DEBUG_ENTITIES (1 << 7)
+#define DEBUG_GHOSTMODE (1 << 8)
+#define DEBUG_NEXTBOT (1 << 9)
+#define DEBUG_NAV (1 << 10)
+#define DEBUG_BOSS_ANIMATION (1 << 11)
+#define DEBUG_EVENT (1 << 12)
 
 int g_iPlayerDebugFlags[MAXPLAYERS + 1] = { 0, ... };
 
@@ -27,11 +34,16 @@ void InitializeDebug()
 	
 	RegAdminCmd("sm_sf2_debug_boss_teleport", Command_DebugBossTeleport, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_boss_chase", Command_DebugBossChase, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_boss_nextbot", Command_DebugNextbot, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_boss_animation", Command_DebugBossAnimation, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_player_stress", Command_DebugPlayerStress, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_boss_proxies", Command_DebugBossProxies, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_hitbox", Command_DebugHitbox, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_entity", Command_DebugEntity, ADMFLAG_CHEATS);
 	RegAdminCmd("sm_sf2_debug_boss_stun", Command_DebugStun, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_ghost_mode", Command_DebugGhostMode, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_nav", Command_DebugNav, ADMFLAG_CHEATS);
+	RegAdminCmd("sm_sf2_debug_events", Command_DebugEvent, ADMFLAG_CHEATS);
 }
 
 void InitializeDebugLogging()
@@ -97,6 +109,8 @@ stock void SendDebugMessageToPlayers(int iDebugFlags,int iType, const char[] sMe
 
 public Action Command_DebugBossTeleport(int client,int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_TELEPORTATION);
 	if (!bInMode)
 	{
@@ -114,6 +128,8 @@ public Action Command_DebugBossTeleport(int client,int args)
 
 public Action Command_DebugBossChase(int client,int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_CHASE);
 	if (!bInMode)
 	{
@@ -129,8 +145,48 @@ public Action Command_DebugBossChase(int client,int args)
 	return Plugin_Handled;
 }
 
+public Action Command_DebugBossAnimation(int client,int args)
+{
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_ANIMATION);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_ANIMATION;
+		PrintToChat(client, "Enabled debugging boss animation.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_ANIMATION;
+		PrintToChat(client, "Disabled debugging boss animation.");
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_DebugNextbot(int client,int args)
+{
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_NEXTBOT);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_NEXTBOT;
+		PrintToChat(client, "Enabled debugging nextbot.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_NEXTBOT;
+		PrintToChat(client, "Disabled debugging nextbot.");
+	}
+	
+	return Plugin_Handled;
+}
+
 public Action Command_DebugPlayerStress(int client, int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_PLAYER_STRESS);
 	if (!bInMode)
 	{
@@ -148,6 +204,8 @@ public Action Command_DebugPlayerStress(int client, int args)
 
 public Action Command_DebugBossProxies(int client, int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_PROXIES);
 	if (!bInMode)
 	{
@@ -164,6 +222,8 @@ public Action Command_DebugBossProxies(int client, int args)
 }
 public Action Command_DebugHitbox(int client, int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_HITBOX);
 	if (!bInMode)
 	{
@@ -178,24 +238,49 @@ public Action Command_DebugHitbox(int client, int args)
 	
 	return Plugin_Handled;
 }
+
 public Action Command_DebugStun(int client, int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_BOSS_STUN);
 	if (!bInMode)
 	{
 		g_iPlayerDebugFlags[client] |= DEBUG_BOSS_STUN;
-		PrintToChat(client, "Enabled debugging boss's hitbox.");
+		PrintToChat(client, "Enabled debugging boss's stun.");
 	}
 	else
 	{
 		g_iPlayerDebugFlags[client] &= ~DEBUG_BOSS_STUN;
-		PrintToChat(client, "Disabled debugging boss's hitbox.");
+		PrintToChat(client, "Disabled debugging boss's stun.");
 	}
 	
 	return Plugin_Handled;
 }
+
+public Action Command_DebugGhostMode(int client, int args)
+{
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_GHOSTMODE);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_GHOSTMODE;
+		PrintToChat(client, "Enabled debugging ghost mode.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_GHOSTMODE;
+		PrintToChat(client, "Disabled debugging ghost mode.");
+	}
+	
+	return Plugin_Handled;
+}
+
 public Action Command_DebugEntity(int client, int args)
 {
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
 	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_ENTITIES);
 	if (!bInMode)
 	{
@@ -206,6 +291,44 @@ public Action Command_DebugEntity(int client, int args)
 	{
 		g_iPlayerDebugFlags[client] &= ~DEBUG_ENTITIES;
 		PrintToChat(client, "Disabled debugging entities.");
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_DebugNav(int client,int args)
+{
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_NAV);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_NAV;
+		PrintToChat(client, "Enabled debugging nav.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_NAV;
+		PrintToChat(client, "Disabled debugging nav.");
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_DebugEvent(int client,int args)
+{
+	if (client < 1 || client > MaxClients) return Plugin_Handled;
+	
+	bool bInMode = view_as<bool>(g_iPlayerDebugFlags[client] & DEBUG_EVENT);
+	if (!bInMode)
+	{
+		g_iPlayerDebugFlags[client] |= DEBUG_EVENT;
+		PrintToChat(client, "Enabled debugging events.");
+	}
+	else
+	{
+		g_iPlayerDebugFlags[client] &= ~DEBUG_EVENT;
+		PrintToChat(client, "Disabled debugging events.");
 	}
 	
 	return Plugin_Handled;

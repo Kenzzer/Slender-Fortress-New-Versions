@@ -45,10 +45,9 @@ enum
 	
 	ChaserProfileData_Attacks,		// array that contains data about attacks
 	
-	ChaserProfileData_Animations,						// Array that contains data of animations.
-	
 	ChaserProfileData_CanBeStunned,
 	ChaserProfileData_StunDuration,
+	ChaserProfileData_StunCooldown,
 	ChaserProfileData_StunHealth,
 	ChaserProfileData_StunHealthPerPlayer,
 	ChaserProfileData_CanBeStunnedByFlashlight,
@@ -92,17 +91,28 @@ enum
 {
 	ChaserAnimationType_Idle = 0,
 	ChaserAnimationType_IdlePlaybackRate,
-	ChaserAnimationType_Walk,
+	ChaserAnimationType_Walk = 0,
 	ChaserAnimationType_WalkPlaybackRate,
-	ChaserAnimationType_Run,
+	ChaserAnimationType_Run = 0,
 	ChaserAnimationType_RunPlaybackRate,
-	ChaserAnimationType_Attack,
+	ChaserAnimationType_Attack = 0,
 	ChaserAnimationType_AttackPlaybackRate,
-	ChaserAnimationType_Stunned,
+	ChaserAnimationType_Stunned = 0,
 	ChaserAnimationType_StunnedPlaybackRate,
-	ChaserAnimationType_Death,
-	ChaserAnimationType_DeathPlaybackRate,
-	ChaserAnimationType_Max
+	ChaserAnimationType_Death = 0,
+	ChaserAnimationType_DeathPlaybackRate
+};
+
+enum
+{
+	ChaserAnimation_IdleAnimations = 0, //Array that contains all the idle animations
+	ChaserAnimation_WalkAnimations, //Array that contains all the walk animations
+	ChaserAnimation_AttackAnimations, //Array that contains all the attack animations (working on attack index)
+	ChaserAnimation_RunAnimations, //Array that contains all the run animations
+	ChaserAnimation_StunAnimations, //Array that contains all the stun animations
+	ChaserAnimation_DeathAnimations, //Array that contains all the death animations
+	ChaserAnimation_JumpAnimations, //Array that contains all the jump animations
+	ChaserAnimation_MaxAnimations
 };
 
 void InitializeChaserProfiles()
@@ -121,13 +131,7 @@ void ClearChaserProfiles()
 		Handle hHandle = view_as<Handle>(GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Attacks));
 		if (hHandle != INVALID_HANDLE)
 		{
-			CloseHandle(hHandle);
-		}
-		
-		hHandle = view_as<Handle>(GetArrayCell(g_hChaserProfileData, i, ChaserProfileData_Animations));
-		if (hHandle != INVALID_HANDLE)
-		{
-			CloseHandle(hHandle);
+			delete hHandle;
 		}
 	}
 	
@@ -146,7 +150,7 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	iUniqueProfileIndex = PushArrayCell(g_hChaserProfileData, -1);
 	SetTrieValue(g_hChaserProfileNames, sProfile, iUniqueProfileIndex);
 	
-	float flBossStepSize = KvGetFloat(kv, "stepsize", 16.0);
+	float flBossStepSize = KvGetFloat(kv, "stepsize", 18.0);
 	
 	float flBossDefaultWalkSpeed = KvGetFloat(kv, "walkspeed", 30.0);
 	float flBossWalkSpeedEasy = KvGetFloat(kv, "walkspeed_easy", flBossDefaultWalkSpeed);
@@ -175,6 +179,9 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	
 	float flStunDuration = KvGetFloat(kv, "stun_duration");
 	if (flStunDuration < 0.0) flStunDuration = 0.0;
+	
+	float flStunCooldown = KvGetFloat(kv, "stun_cooldown", 5.0);
+	if (flStunCooldown < 0.0) flStunCooldown = 0.0;
 	
 	float flStunHealth = KvGetFloat(kv, "stun_health");
 	if (flStunHealth < 0.0) flStunHealth = 0.0;
@@ -213,6 +220,7 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bCanBeStunned, ChaserProfileData_CanBeStunned);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunDuration, ChaserProfileData_StunDuration);
+	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunCooldown, ChaserProfileData_StunCooldown);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunHealth, ChaserProfileData_StunHealth);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, flStunHealthPerPlayer, ChaserProfileData_StunHealthPerPlayer);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, bStunTakeDamageFromFlashlight, ChaserProfileData_CanBeStunnedByFlashlight);
@@ -236,149 +244,111 @@ bool LoadChaserBossProfile(Handle kv, const char[] sProfile,int &iUniqueProfileI
 	
 	ParseChaserProfileAttacks(kv, iUniqueProfileIndex);
 	
-	ParseChaserProfileAnimations(kv, iUniqueProfileIndex);
-	
 	return true;
 }
 
-static void ParseChaserProfileAttacks(Handle kv,int iUniqueProfileIndex)
+static int ParseChaserProfileAttacks(Handle kv,int iUniqueProfileIndex)
 {
 	
 	// Create the array.
 	Handle hAttacks = CreateArray(ChaserProfileAttackData_MaxStats);
 	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, hAttacks, ChaserProfileData_Attacks);
 	
-	//int iAttackType = KvGetNum(kv, "attack_type");
-	int iAttackType = SF2BossAttackType_Melee;
-	
-	float flAttackRange = KvGetFloat(kv, "attack_range");
-	if (flAttackRange < 0.0) flAttackRange = 0.0;
-	
-	float flAttackDamage = KvGetFloat(kv, "attack_damage");
-	float flAttackDamageVsProps = KvGetFloat(kv, "attack_damage_vs_props", flAttackDamage);
-	float flAttackDamageForce = KvGetFloat(kv, "attack_damageforce");
-	
-	int iAttackDamageType = KvGetNum(kv, "attack_damagetype");
-	if (iAttackDamageType < 0) iAttackDamageType = 0;
-	
-	float flAttackDamageDelay = KvGetFloat(kv, "attack_delay");
-	if (flAttackDamageDelay < 0.0) flAttackDamageDelay = 0.0;
-	
-	float flAttackDuration = KvGetFloat(kv, "attack_duration");
-	if (flAttackDuration < 0.0) flAttackDuration = 0.0;
-	
-	bool bAttackProps = view_as<bool>(KvGetNum(kv, "attack_props"));
-	
-	float flAttackSpreadOld = KvGetFloat(kv, "attack_fov", 45.0);
-	float flAttackSpread = KvGetFloat(kv, "attack_spread", flAttackSpreadOld);
-	
-	if (flAttackSpread < 0.0) flAttackSpread = 0.0;
-	else if (flAttackSpread > 360.0) flAttackSpread = 360.0;
-	
-	float flAttackBeginRange = KvGetFloat(kv, "attack_begin_range", flAttackRange);
-	if (flAttackBeginRange < 0.0) flAttackBeginRange = 0.0;
-	
-	float flAttackBeginFOV = KvGetFloat(kv, "attack_begin_fov", flAttackSpread);
-	if (flAttackBeginFOV < 0.0) flAttackBeginFOV = 0.0;
-	else if (flAttackBeginFOV > 360.0) flAttackBeginFOV = 360.0;
-	
-	float flAttackCooldown = KvGetFloat(kv, "attack_cooldown");
-	if (flAttackCooldown < 0.0) flAttackCooldown = 0.0;
-	
-	int iAttackIndex = PushArrayCell(hAttacks, -1);
-	
-	SetArrayCell(hAttacks, iAttackIndex, iAttackType, ChaserProfileAttackData_Type);
-	SetArrayCell(hAttacks, iAttackIndex, bAttackProps, ChaserProfileAttackData_CanUseAgainstProps);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackRange, ChaserProfileAttackData_Range);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackDamage, ChaserProfileAttackData_Damage);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackDamageVsProps, ChaserProfileAttackData_DamageVsProps);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackDamageForce, ChaserProfileAttackData_DamageForce);
-	SetArrayCell(hAttacks, iAttackIndex, iAttackDamageType, ChaserProfileAttackData_DamageType);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackDamageDelay, ChaserProfileAttackData_DamageDelay);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackDuration, ChaserProfileAttackData_Duration);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackSpread, ChaserProfileAttackData_Spread);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackBeginRange, ChaserProfileAttackData_BeginRange);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackBeginFOV, ChaserProfileAttackData_BeginFOV);
-	SetArrayCell(hAttacks, iAttackIndex, flAttackCooldown, ChaserProfileAttackData_Cooldown);
-}
-
-/**
- *	Parses and stores the default animations of a chaser boss profile.
- */
-static void ParseChaserProfileAnimations(Handle kv,int iUniqueProfileIndex)
-{
-	Handle hAnimations = CreateArray(64);
-	for (int i = 0; i < ChaserAnimationType_Max / 2; i++)
+	int iMaxAttacks = -1;
+	if (KvJumpToKey(kv, "attacks"))
 	{
-		PushArrayString(hAnimations, "");
-		PushArrayCell(hAnimations, 1.0);
+		iMaxAttacks = 0;
+		char sNum[3];
+		for (int i = 1; i <= SF2_CHASER_BOSS_MAX_ATTACKS; i++)
+		{
+			IntToString(i, sNum, sizeof(sNum));
+			if (KvJumpToKey(kv, sNum))
+			{
+				iMaxAttacks++;
+				KvGoBack(kv);
+			}
+		}
+		if (iMaxAttacks == 0)
+		{
+			LogSF2Message("[SF2 PROFILES PARSER] Critical error, found \"attacks\" section with no attacks inside of it!");
+		}
 	}
-	
-	SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, hAnimations, ChaserProfileData_Animations);
-	
-	char sAnimation[64];
-	float flAnimationPlaybackRate;
-	int animationCount = 0;
-	
-	KvGetString(kv, "animation_idle", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_idle_playbackrate", 1.0);
-	if (sAnimation[0])
+	for (int iAttackNum = -1; iAttackNum <=iMaxAttacks; iAttackNum++)
 	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Idle, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_IdlePlaybackRate, flAnimationPlaybackRate);
+		if (iAttackNum < 1) iAttackNum = 1;
+		if (iMaxAttacks > 0) //Backward compatibility
+		{
+			char sNum[3];
+			IntToString(iAttackNum, sNum, sizeof(sNum));
+			KvJumpToKey(kv, sNum);
+		}
+		int iAttackType = KvGetNum(kv, "attack_type", SF2BossAttackType_Melee);
+		//int iAttackType = SF2BossAttackType_Melee;
+		
+		float flAttackRange = KvGetFloat(kv, "attack_range");
+		if (flAttackRange < 0.0) flAttackRange = 0.0;
+		
+		float flAttackDamage = KvGetFloat(kv, "attack_damage");
+		float flAttackDamageVsProps = KvGetFloat(kv, "attack_damage_vs_props", flAttackDamage);
+		float flAttackDamageForce = KvGetFloat(kv, "attack_damageforce");
+		
+		int iAttackDamageType = KvGetNum(kv, "attack_damagetype");
+		if (iAttackDamageType < 0) iAttackDamageType = 0;
+		
+		float flAttackDamageDelay = KvGetFloat(kv, "attack_delay");
+		if (flAttackDamageDelay < 0.0) flAttackDamageDelay = 0.0;
+		
+		float flAttackDuration = KvGetFloat(kv, "attack_duration", 0.0);
+		if (flAttackDuration <= 0.0)//Backward compatibility
+		{
+			if (flAttackDuration < 0.0) flAttackDuration = 0.0;
+			flAttackDuration = flAttackDamageDelay+KvGetFloat(kv, "attack_endafter", 0.0);
+		}
+		
+		bool bAttackProps = view_as<bool>(KvGetNum(kv, "attack_props", 0));
+		
+		float flAttackSpreadOld = KvGetFloat(kv, "attack_fov", 45.0);
+		float flAttackSpread = KvGetFloat(kv, "attack_spread", flAttackSpreadOld);
+		
+		if (flAttackSpread < 0.0) flAttackSpread = 0.0;
+		else if (flAttackSpread > 360.0) flAttackSpread = 360.0;
+		
+		float flAttackBeginRange = KvGetFloat(kv, "attack_begin_range", flAttackRange);
+		if (flAttackBeginRange < 0.0) flAttackBeginRange = 0.0;
+		
+		float flAttackBeginFOV = KvGetFloat(kv, "attack_begin_fov", flAttackSpread);
+		if (flAttackBeginFOV < 0.0) flAttackBeginFOV = 0.0;
+		else if (flAttackBeginFOV > 360.0) flAttackBeginFOV = 360.0;
+		
+		float flAttackCooldown = KvGetFloat(kv, "attack_cooldown");
+		if (flAttackCooldown < 0.0) flAttackCooldown = 0.0;
+		
+		int iAttackIndex = PushArrayCell(hAttacks, -1);
+		
+		SetArrayCell(hAttacks, iAttackIndex, iAttackType, ChaserProfileAttackData_Type);
+		SetArrayCell(hAttacks, iAttackIndex, bAttackProps, ChaserProfileAttackData_CanUseAgainstProps);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackRange, ChaserProfileAttackData_Range);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackDamage, ChaserProfileAttackData_Damage);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackDamageVsProps, ChaserProfileAttackData_DamageVsProps);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackDamageForce, ChaserProfileAttackData_DamageForce);
+		SetArrayCell(hAttacks, iAttackIndex, iAttackDamageType, ChaserProfileAttackData_DamageType);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackDamageDelay, ChaserProfileAttackData_DamageDelay);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackDuration, ChaserProfileAttackData_Duration);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackSpread, ChaserProfileAttackData_Spread);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackBeginRange, ChaserProfileAttackData_BeginRange);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackBeginFOV, ChaserProfileAttackData_BeginFOV);
+		SetArrayCell(hAttacks, iAttackIndex, flAttackCooldown, ChaserProfileAttackData_Cooldown);
+		
+		if (iMaxAttacks > 0)//Backward compatibility
+		{
+			KvGoBack(kv);
+		}
+		else
+			break;
 	}
-	
-	KvGetString(kv, "animation_walk", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_walk_playbackrate", 1.0);
-	if (sAnimation[0])
-	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Walk, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_WalkPlaybackRate, flAnimationPlaybackRate);
-	}
-	
-	KvGetString(kv, "animation_run", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_run_playbackrate", 1.0);
-	if (sAnimation[0])
-	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Run, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_RunPlaybackRate, flAnimationPlaybackRate);
-	}
-	
-	KvGetString(kv, "animation_attack", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_attack_playbackrate", 1.0);
-	if (sAnimation[0])
-	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Attack, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_AttackPlaybackRate, flAnimationPlaybackRate);
-	}
-	
-	KvGetString(kv, "animation_stun", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_stun_playbackrate", 1.0);
-	if (sAnimation[0])
-	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Stunned, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_StunnedPlaybackRate, flAnimationPlaybackRate);
-	}
-	
-	KvGetString(kv, "animation_death", sAnimation, sizeof(sAnimation));
-	flAnimationPlaybackRate = KvGetFloat(kv, "animation_death_playbackrate", 1.0);
-	if (sAnimation[0])
-	{
-		animationCount++;
-		SetArrayString(hAnimations, ChaserAnimationType_Stunned, sAnimation);
-		SetArrayCell(hAnimations, ChaserAnimationType_StunnedPlaybackRate, flAnimationPlaybackRate);
-	}
-	
-	if (animationCount == 0)
-	{
-		CloseHandle(hAnimations);
-		SetArrayCell(g_hChaserProfileData, iUniqueProfileIndex, INVALID_HANDLE, ChaserProfileData_Animations);
-	}
+	if (iMaxAttacks > 0)
+		KvGoBack(kv);
+	return iMaxAttacks;
 }
 
 float GetChaserProfileStepSize(int iChaserProfileIndex)
@@ -432,6 +402,11 @@ float GetChaserProfileMaxAirSpeed(int iChaserProfileIndex,int iDifficulty)
 	}
 	
 	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_MaxAirSpeedNormal));
+}
+
+Handle GetChaserProfileAnimationsData(int iChaserProfileIndex)
+{
+	return view_as<Handle>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_Animations));
 }
 
 float GetChaserProfileWakeRadius(int iChaserProfileIndex)
@@ -540,6 +515,11 @@ float GetChaserProfileStunDuration(int iChaserProfileIndex)
 	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunDuration));
 }
 
+float GetChaserProfileStunCooldown(int iChaserProfileIndex)
+{
+	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_StunCooldown));
+}
+
 bool GetChaserProfileStunFlashlightState(int iChaserProfileIndex)
 {
 	return view_as<bool>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_CanBeStunnedByFlashlight));
@@ -587,4 +567,201 @@ stock float GetChaserProfileAwarenessDecreaseRate(int iChaserProfileIndex,int di
 	}
 	
 	return view_as<float>(GetArrayCell(g_hChaserProfileData, iChaserProfileIndex, ChaserProfileData_AwarenessDecreaseRateNormal));
+}
+
+stock bool GetProfileAnimation(const char[] sProfile, int iAnimationSection, char[] sAnimation, int iLenght, float &flPlaybackRate, int iAnimationIndex = -1)
+{
+	KvRewind(g_hConfig);
+	KvJumpToKey(g_hConfig, sProfile);
+	char sAnimationSection[20], sKeyAnimationName[50], sKeyAnimationPlayBackRate[65];
+	if (iAnimationSection == ChaserAnimation_IdleAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "idle");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_idle");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_idle_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_WalkAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "walk");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_walk");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_walk_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_AttackAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "attack");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_attack");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_attack_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_RunAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "run");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_run");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_run_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_StunAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "stun");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_stun");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_stun_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_DeathAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "death");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_death");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_death_playbackrate");
+	}
+	else if (iAnimationIndex == ChaserAnimation_JumpAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "jump");
+		strcopy(sKeyAnimationName, sizeof(sKeyAnimationName), "animation_jump");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "animation_jump_playbackrate");
+	}
+	
+	if (KvJumpToKey(g_hConfig, "animations"))
+	{
+		if (KvJumpToKey(g_hConfig, sAnimationSection))
+		{
+			char sNum[3];
+			if (iAnimationIndex == -1)
+			{
+				int iTotalAnimation;
+				for (iAnimationIndex = 1; iAnimationIndex <= SF2_CHASER_BOSS_MAX_ATTACKS; iAnimationIndex++)
+				{
+					IntToString(iAnimationIndex, sNum, sizeof(sNum));
+					if (KvJumpToKey(g_hConfig, sNum))
+					{
+						iTotalAnimation++;
+						KvGoBack(g_hConfig);
+					}
+				}
+				iAnimationIndex = GetRandomInt(1, iTotalAnimation);
+			}
+			IntToString(iAnimationIndex, sNum, sizeof(sNum));
+			if (!KvJumpToKey(g_hConfig, sNum))
+			{
+				return false;
+			}
+		}
+		else
+			return false;
+	}
+	KvGetString(g_hConfig, sKeyAnimationName, sAnimation, iLenght);
+	flPlaybackRate = KvGetFloat(g_hConfig, sKeyAnimationPlayBackRate, 1.0);
+	return true;
+}
+
+stock bool GetProfileBlendAnimationSpeed(const char[] sProfile, int iAnimationSection, float &flPlaybackRate, int iAnimationIndex = -1)
+{
+	KvRewind(g_hConfig);
+	KvJumpToKey(g_hConfig, sProfile);
+	char sAnimationSection[20], sKeyAnimationPlayBackRate[65];
+	if (iAnimationSection == ChaserAnimation_IdleAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "idle");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_idle_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_WalkAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "walk");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_walk_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_AttackAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "attack");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_attack_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_RunAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "run");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_run_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_StunAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "stun");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_stun_playbackrate");
+	}
+	else if (iAnimationSection == ChaserAnimation_DeathAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "death");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_death_playbackrate");
+	}
+	else if (iAnimationIndex == ChaserAnimation_JumpAnimations)
+	{
+		strcopy(sAnimationSection, sizeof(sAnimationSection), "jump");
+		strcopy(sKeyAnimationPlayBackRate, sizeof(sKeyAnimationPlayBackRate), "blend_animation_jump_playbackrate");
+	}
+	
+	if (KvJumpToKey(g_hConfig, "animations"))
+	{
+		if (KvJumpToKey(g_hConfig, sAnimationSection))
+		{
+			char sNum[3];
+			if (iAnimationIndex == -1)
+			{
+				int iTotalAnimation;
+				for (iAnimationIndex = 1; iAnimationIndex <= SF2_CHASER_BOSS_MAX_ATTACKS; iAnimationIndex++)
+				{
+					IntToString(iAnimationIndex, sNum, sizeof(sNum));
+					if (KvJumpToKey(g_hConfig, sNum))
+					{
+						iTotalAnimation++;
+						KvGoBack(g_hConfig);
+					}
+				}
+				iAnimationIndex = GetRandomInt(1, iTotalAnimation);
+			}
+			IntToString(iAnimationIndex, sNum, sizeof(sNum));
+			if (!KvJumpToKey(g_hConfig, sNum))
+			{
+				return false;
+			}
+		}
+		else
+			return false;
+	}
+	flPlaybackRate = KvGetFloat(g_hConfig, sKeyAnimationPlayBackRate, 1.0);
+	return true;
+}
+
+stock int GetProfileAttackNum(const char[] sProfile, const char[] keyValue,int defaultValue=0, const int iAttackIndex)
+{
+	if (!IsProfileValid(sProfile)) return defaultValue;
+	
+	char sKey[4];
+	KvRewind(g_hConfig);
+	KvJumpToKey(g_hConfig, sProfile);
+	KvJumpToKey(g_hConfig, "attacks");
+	IntToString(iAttackIndex, sKey, sizeof(sKey));
+	KvJumpToKey(g_hConfig, sKey);
+	return KvGetNum(g_hConfig, keyValue, defaultValue);
+}
+
+stock bool GetProfileAttackString(const char[] sProfile, const char[] keyValue, char[] sBuffer, int iLenght, const char[] sDefaultValue = "", const int iAttackIndex)
+{
+	if (!IsProfileValid(sProfile)) return false;
+	
+	char sKey[4];
+	KvRewind(g_hConfig);
+	KvJumpToKey(g_hConfig, sProfile);
+	KvJumpToKey(g_hConfig, "attacks");
+	IntToString(iAttackIndex, sKey, sizeof(sKey));
+	KvJumpToKey(g_hConfig, sKey);
+	KvGetString(g_hConfig, keyValue, sBuffer, iLenght, sDefaultValue);
+	return true;
+}
+
+stock bool GetProfileAttackVector(const char[] sProfile, const char[] keyValue, float buffer[3], const float defaultValue[3]=NULL_VECTOR, const int iAttackIndex)
+{
+	for (int i = 0; i < 3; i++) buffer[i] = defaultValue[i];
+	
+	if (!IsProfileValid(sProfile)) return false;
+	
+	char sKey[4];
+	KvRewind(g_hConfig);
+	KvJumpToKey(g_hConfig, sProfile);
+	KvJumpToKey(g_hConfig, "attacks");
+	IntToString(iAttackIndex, sKey, sizeof(sKey));
+	KvJumpToKey(g_hConfig, sKey);
+	KvGetVector(g_hConfig, keyValue, buffer, defaultValue);
+	return true;
 }

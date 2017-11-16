@@ -869,7 +869,7 @@ static bool DisplayOverrideBossAdminMenu(int client)
 				GetProfileString(sProfileOverride, "name", sProfileDisplayName, sizeof(sProfileDisplayName));
 				
 				if (strlen(sProfileDisplayName) == 0)
-					strcopy(sProfileDisplayName, sizeof(sProfileDisplayName), sProfileOverride)
+					strcopy(sProfileDisplayName, sizeof(sProfileDisplayName), sProfileOverride);
 			}
 			else
 				strcopy(sProfileDisplayName, sizeof(sProfileDisplayName), "---");

@@ -15,7 +15,6 @@ static Handle g_hSpecialRoundCycleNames = INVALID_HANDLE;
 static Handle g_hSpecialRoundTimer = INVALID_HANDLE;
 static int g_iSpecialRoundCycleNum = 0;
 static float g_flSpecialRoundCycleEndTime = -1.0;
-static bool bSuprise = false;
 static bool g_bStarted = false;
 static int doubleroulettecount = 0;
 static int g_iSpecialRoundType = 0;
@@ -148,7 +147,7 @@ public Action Timer_SpecialRoundCycle(Handle timer)
 	char sBuffer[128];
 	GetArrayString(g_hSpecialRoundCycleNames, g_iSpecialRoundCycleNum, sBuffer, sizeof(sBuffer));
 	
-	if(!bSuprise)
+	if(!SF_SpecialRound(SPECIALROUND_SUPRISE))
 		SpecialRoundGameText(sBuffer);
 	
 	g_iSpecialRoundCycleNum++;
@@ -254,98 +253,15 @@ void SpecialRoundCycleFinish()
 	}
 	else
 	{
-		int iPlayers;
-		for (int iClient = 1; iClient <= MaxClients; iClient++)
-		{
-			if (IsValidClient(iClient) && !g_bPlayerEliminated[iClient])
-				iPlayers++;
-		}
-		Handle hEnabledRounds = CreateArray();
+		ArrayList arrayEnabledRound = SpecialEnabledList();
 		
-		if (GetArraySize(GetSelectableBossProfileList()) > 0)
-		{
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLETROUBLE);
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DOOMBOX);
-		}
+		g_iSpecialRoundType = arrayEnabledRound.Get(GetRandomInt(0, arrayEnabledRound.Length-1));
 		
-		if (GetActivePlayerCount() <= GetConVarInt(g_cvMaxPlayers) * 2)
-		{
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEMAXPLAYERS);
-		}
-		if (GetArraySize(GetSelectableBossProfileList()) > 0 && GetActivePlayerCount() <= GetConVarInt(g_cvMaxPlayers) * 2)
-		{
-			PushArrayCell(hEnabledRounds, SPECIALROUND_2DOUBLE);
-		}
-		/*
-		if (GetActivePlayerCount() > 1)
-		{
-			PushArrayCell(hEnabledRounds, SPECIALROUND_SINGLEPLAYER);
-		}
-		*/
-		if (!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_INSANEDIFFICULTY);
-		if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_LIGHTSOUT);
-			
-		if (!SF_SpecialRound(SPECIALROUND_BEACON))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_BEACON);
-		
-		if (!SF_SpecialRound(SPECIALROUND_NOGRACE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION) && GetRoundState() != SF2RoundState_Intro && g_hRoundGraceTimer != INVALID_HANDLE)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_NOGRACE);
-			
-		if (!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_NIGHTVISION);
-			
-		/*if (!SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DOUBLEROULETTE);*/
-			
-		if (!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_INFINITEFLASHLIGHT);
-			
-		if (!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DREAMFAKEBOSSES);
-			
-		if (!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_EYESONTHECLOACK);
-		
-		if (!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2 && GetRoundState() != SF2RoundState_Escape)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_NOPAGEBONUS);
-
-		//Disabled
-		/*if(g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_DUCKS))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DUCKS);*/
-		
-		if (!SF_SpecialRound(SPECIALROUND_1UP) && !SF_SpecialRound(SPECIALROUND_REVOLUTION))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_1UP);
-		
-		if (g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_NOULTRAVISION);
-		
-		if (!bSuprise && !SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_SUPRISE);
-		
-		if (!SF_SpecialRound(SPECIALROUND_LASTRESORT) && GetRoundState() != SF2RoundState_Escape)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_LASTRESORT);
-		
-		if (!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4 && GetRoundState() != SF2RoundState_Escape)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_ESCAPETICKETS);
-		
-		if (!SF_SpecialRound(SPECIALROUND_REVOLUTION))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_REVOLUTION);
-		
-		if (!SF_SpecialRound(SPECIALROUND_DISTORTION) && iPlayers >= 4)
-			PushArrayCell(hEnabledRounds, SPECIALROUND_DISTORTION);
-		
-		if (!SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
-			PushArrayCell(hEnabledRounds, SPECIALROUND_MULTIEFFECT);
-			
-		g_iSpecialRoundType = GetArrayCell(hEnabledRounds, GetRandomInt(0, GetArraySize(hEnabledRounds) - 1));
-		
-		CloseHandle(hEnabledRounds);
+		delete arrayEnabledRound;
 	}
 	SetConVarInt(g_cvSpecialRoundOverride, -1);
 	
-	if(!bSuprise)
+	if(!SF_SpecialRound(SPECIALROUND_SUPRISE))
 	{
 		char sDescHud[64];
 		SpecialRoundGetDescriptionHud(g_iSpecialRoundType, sDescHud, sizeof(sDescHud));
@@ -363,25 +279,129 @@ void SpecialRoundCycleFinish()
 	g_hSpecialRoundTimer = CreateTimer(SR_STARTDELAY, Timer_SpecialRoundStart, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
+ArrayList SpecialEnabledList()
+{
+	if (g_bSpecialRound)
+	{
+		ArrayList arrayEnabledRounds = new ArrayList();
+		
+		int iPlayers;
+		for (int iClient = 1; iClient <= MaxClients; iClient++)
+		{
+			if (IsValidClient(iClient) && !g_bPlayerEliminated[iClient])
+				iPlayers++;
+		}
+		
+		if (GetArraySize(GetSelectableBossProfileList()) > 0)
+		{
+			arrayEnabledRounds.Push(SPECIALROUND_DOUBLETROUBLE);
+			arrayEnabledRounds.Push(SPECIALROUND_DOOMBOX);
+		}
+		
+		if (GetActivePlayerCount() <= GetConVarInt(g_cvMaxPlayers) * 2)
+		{
+			arrayEnabledRounds.Push(SPECIALROUND_DOUBLEMAXPLAYERS);
+		}
+		if (GetArraySize(GetSelectableBossProfileList()) > 0 && GetActivePlayerCount() <= GetConVarInt(g_cvMaxPlayers) * 2)
+		{
+			arrayEnabledRounds.Push(SPECIALROUND_2DOUBLE);
+		}
+		/*
+		if (GetActivePlayerCount() > 1)
+		{
+			arrayEnabledRounds.Push(SPECIALROUND_SINGLEPLAYER);
+		}
+		*/
+		if (!SF_SpecialRound(SPECIALROUND_INSANEDIFFICULTY) && !SF_SpecialRound(SPECIALROUND_DOUBLEMAXPLAYERS) && !SF_SpecialRound(SPECIALROUND_DOUBLETROUBLE) && !SF_SpecialRound(SPECIALROUND_2DOUBLE) && GetConVarInt(g_cvDifficulty) != 4)
+			arrayEnabledRounds.Push(SPECIALROUND_INSANEDIFFICULTY);
+		if (!SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !GetConVarBool(g_cvNightvisionEnabled) && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION))
+			arrayEnabledRounds.Push(SPECIALROUND_LIGHTSOUT);
+			
+		if (!SF_SpecialRound(SPECIALROUND_BEACON))
+			arrayEnabledRounds.Push(SPECIALROUND_BEACON);
+		
+		if (!SF_SpecialRound(SPECIALROUND_NOGRACE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION) && GetRoundState() != SF2RoundState_Intro && g_hRoundGraceTimer != INVALID_HANDLE)
+			arrayEnabledRounds.Push(SPECIALROUND_NOGRACE);
+			
+		if (!SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+			arrayEnabledRounds.Push(SPECIALROUND_NIGHTVISION);
+			
+		if (!SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE) && !SF_SpecialRound(SPECIALROUND_REVOLUTION))
+			arrayEnabledRounds.Push(SPECIALROUND_DOUBLEROULETTE);
+			
+		if (!SF_SpecialRound(SPECIALROUND_INFINITEFLASHLIGHT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION) && !GetConVarBool(g_cvNightvisionEnabled))
+			arrayEnabledRounds.Push(SPECIALROUND_INFINITEFLASHLIGHT);
+			
+		if (!SF_SpecialRound(SPECIALROUND_DREAMFAKEBOSSES))
+			arrayEnabledRounds.Push(SPECIALROUND_DREAMFAKEBOSSES);
+			
+		if (!SF_SpecialRound(SPECIALROUND_EYESONTHECLOACK))
+			arrayEnabledRounds.Push(SPECIALROUND_EYESONTHECLOACK);
+		
+		if (!SF_SpecialRound(SPECIALROUND_NOPAGEBONUS) && g_iPageMax > 2 && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_NOPAGEBONUS);
+
+		//Disabled
+		if(g_iPageMax > 3 && !SF_SpecialRound(SPECIALROUND_DUCKS) && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_DUCKS);
+		
+		if (!SF_SpecialRound(SPECIALROUND_1UP) && !SF_SpecialRound(SPECIALROUND_REVOLUTION))
+			arrayEnabledRounds.Push(SPECIALROUND_1UP);
+		
+		if (g_iPageMax > 2 && !SF_SpecialRound(SPECIALROUND_NOULTRAVISION) && !SF_SpecialRound(SPECIALROUND_LIGHTSOUT) && !SF_SpecialRound(SPECIALROUND_NIGHTVISION))
+			arrayEnabledRounds.Push(SPECIALROUND_NOULTRAVISION);
+		
+		if (!SF_SpecialRound(SPECIALROUND_SUPRISE) && !SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
+			arrayEnabledRounds.Push(SPECIALROUND_SUPRISE);
+		
+		if (!SF_SpecialRound(SPECIALROUND_LASTRESORT) && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_LASTRESORT);
+		
+		if (!SF_SpecialRound(SPECIALROUND_ESCAPETICKETS) && g_iPageMax > 4 && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_ESCAPETICKETS);
+		
+		if (!SF_SpecialRound(SPECIALROUND_REVOLUTION))
+			arrayEnabledRounds.Push(SPECIALROUND_REVOLUTION);
+		
+		if (!SF_SpecialRound(SPECIALROUND_DISTORTION) && iPlayers >= 4)
+			arrayEnabledRounds.Push(SPECIALROUND_DISTORTION);
+		
+		if (!SF_SpecialRound(SPECIALROUND_MULTIEFFECT))
+			arrayEnabledRounds.Push(SPECIALROUND_MULTIEFFECT);
+		
+		if (!SF_SpecialRound(SPECIALROUND_BOO))
+			arrayEnabledRounds.Push(SPECIALROUND_BOO);
+		
+		if (!SF_SpecialRound(SPECIALROUND_REALISM) && !SF_IsRaidMap())
+			arrayEnabledRounds.Push(SPECIALROUND_REALISM);
+		
+		if (!SF_SpecialRound(SPECIALROUND_COFFEE) && !SF_IsRaidMap())
+			arrayEnabledRounds.Push(SPECIALROUND_COFFEE);
+		
+		if (!SF_SpecialRound(SPECIALROUND_PAGEDETECTOR) && !SF_IsRaidMap() && g_iPageMax >= 4 && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_PAGEDETECTOR);
+		
+		if (!SF_SpecialRound(SPECIALROUND_CLASSSCRAMBLE) && g_iPageMax >= 4 && GetRoundState() != SF2RoundState_Escape)
+			arrayEnabledRounds.Push(SPECIALROUND_CLASSSCRAMBLE);
+		
+		if (!SF_SpecialRound(SPECIALROUND_EARTHQUAKE))
+			arrayEnabledRounds.Push(SPECIALROUND_EARTHQUAKE);
+		
+		//Always keep this special round push at the bottom, we need the array lenght
+		if (!SF_SpecialRound(SPECIALROUND_VOTE) && !SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE) && !SF_SpecialRound(SPECIALROUND_SUPRISE) && arrayEnabledRounds.Length > 5)
+			arrayEnabledRounds.Push(SPECIALROUND_VOTE);
+		
+		return arrayEnabledRounds;
+	}
+	return null;
+}
+
 void SpecialRoundStart()
 {
 	if (!g_bSpecialRound) return;
 	if (g_iSpecialRoundType < 1 || g_iSpecialRoundType >= SPECIALROUND_MAXROUNDS) return;
 	g_bStarted = false;
-	// What to do with the timer...
-	switch (g_iSpecialRoundType)
-	{
-		/*
-		case SPECIALROUND_DEFENSEBUFF, SPECIALROUND_MARKEDFORDEATH:
-		{
-			g_hSpecialRoundTimer = CreateTimer(0.5, Timer_SpecialRoundAttribute, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-		}
-		*/
-		default:
-		{
-			g_hSpecialRoundTimer = INVALID_HANDLE;
-		}
-	}
+	g_hSpecialRoundTimer = INVALID_HANDLE;
 	if(SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 		doubleroulettecount += 1;
 	switch (g_iSpecialRoundType)
@@ -414,12 +434,14 @@ void SpecialRoundStart()
 		}
 		case SPECIALROUND_INSANEDIFFICULTY:
 		{
-			SetConVarString(g_cvDifficulty, "3"); // Override difficulty to Insane.
+			if (GetConVarInt(g_cvDifficulty) != 4)
+				SetConVarString(g_cvDifficulty, "3"); // Override difficulty to Insane.
 			SF_AddSpecialRound(SPECIALROUND_INSANEDIFFICULTY);
 		}
 		case SPECIALROUND_NOGRACE:
 		{
-			SetConVarString(g_cvDifficulty, "2"); // Override difficulty to Hardcore.
+			if (GetConVarInt(g_cvDifficulty) != 4)
+				SetConVarString(g_cvDifficulty, "2"); // Override difficulty to Hardcore.
 			if(g_hRoundGraceTimer!=INVALID_HANDLE)
 				TriggerTimer(g_hRoundGraceTimer);
 			SF_AddSpecialRound(SPECIALROUND_NOGRACE);
@@ -447,14 +469,10 @@ void SpecialRoundStart()
 			}
 			SF_AddSpecialRound(SPECIALROUND_2DOUBLE);
 		}
-		case SPECIALROUND_DOUBLEROULETTE:
-		{
-			SF_AddSpecialRound(SPECIALROUND_DOUBLEROULETTE);
-		}
 		case SPECIALROUND_SUPRISE:
 		{
-			bSuprise=true;
 			SpecialRoundCycleStart();
+			SF_AddSpecialRound(SPECIALROUND_SUPRISE);
 		}
 		case SPECIALROUND_DOUBLEMAXPLAYERS:
 		{
@@ -488,10 +506,6 @@ void SpecialRoundStart()
 				}
 			}
 		}
-		case SPECIALROUND_BEACON:
-		{
-			SF_AddSpecialRound(SPECIALROUND_BEACON);
-		}
 		case SPECIALROUND_INFINITEFLASHLIGHT:
 		{
 			SF_RemoveSpecialRound(SPECIALROUND_LIGHTSOUT);
@@ -501,14 +515,6 @@ void SpecialRoundStart()
 		{
 			CreateTimer(2.0,Timer_SpecialRoundFakeBosses,_,TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 			SF_AddSpecialRound(SPECIALROUND_DREAMFAKEBOSSES);
-		}
-		case SPECIALROUND_EYESONTHECLOACK:
-		{
-			SF_AddSpecialRound(SPECIALROUND_EYESONTHECLOACK);
-		}
-		case SPECIALROUND_NOPAGEBONUS:
-		{
-			SF_AddSpecialRound(SPECIALROUND_NOPAGEBONUS);
 		}
 		case SPECIALROUND_1UP:
 		{
@@ -538,73 +544,25 @@ void SpecialRoundStart()
 		}
 		case SPECIALROUND_DUCKS:
 		{
+			char sModel[255];
 			PrecacheModel("models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
-			float vecPos[3], vecAng[3];
-			char targetName[64];
-			int i;
-			int iPage = MaxClients+1;
-			while((iPage = FindEntityByClassname(iPage, "prop_dynamic_override")) > MaxClients)
+			int ent = -1;
+			while ((ent = FindEntityByClassname(ent, "*")) != -1)
 			{
-				GetEntPropString(iPage, Prop_Data, "m_iName", targetName, sizeof(targetName));
-				if(StrEqual(targetName, "sf2_page_ex"))
+				if (!IsEntityClassname(ent, "prop_dynamic", false)) continue;
+				
+				GetEntPropString(ent, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
+				int iParent = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+				if (sModel[0] && iParent > MaxClients)
 				{
-					AcceptEntityInput(iPage, "Kill");
-				}
-				PrintToChatAll("Name:%s",targetName);
-				if(!StrEqual(targetName, "sf2_page_ex") && StrContains(targetName, "sf2_page_", false) != -1)
-				{
-					PrintToChatAll("found");
-					ReplaceString(targetName, sizeof(targetName), "sf2_page_", "");
-					i = StringToInt(targetName);
-					GetEntPropVector(iPage, Prop_Data, "m_vecAbsOrigin", vecPos);
-					GetEntPropVector(iPage, Prop_Data, "m_angAbsRotation", vecAng);
-					char pageName[50];
-					int page = CreateEntityByName("prop_dynamic_override");
-					if (page != -1)
+					int iParent2 = GetEntPropEnt(ent, Prop_Send, "m_hEffectEntity");
+					if (iParent2 > MaxClients)
 					{
-						TeleportEntity(page, vecPos, vecAng, NULL_VECTOR);
-						Format(pageName,50,"sf2_page_%i",i);
-						DispatchKeyValue(page, "targetname", pageName);
-							
-						SetEntityModel(page, "models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
-							
-						DispatchKeyValue(page, "solid", "2");
-						DispatchSpawn(page);
-						ActivateEntity(page);
-						SetVariantInt(i);
-						AcceptEntityInput(page, "Skin");
-						AcceptEntityInput(page, "EnableCollision");
-							
-						SetEntPropFloat(page, Prop_Send, "m_flModelScale", 1.0);
-							
-						SetEntProp(page, Prop_Send, "m_fEffects", EF_ITEM_BLINK);
-						
-						SDKHook(page, SDKHook_OnTakeDamage, Hook_PageOnTakeDamage);
-						SDKHook(page, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmit);
+						if (strcmp(sModel, g_strPageRefModel) == 0 || strcmp(sModel, PAGE_MODEL) == 0)
+						{
+							SetEntityModel(ent, "models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
+						}
 					}
-					int page2 = CreateEntityByName("prop_dynamic_override");
-					if (page2 != -1)
-					{
-						TeleportEntity(page2, vecPos, vecAng, NULL_VECTOR);
-						DispatchKeyValue(page2, "targetname", "sf2_page_ex");
-							
-						SetEntityModel(page2, "models/workshop/player/items/pyro/eotl_ducky/eotl_bonus_duck.mdl");
-							
-						DispatchKeyValue(page2, "solid", "0");
-						DispatchKeyValue(page2, "parentname", pageName);
-						DispatchSpawn(page2);
-						ActivateEntity(page2);
-						SetVariantInt(i);
-						AcceptEntityInput(page2, "Skin");
-						AcceptEntityInput(page2, "DisableCollision");
-						SetVariantString(pageName);
-						AcceptEntityInput(page2, "SetParent");
-							
-						SetEntPropFloat(page2, Prop_Send, "m_flModelScale", 1.0);
-							
-						SDKHook(page2, SDKHook_SetTransmit, Hook_SlenderObjectSetTransmitEx);
-					}
-					AcceptEntityInput(iPage, "Kill");
 				}
 			}
 			SF_AddSpecialRound(SPECIALROUND_DUCKS);
@@ -614,21 +572,47 @@ void SpecialRoundStart()
 			SF_AddSpecialRound(SPECIALROUND_REVOLUTION);
 			g_iSpecialRoundTime = 0;
 		}
-		case SPECIALROUND_LASTRESORT:
+		case SPECIALROUND_REALISM:
 		{
-			SF_AddSpecialRound(SPECIALROUND_LASTRESORT);
+			SF_AddSpecialRound(SPECIALROUND_REALISM);
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (!IsClientInGame(i)) continue;
+				
+				if (!g_bPlayerEliminated[i])
+				{
+					ClientResetOverlay(i);
+				}
+			}
 		}
-		case SPECIALROUND_ESCAPETICKETS:
+		case SPECIALROUND_VOTE:
 		{
-			SF_AddSpecialRound(SPECIALROUND_ESCAPETICKETS);
+			if (!NativeVotes_IsVoteInProgress())
+			{
+				SpecialCreateVote();
+			}
+			else
+			{
+				CreateTimer(5.0, Timer_SpecialRoundVoteLoop, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+			}
+			SF_AddSpecialRound(SPECIALROUND_VOTE);
 		}
-		case SPECIALROUND_DISTORTION:
+		case SPECIALROUND_PAGEDETECTOR:
 		{
-			SF_AddSpecialRound(SPECIALROUND_DISTORTION);
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (!IsClientInGame(i)) continue;
+				
+				if (!g_bPlayerEliminated[i])
+				{
+					ClientSetSpecialRoundTimer(i, 0.0, Timer_ClientPageDetector, GetClientUserId(i));
+				}
+			}
+			SF_AddSpecialRound(SPECIALROUND_PAGEDETECTOR);
 		}
-		case SPECIALROUND_MULTIEFFECT:
+		default:
 		{
-			SF_AddSpecialRound(SPECIALROUND_MULTIEFFECT);
+			SF_AddSpecialRound(g_iSpecialRoundType);
 		}
 	}
 	if(doubleroulettecount==2)
@@ -638,6 +622,17 @@ void SpecialRoundStart()
 	}
 	if(SF_SpecialRound(SPECIALROUND_DOUBLEROULETTE))
 		SpecialRoundCycleStart();
+}
+
+public Action Timer_SpecialRoundVoteLoop(Handle timer)
+{
+	if (!g_bSpecialRound) return Plugin_Stop;
+	if (!SF_SpecialRound(SPECIALROUND_VOTE)) return Plugin_Stop;
+	if (GetRoundState() != SF2RoundState_Escape && GetRoundState() != SF2RoundState_Active && GetRoundState() != SF2RoundState_Intro) return Plugin_Stop;
+	if (NativeVotes_IsVoteInProgress()) return Plugin_Continue;
+	
+	SpecialCreateVote();
+	return Plugin_Stop;
 }
 
 public Action Timer_DisplaySpecialRound(Handle timer)
@@ -652,11 +647,102 @@ public Action Timer_DisplaySpecialRound(Handle timer)
 	SpecialRoundGetDescriptionChat(g_iSpecialRoundType, sDescChat, sizeof(sDescChat));
 	
 	SpecialRoundGameText(sDescHud, sIconHud);
-	CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat); // For those who are using minimized HUD...
+	if (strcmp(sDescChat, "") != 0)
+		CPrintToChatAll("%t", "SF2 Special Round Announce Chat", sDescChat);
+	else
+		CPrintToChatAll("{olive}Special round in developement...");
 }
+
+void SpecialCreateVote()
+{
+	Handle voteMenu = NativeVotes_Create(Menu_SpecialVote, NativeVotesType_Custom_Mult);
+	NativeVotes_SetInitiator(voteMenu, NATIVEVOTES_SERVER_INDEX);
+	
+	char Tittle[255];
+	Format(Tittle,255,"%t%t","SF2 Prefix","SF2 Special Round Vote Menu Title");
+	NativeVotes_SetDetails(voteMenu,Tittle);
+	
+	ArrayList arrayEnabledRounds = SpecialEnabledList();
+	
+	for (int iIndex = 0; iIndex < 5; iIndex++)
+	{
+		int iEnabledSpecialRound = arrayEnabledRounds.Get(iIndex);
+		char sItem[30], sItemOutPut[30];
+		SpecialRoundGetDescriptionHud(iEnabledSpecialRound, sItem, sizeof(sItem));
+		for (int iBit = 0; iBit < 30; iBit++)
+		{
+			if (strcmp(sItem[iBit],"-") == 0 ||strcmp(sItem[iBit],":") == 0)
+			{
+				break;
+			}
+			sItemOutPut[iBit] = sItem[iBit];
+		}
+		IntToString(iEnabledSpecialRound,sItem,sizeof(sItem));
+		NativeVotes_AddItem(voteMenu, sItem, sItemOutPut);
+	}
+	
+	delete arrayEnabledRounds;
+	
+	int total = 0;
+	int[] players = new int[MaxClients];
+	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i)) continue;
+		
+		if (!g_bPlayerEliminated[i])
+		{
+			players[total++] = i;
+		}
+	}
+	
+	NativeVotes_Display(voteMenu, players, total, 20);
+}
+
+public int Menu_SpecialVote(Handle menu, MenuAction action,int param1,int param2)
+{
+	switch (action)
+	{	
+		case MenuAction_VoteCancel:
+		{
+			if (param1 == VoteCancel_NoVotes)
+			{
+				NativeVotes_DisplayFail(menu, NativeVotesFail_NotEnoughVotes);
+				
+				ArrayList arrayEnabledRounds = SpecialEnabledList();
+				g_iSpecialRoundType = arrayEnabledRounds.Get(GetRandomInt(0, arrayEnabledRounds.Length-1));
+				SetConVarInt(g_cvSpecialRoundOverride, g_iSpecialRoundType);
+				SpecialRoundCycleFinish();
+				delete arrayEnabledRounds;
+			}
+			else
+			{
+				NativeVotes_DisplayFail(menu, NativeVotesFail_Generic);
+			}
+		}
+		case MenuAction_VoteEnd:
+		{
+			char sSpecialRound[64], sSpecialRoundName[64], display[120];
+			NativeVotes_GetItem(menu, param1, sSpecialRound, sizeof(sSpecialRound), sSpecialRoundName, sizeof(sSpecialRoundName));
+			
+			CPrintToChatAll("%t%t", "SF2 Prefix", "SF2 Special Round Vote Successful", sSpecialRoundName);
+			Format(display,120,"%t","SF2 Special Round Vote Successful", sSpecialRoundName);
+			
+			g_iSpecialRoundType = StringToInt(sSpecialRound);
+			SetConVarInt(g_cvSpecialRoundOverride, g_iSpecialRoundType);
+			SpecialRoundCycleFinish();
+			
+			NativeVotes_DisplayPass(menu, display);
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+}
+
 void SpecialRound_RoundEnd()
 {
-	bSuprise = false;
 	g_bStarted = false;
 	SF_RemoveAllSpecialRound();
 }

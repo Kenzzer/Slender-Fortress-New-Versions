@@ -383,10 +383,15 @@
 		"ru"	"Разрешить выбор в качестве помощника"
 	}
 
-	"SF2 Settings Ghost Overlay Menu Title"
+	"SF2 Settings Music Volume Title"
 	{
-		"en"	"Toggle Ghost Mode overlay"
-		"ru"	"Вкл./Выкл. экран Режима Призрака"
+		"en" 	"Set music volume"
+	}
+	
+	"SF2 Music Volum Changed"
+	{
+		"#format"		"{1:d}"
+		"en" 	"{lightgreen}Music volume set to {1}%."
 	}
 
 	"SF2 Ad Message 1"
@@ -455,19 +460,7 @@
 		"en"	"{lightgreen}Disabled film grain."
 		"ru"	"{lightgreen}Выключен эффект плёнки."
 	}
-
-	"SF2 Enabled Ghost Overlay"
-	{
-		"en"	"{lightgreen}Enabled Ghost Mode overlay."
-		"ru"	"{lightgreen}Включен экран Режима Призрака."
-	}
-
-	"SF2 Disabled Ghost Overlay"
-	{
-		"en"	"{lightgreen}Disabled Ghost Mode overlay."
-		"ru"	"{lightgreen}Выключен экран Режима Призрака."
-	}
-
+	
 	"SF2 Enabled Proxy"
 	{
 		"en"	"{lightgreen}You are now opt'd in to be chosen as a Proxy."
@@ -1089,6 +1082,17 @@
 		"en"	"Nobody voted. The next boss pack to be loaded on the next map is the default one."
 		"ru"	"Никто не проголосовал. Список боссов для следующей карты: по умолчанию."
 	}
+	
+	"SF2 Special Round Vote Menu Title"
+	{
+		"en"	"Select the Special Round!"
+	}
+	
+	"SF2 Special Round Vote Successful"
+	{
+		"#format"	"{1:s}"
+		"en"	"Vote successful! Activating Special Round: {1}"
+	}
 
 	"SF2 Projected Flashlight"
 	{
@@ -1127,6 +1131,6 @@
 	
 	"SF2 Change Log"
 	{
-		"en" "-Moving out of beta.\n-Added 2 new special rounds"
+		"en"	"-Fixed an issue where boss's light could create lighting problems with the props.\n-Fixed an issue where proxies could spawn disguised.\n-Fixed ghost camera overlay from not being applied to ghosts.\n-Added an update panel.\n-(!slghost) is now a toggle command!\n-Updated credits menu."
 	}
 }
