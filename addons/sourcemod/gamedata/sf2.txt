@@ -30,6 +30,11 @@
 				"linux"	"19"
 				"mac"	"19"
 			}
+			"CBaseEntity::MyNextBotPointer"
+			{
+				"linux"		"73"
+				"windows"	"72"
+			}
 			"CBaseEntity::GetVectors"
 			{
 				"linux"    	"137"
@@ -56,6 +61,61 @@
 				"linux"		"431"
 				"mac"		"431"
 			}
+			"INextBotComponent::GetBot"
+			{
+				"linux"		"46"
+				"windows"	"45"
+			}
+			"INextBot::GetEntity"
+			{
+				"linux"		"47"
+				"windows"	"46"
+			}
+			"INextBot::Update"
+			{
+				"linux"		"44"
+				"windows"	"43"
+			}
+			"INextBot::GetBodyInterface"
+			{
+				"linux"		"50"
+				"windows"	"49"
+			}
+			"INextBot::GetLocomotionInterface"
+			{
+				"linux"		"49"
+				"windows"	"48"
+			}
+			"ILocomotion::Approach"
+			{
+				"linux"		"47"
+				"windows"	"46"
+			}
+			"ILocomotion::Jump"
+			{
+				"linux"		"51"
+				"windows"	"50"
+			}
+			"ILocomotion::IsClimbingOrJumping"
+			{
+				"linux"		"52"
+				"windows"	"51"
+			}
+			"ILocomotion::Run"
+			{
+				"linux"		"56"
+				"windows"	"55"
+			}
+			"ILocomotion::Walk"
+			{
+				"linux"		"57"
+				"windows"	"56"
+			}
+			"ILocomotion::Stop"
+			{
+				"linux"		"58"
+				"windows"	"57"
+			}
 			"ILocomotion::ClimbUpToLedge"
 			{
 				"linux"		"49"
@@ -66,15 +126,40 @@
 				"linux"		"50"
 				"windows"	"49"
 			}
+			"ILocomotion::IsOnGround"
+			{
+				"linux"		"64"
+				"windows"	"63"
+			}
 			"ILocomotion::GetGroundNormal"
 			{
 				"linux"		"66"
 				"windows"	"65"
 			}
+			"ILocomotion::GetGroundSpeed"
+			{
+				"linux"		"67"
+				"windows"	"66"
+			}
+			"ILocomotion::GetGroundMotionVector"
+			{
+				"linux"		"68"
+				"windows"	"67"
+			}
+			"ILocomotion::FaceTowards"
+			{
+				"linux"		"74"
+				"windows"	"73"
+			}
 			"ILocomotion::IsAbleToClimb"
 			{
 				"linux"		"78"
 				"windows"	"77"
+			}
+			"ILocomotion::GetFeet"
+			{
+				"linux"		"79"
+				"windows"	"78"
 			}
 			"ILocomotion::IsAbleToJumpAcrossGaps"
 			{
@@ -110,6 +195,11 @@
 			{
 				"linux"		"87"
 				"windows"	"86"
+			}
+			"ILocomotion::IsStuck"
+			{
+				"linux"		"96"
+				"windows"	"95"
 			}
 			"ILocomotion::ShouldCollideWith"
 			{

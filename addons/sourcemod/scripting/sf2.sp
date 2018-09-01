@@ -8,8 +8,6 @@
 #include <navmesh>
 #include <nativevotes>
 #include <collisionhook>
-#define GAME_TF2
-#include <pluginbot>
 
 #pragma semicolon 1
 
@@ -1147,7 +1145,7 @@ static void SDK_Init()
 	{
 		PrintToServer("Failed to retrieve CBaseCombatCharacter::UpdateLastKnownArea offset from SF2 gamedata!");
 	}
-	
+
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
@@ -1209,7 +1207,7 @@ static void SDK_Init()
 	{
 		PrintToServer("Failed to retrieve CBaseEntity::VPhysicsInitNormal signature from SF2 gamedata!");
 	}*/
-	
+
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConfig, SDKConf_Virtual, "CBaseEntity::GetVectors");
 	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);

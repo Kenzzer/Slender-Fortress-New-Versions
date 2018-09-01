@@ -1072,7 +1072,7 @@ void SpawnSlender(SF2NPC_BaseNPC Npc, const float pos[3])
 			DispatchKeyValue(iBoss,       "health",     "30000");
 			DispatchSpawn(iBoss);
 			
-			g_INextBot[iBossIndex] = PluginBot_GetNextBotOfEntity(iBoss);
+			g_INextBot[iBossIndex] = SF2_GetEntityNextBotInterface(iBoss);
 			g_ILocomotion[iBossIndex] = view_as<NextBotGroundLocomotion>(g_INextBot[iBossIndex].GetLocomotionInterface());
 			g_IBody[iBossIndex] = g_INextBot[iBossIndex].GetBodyInterface();
 			

@@ -2555,7 +2555,7 @@ bool SlenderChaseBoss_OnStuckResolvePath(int slender, float flMyPos[3], float fl
 public MRESReturn ClimbUpToLedge(Address pThis, Handle hParams)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex != -1)
 	{
@@ -2622,7 +2622,7 @@ public MRESReturn GetGravity(Address pThis, Handle hReturn)
 	DHookSetReturn(hReturn, g_flGravity);
 #if defined DEBUG
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex != -1)
 		SendDebugMessageToPlayers(DEBUG_NEXTBOT, 0, "Nextbot (%i) GetGravity:%0.0f", iBossIndex, g_flGravity);
@@ -2632,7 +2632,7 @@ public MRESReturn GetGravity(Address pThis, Handle hReturn)
 public MRESReturn GetAcceleration(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2647,7 +2647,7 @@ public MRESReturn GetAcceleration(Address pThis, Handle hReturn)
 public MRESReturn GetMaxDeceleration(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2671,7 +2671,7 @@ public MRESReturn GetGroundNormal(Address pThis, Handle hReturn)
 	DHookSetReturnVector(hReturn, flVec);
 #if defined DEBUG
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex != -1)
 	{
@@ -2683,7 +2683,7 @@ public MRESReturn GetGroundNormal(Address pThis, Handle hReturn)
 public MRESReturn GetStepHeight(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2698,7 +2698,7 @@ public MRESReturn GetStepHeight(Address pThis, Handle hReturn)
 public MRESReturn GetMaxJumpHeight(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2713,7 +2713,7 @@ public MRESReturn GetMaxJumpHeight(Address pThis, Handle hReturn)
 public MRESReturn GetWalkSpeed(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2740,7 +2740,7 @@ public MRESReturn GetWalkSpeed(Address pThis, Handle hReturn)
 public MRESReturn GetRunSpeed(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2770,7 +2770,7 @@ public MRESReturn GetFrictionForward(Address pThis, Handle hReturn)
 	DHookSetReturn(hReturn, 100.0);
 #if defined DEBUG
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex != -1)
 		SendDebugMessageToPlayers(DEBUG_NEXTBOT, 0, "Nextbot (%i) GetFrictionF:100.0", iBossIndex);
@@ -2782,7 +2782,7 @@ public MRESReturn GetFrictionSideways(Address pThis, Handle hReturn)
 	DHookSetReturn(hReturn, 100.0);
 #if defined DEBUG
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex != -1)
 		SendDebugMessageToPlayers(DEBUG_NEXTBOT, 0, "Nextbot (%i) GetFrictionS:100.0", iBossIndex);
@@ -2792,7 +2792,7 @@ public MRESReturn GetFrictionSideways(Address pThis, Handle hReturn)
 public MRESReturn GetSpeedLimit(Address pThis, Handle hReturn)
 {
 	ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-	INextBot BossNextBot = BossLocomotion.GetBot();
+	INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 	int iBossIndex = NPCGetFromINextBot(BossNextBot);
 	if (iBossIndex == -1)
 	{
@@ -2827,7 +2827,7 @@ public MRESReturn ShouldCollideWith(Address pThis, Handle hReturn, Handle hParam
 		GetEdictClassname(iEntity, strClass, sizeof(strClass));
 #if defined DEBUG
 		ILocomotion BossLocomotion = view_as<ILocomotion>(pThis);
-		INextBot BossNextBot = BossLocomotion.GetBot();
+		INextBot BossNextBot = view_as<INextBot>(BossLocomotion.GetBot());
 		int iBossIndex = NPCGetFromINextBot(BossNextBot);
 		if (iBossIndex != -1)
 		{
@@ -2871,7 +2871,7 @@ public MRESReturn GetSolidMask(Address pThis, Handle hReturn)
 public MRESReturn GetHullWidth(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMaxs[3];
@@ -2888,7 +2888,7 @@ public MRESReturn GetHullWidth(Address pThis, Handle hReturn, Handle hParams)
 public MRESReturn GetHullHeight(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMaxs[3];
@@ -2902,7 +2902,7 @@ public MRESReturn GetHullHeight(Address pThis, Handle hReturn, Handle hParams)
 public MRESReturn GetStandHullHeight(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMaxs[3];
@@ -2916,7 +2916,7 @@ public MRESReturn GetStandHullHeight(Address pThis, Handle hReturn, Handle hPara
 public MRESReturn GetCrouchHullHeight(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMaxs[3];
@@ -2930,7 +2930,7 @@ public MRESReturn GetCrouchHullHeight(Address pThis, Handle hReturn, Handle hPar
 public MRESReturn GetHullMins(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMins[3];
@@ -2944,7 +2944,7 @@ public MRESReturn GetHullMins(Address pThis, Handle hReturn, Handle hParams)
 public MRESReturn GetHullMaxs(Address pThis, Handle hReturn, Handle hParams)
 {
 	IBody pBody = view_as<IBody>(pThis);
-	INextBot pNextBot = pBody.GetBot();
+	INextBot pNextBot = view_as<INextBot>(pBody.GetBot());
 	int iEntity = pNextBot.GetEntity();
 
 	float vecMaxs[3];
@@ -3006,8 +3006,9 @@ public int SlenderChaseBossShortestPathCost(CNavArea area, CNavArea fromArea, CN
 
 		int seed = RoundToFloor(GetGameTime() * 0.1) + 1;
 		
+		INextBot bot = view_as<INextBot>(botLocomotion.GetBot());
 		seed *= area.ID;
-		seed *= botLocomotion.GetBot().GetEntity();
+		seed *= bot.GetEntity();
 		multiplier += (Cosine(float(seed)) + 1.0) * 50.0;
 
 		iCost += iDist * RoundFloat(multiplier);
