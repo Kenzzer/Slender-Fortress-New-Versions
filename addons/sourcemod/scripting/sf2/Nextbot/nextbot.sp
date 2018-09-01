@@ -28,11 +28,48 @@ Handle g_hGetHullMins;
 Handle g_hGetHullMaxs;
 Handle g_hGetSolidMask;
 
+/* NextBotGroundLocomotion */
+static Handle g_hSDKSetVel;
+static Handle g_hSDKGetGravity;
+
+methodmap NextBotGroundLocomotion < ILocomotion
+{
+	public void SetVelocity(float vecVel[3])
+	{
+		if (g_hSDKSetVel != INVALID_HANDLE)
+			SDKCall(g_hSDKSetVel, this, vecVel);
+	}
+	public float GetGravity()
+	{
+		if (g_hSDKGetGravity != INVALID_HANDLE)
+			return SDKCall(g_hSDKGetGravity, this);
+		return 0.0;
+	}
+}
+
 public void InitNextBotGameData(Handle hGameData)
 {
 	//Hook
 	int iOffset = GameConfGetOffset(hGameData, "NextBotGroundLocomotion::GetGravity"); 
 	g_hGetGravity = DHookCreate(iOffset, HookType_Raw, ReturnType_Float, ThisPointer_Address, GetGravity);
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "NextBotGroundLocomotion::SetVelocity");
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByValue);
+	g_hSDKSetVel = EndPrepSDKCall();
+	if (g_hSDKSetVel == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve NextBotGroundLocomotion::SetVelocity offset from SF2 gamedata!");
+	}
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "NextBotGroundLocomotion::GetGravity");
+	PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_ByValue);
+	g_hSDKGetGravity = EndPrepSDKCall();
+	if (g_hSDKGetGravity == INVALID_HANDLE)
+	{
+		PrintToServer("Failed to retrieve NextBotGroundLocomotion::GetGravity offset from SF2 gamedata!");
+	}
 	
 	/*iOffset = GameConfGetOffset(hGameData, "ILocomotion::ClimbUpToLedge"); 
 	g_hClimbUpToLedge = DHookCreate(iOffset, HookType_Raw, ReturnType_Void, ThisPointer_Address, ClimbUpToLedge);

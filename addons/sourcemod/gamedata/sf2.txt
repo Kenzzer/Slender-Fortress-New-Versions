@@ -121,6 +121,11 @@
 				"linux"		"86"
 				"windows"	"85"
 			}
+			"NextBotGroundLocomotion::SetVelocity"
+			{
+				"linux"		"105"
+				"windows"	"104"
+			}
 			"NextBotGroundLocomotion::GetGravity"
 			{
 				"linux"		"106"
