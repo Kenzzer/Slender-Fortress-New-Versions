@@ -71,13 +71,19 @@ methodmap INextBotComponent __nullable__
 			return SDKCall(g_hSDKGetBot, this);
 		return Address_Null;
 	}
+	public bool Verify()
+	{
+		if (this == view_as<INextBotComponent>(Address_Null))
+			return false;
+		return true;
+	}
 }
 
 methodmap IBody < INextBotComponent
 {
 	public float GetHullWidth()
 	{
-		if (g_hSDKGetHullWidth != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetHullWidth != INVALID_HANDLE)
 			return SDKCall(g_hSDKGetHullWidth, this);
 		return 0.0;
 	}
@@ -112,76 +118,76 @@ methodmap ILocomotion < INextBotComponent
 {
 	public void Stop()
 	{
-		if (g_hSDKStop != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKStop != INVALID_HANDLE)
 			SDKCall(g_hSDKStop, this);
 	}
 	public void Walk()
 	{
-		if (g_hSDKWalk != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKWalk != INVALID_HANDLE)
 			SDKCall(g_hSDKWalk, this);
 	}
 	public void Run()
 	{
-		if (g_hSDKRun != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKRun != INVALID_HANDLE)
 			SDKCall(g_hSDKRun, this);
 	}
 	public void Jump()
 	{
-		if (g_hSDKJump != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKJump != INVALID_HANDLE)
 			SDKCall(g_hSDKJump, this);
 	}
 	public void Approach(float vecApproach[3], float flPriority)
 	{
-		if (g_hSDKApproach != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKApproach != INVALID_HANDLE)
 			SDKCall(g_hSDKApproach, this, vecApproach, flPriority);
 	}
 	public void FaceTowards(float vecFacePos[3])
 	{
-		if (g_hSDKFaceTowards != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKFaceTowards != INVALID_HANDLE)
 			SDKCall(g_hSDKFaceTowards, this, vecFacePos);
 	}
 	public void GetGroundNormal(float vecNormal[3])
 	{
-		if (g_hSDKGetGroundNormal != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetGroundNormal != INVALID_HANDLE)
 			SDKCall(g_hSDKGetGroundNormal, this, vecNormal);
 	}
 	public void GetGroundMotionVector(float vecMotion[3])
 	{
-		if (g_hSDKGetGroundMotionVector != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetGroundMotionVector != INVALID_HANDLE)
 			SDKCall(g_hSDKGetGroundMotionVector, this, vecMotion);
 	}
 	public void GetFeet(float vecFeet[3])
 	{
-		if (g_hSDKGetFeet != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetFeet != INVALID_HANDLE)
 			SDKCall(g_hSDKGetFeet, this, vecFeet);
 	}
 	public float GetStepHeight()
 	{
-		if (g_hSDKGetStepHeight != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetStepHeight != INVALID_HANDLE)
 			return SDKCall(g_hSDKGetStepHeight, this);
 		return 18.0;
 	}
 	public bool IsClimbingOrJumping()
 	{
-		if (g_hSDKIsClimbingOrJumping != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKIsClimbingOrJumping != INVALID_HANDLE)
 			return SDKCall(g_hSDKIsClimbingOrJumping, this);
 		return false;
 	}
 	public bool IsOnGround()
 	{
-		if (g_hSDKIsOnGround != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKIsOnGround != INVALID_HANDLE)
 			return SDKCall(g_hSDKIsOnGround, this);
 		return true;
 	}
 	public bool IsStuck()
 	{
-		if (g_hSDKIsStuck != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKIsStuck != INVALID_HANDLE)
 			return SDKCall(g_hSDKIsStuck, this);
 		return false;
 	}
 	public float GetGroundSpeed()
 	{
-		if (g_hSDKGetGroundSpeed != INVALID_HANDLE)
+		if (this.Verify() && g_hSDKGetGroundSpeed != INVALID_HANDLE)
 			return SDKCall(g_hSDKGetGroundSpeed, this);
 		return 0.0;
 	}
@@ -354,7 +360,7 @@ public void InitNextBotGameData(Handle hGameData)
 	
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "ILocomotion::GetFeet");
-	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);
+	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_Pointer, _, VENCODE_FLAG_COPYBACK);
 	g_hSDKGetFeet = EndPrepSDKCall();
 	if (g_hSDKGetFeet == INVALID_HANDLE)
 	{
@@ -363,7 +369,7 @@ public void InitNextBotGameData(Handle hGameData)
 	
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "ILocomotion::GetGroundMotionVector");
-	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);
+	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_Pointer, _, VENCODE_FLAG_COPYBACK);
 	g_hSDKGetGroundMotionVector = EndPrepSDKCall();
 	if (g_hSDKGetGroundMotionVector == INVALID_HANDLE)
 	{
@@ -372,7 +378,7 @@ public void InitNextBotGameData(Handle hGameData)
 	
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "ILocomotion::GetGroundNormal");
-	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);
+	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_Pointer, _, VENCODE_FLAG_COPYBACK);
 	g_hSDKGetGroundNormal = EndPrepSDKCall();
 	if (g_hSDKGetGroundNormal == INVALID_HANDLE)
 	{
@@ -400,7 +406,7 @@ public void InitNextBotGameData(Handle hGameData)
 	
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "NextBotGroundLocomotion::SetVelocity");
-	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef);
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, VDECODE_FLAG_ALLOWNULL);
 	g_hSDKSetVel = EndPrepSDKCall();
 	if (g_hSDKSetVel == INVALID_HANDLE)
 	{
