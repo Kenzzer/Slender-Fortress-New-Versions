@@ -20,12 +20,12 @@ void CBaseAnimating_InitGameData(Handle hGameData)
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_ByValue);
 	g_hSDKAddGestureSequence = EndPrepSDKCall();
-	if (g_hSDKAddGestureSequence == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::AddGestureSequence signature!");
+	//if (g_hSDKAddGestureSequence == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::AddGestureSequence signature!");
 	
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::RemoveAllGestures");
 	g_hSDKRemoveAllGestures = EndPrepSDKCall();
-	if (g_hSDKRemoveAllGestures == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::RemoveAllGestures signature!");
+	//if (g_hSDKRemoveAllGestures == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::RemoveAllGestures signature!");
 	
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::LookupPoseParameter");
