@@ -2016,52 +2016,38 @@ public void SlenderChaseBossProcessMovement(int iBoss)
 		int m_iMoveY = CBaseAnimating_LookupPoseParameter(iBoss, pStudioHdr, "move_y");
 		
 		float flGroundSpeed = g_ILocomotion[iBossIndex].GetGroundSpeed();
-		if ( flGroundSpeed >= 0.01 )
+		if ( flGroundSpeed != 0.0 )
 		{
 			float vecForward[3], vecRight[3], vecUp[3], vecMotion[3];
 			SDK_GetVectors(iBoss, vecForward, vecRight, vecUp);
 			g_ILocomotion[iBossIndex].GetGroundMotionVector(vecMotion);
 			
-			if ( m_iMoveX >= 0 )
-			{
-				float newMoveX = (vecForward[1] * vecMotion[1]) + (vecForward[0] * vecMotion[0]) +  (vecForward[2] * vecMotion[2]);
-				CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveX, newMoveX);
-			}
-			
-			if ( m_iMoveY >= 0 )
-			{
-				float newMoveY = (vecRight[1] * vecMotion[1]) + (vecRight[0] * vecMotion[0]) + (vecRight[2] * vecMotion[2]);
-				CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveY, newMoveY);
-			}
+			if (m_iMoveX >= 0) CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveX, GetVectorDotProduct(vecMotion,vecForward));
+			if (m_iMoveY >= 0) CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveY, GetVectorDotProduct(vecMotion,vecRight));
 		}
 		else
 		{
-			if ( m_iMoveX >= 0 )
-			{
-				CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveX, 0.0);
-			}
-			if ( m_iMoveY >= 0 )
-			{
-				CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveY, 0.0);
-			}
+			if (m_iMoveX >= 0) CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveX, 0.0);
+			if (m_iMoveY >= 0) CBaseAnimating_SetPoseParameter(iBoss, pStudioHdr, m_iMoveY, 0.0);
 		}
 		
-		if (m_iMoveX >= 0 || m_iMoveY >= 0)
+		if (m_iMoveX < 0 && m_iMoveY < 0) return;
+		
+		if (iState == STATE_CHASE || iState == STATE_ALERT || iState == STATE_WANDER)
 		{
-			if (iState == STATE_CHASE || iState == STATE_ALERT || iState == STATE_WANDER)
+			float m_flGroundSpeed = GetEntPropFloat(iBoss, Prop_Data, "m_flGroundSpeed");
+			if(m_flGroundSpeed != 0.0 && g_ILocomotion[iBossIndex].IsOnGround())
 			{
-				float m_flGroundSpeed = GetEntPropFloat(iBoss, Prop_Data, "m_flGroundSpeed");
-				if(m_flGroundSpeed != 0.0 && g_ILocomotion[iBossIndex].IsOnGround())
-				{
-					float flReturnValue = flGroundSpeed / m_flGroundSpeed;
-					if (flReturnValue < -4.0) flReturnValue = -4.0;
-					if (flReturnValue > 12.0) flReturnValue = 12.0;
-					
-					SetEntPropFloat(iBoss, Prop_Send, "m_flPlaybackRate", flReturnValue);
-				}
+				float flReturnValue = flGroundSpeed / m_flGroundSpeed;
+				if (flReturnValue < -4.0) flReturnValue = -4.0;
+				if (flReturnValue > 12.0) flReturnValue = 12.0;
+				
+				SetEntPropFloat(iBoss, Prop_Send, "m_flPlaybackRate", flReturnValue);
 			}
 		}
 	}
+	
+	
 	return;
 	
 	/*//Keep my collision data forced to a specific value:
