@@ -1,3 +1,5 @@
+# THIS PROJECT IS DISCONTINUED THE MOD MAY OR MAY NOT WORK USE IT AT YOUR OWN RISKS
+
 Coder/Developer: [Benoist3012](http://steamcommunity.com/id/Benoist3012/)
 
 Original coder: [KitRifty](https://github.com/KitRifty)
