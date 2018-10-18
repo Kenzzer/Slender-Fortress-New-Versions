@@ -606,8 +606,6 @@ Handle g_hSDKShouldTransmit;
 Handle g_hSDKEquipWearable;
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKPointIsWithin;
-Handle g_hSDKAmmoDefIndex;
-Handle g_hSDKGetAmmoDef;
 Handle g_hSDKGetSmoothedVelocity;
 Handle g_hSDKCBaseEntityVPhysicsInitNormal;
 Handle g_hSDKGetVectors;
@@ -1164,27 +1162,6 @@ static void SDK_Init()
 	if(g_hSDKPointIsWithin == INVALID_HANDLE)
 	{
 		PrintToServer("Failed to retrieve CBaseTrigger::PointIsWithin signature from SF2 gamedata!");
-		//Don't have to call SetFailState, since this function is used in a minor part of the code.
-	}
-	
-	StartPrepSDKCall(SDKCall_Static);
-	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "GetAmmoDef");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	g_hSDKGetAmmoDef = EndPrepSDKCall();
-	if(g_hSDKGetAmmoDef == INVALID_HANDLE)
-	{
-		PrintToServer("Failed to retrieve GetAmmoDef signature from SF2 gamedata!");
-		//Don't have to call SetFailState, since this function is used in a minor part of the code.
-	}
-	
-	StartPrepSDKCall(SDKCall_Raw);
-	PrepSDKCall_SetFromConf(hConfig, SDKConf_Signature, "CAmmoDef::Index");
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	g_hSDKAmmoDefIndex = EndPrepSDKCall();
-	if(g_hSDKAmmoDefIndex == INVALID_HANDLE)
-	{
-		PrintToServer("Failed to retrieve CAmmoDef::Index signature from SF2 gamedata!");
 		//Don't have to call SetFailState, since this function is used in a minor part of the code.
 	}
 	

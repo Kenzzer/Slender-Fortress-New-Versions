@@ -288,16 +288,19 @@
 			{
 				"library"		"server"
 				"linux"			"@_ZN14CBaseAnimating16SetPoseParameterEP10CStudioHdrif"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\xD9\x45\x10"
 			}
 			"CBaseAnimating::LookupPoseParameter"
 			{
 				"library"		"server"
 				"linux"			"@_ZN14CBaseAnimating19LookupPoseParameterEP10CStudioHdrPKc"
+				"windows"		"\x55\x8B\xEC\x57\x8B\x7D\x08\x85\xFF\x75\x2A\x33\xC0\x5F\x5D\xC2\x08\x00"
 			}
-			"CBaseAnimating::LookupSequence"
+			"LookupSequence"
 			{
 				"library"		"server"
-				"linux"			"@_ZN14CBaseAnimating14LookupSequenceEPKc"
+				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x85\xF6\x75\x2A\x33\xC0\x5E\x5D\xC3\x8B\xCE\xE8\x2A\x2A\x2A\x2A\x84\xC0\x74\x2A\x53"
+				"linux"		"@_Z14LookupSequenceP10CStudioHdrPKc"
 			}
 			"CBaseAnimating::ResetSequence"
 			{
@@ -316,18 +319,6 @@
 				"library"	 "server"
 				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
 				"windows" 	"\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"
-			}
-			"GetAmmoDef"
-			{
-				"library" 	"server"
-				"linux"		"@_Z10GetAmmoDefv"
-				"windows" 	"\xA1\x2A\x2A\x2A\x2A\xA8\x01\x75\x2A\x83\xC8\x01\xB9\x2A\x2A\x2A\x2A\xA3\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x83\xC4\x04\x80\x3D\x2A\x2A\x2A\x2A\x00"
-			}
-			"CAmmoDef::Index"
-			{
-				"library"	"server"
-				"linux"		"@_ZN8CAmmoDef5IndexEPKc"
-				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x53\x8B\xD9\x85\xC0"
 			}
 		}
 	}

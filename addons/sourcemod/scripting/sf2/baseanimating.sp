@@ -1,6 +1,4 @@
 Handle g_hSDKLookupSequence;
-Handle g_hSDKAddGestureSequence;
-Handle g_hSDKRemoveAllGestures;
 Handle g_hSDKLookupPoseParameter;
 Handle g_hSDKSetPoseParameter;
 
@@ -8,24 +6,13 @@ int g_ipStudioHdrOffset;
 
 void CBaseAnimating_InitGameData(Handle hGameData)
 {
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::LookupSequence");
+	StartPrepSDKCall(SDKCall_Static);
+	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "LookupSequence");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_ByValue);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	g_hSDKLookupSequence = EndPrepSDKCall();
-	if (g_hSDKLookupSequence == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::LookupSequence signature!");
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::AddGestureSequence");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_ByValue);
-	g_hSDKAddGestureSequence = EndPrepSDKCall();
-	//if (g_hSDKAddGestureSequence == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::AddGestureSequence signature!");
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::RemoveAllGestures");
-	g_hSDKRemoveAllGestures = EndPrepSDKCall();
-	//if (g_hSDKRemoveAllGestures == INVALID_HANDLE) PrintToServer("Failed to retrieve CBaseAnimating::RemoveAllGestures signature!");
+	if (g_hSDKLookupSequence == INVALID_HANDLE) SetFailState("Failed to retrieve LookupSequence signature");
 	
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAnimating::LookupPoseParameter");
@@ -48,27 +35,12 @@ void CBaseAnimating_InitGameData(Handle hGameData)
 
 stock int CBaseAnimating_LookupSequence(int iEntity, const char[] sName)
 {
-	if (g_hSDKLookupSequence != INVALID_HANDLE)
+	Address pStudioHdr = CBaseAnimating_GetModelPtr(iEntity);
+	if (g_hSDKLookupSequence != INVALID_HANDLE && pStudioHdr != Address_Null)
 	{
-		return SDKCall(g_hSDKLookupSequence, iEntity, sName);
+		return SDKCall(g_hSDKLookupSequence, pStudioHdr, sName);
 	}
 	return -1;
-}
-
-stock void CBaseAnimating_AddGestureSequence(int iEntity, int iSequence, bool bAutoKill)
-{
-	if (g_hSDKAddGestureSequence != INVALID_HANDLE)
-	{
-		SDKCall(g_hSDKAddGestureSequence, iEntity, iSequence, bAutoKill);
-	}
-}
-
-stock void CBaseAnimating_RemoveAllGestures(int iEntity)
-{
-	if (g_hSDKRemoveAllGestures != INVALID_HANDLE)
-	{
-		SDKCall(g_hSDKRemoveAllGestures, iEntity);
-	}
 }
 
 stock Address CBaseAnimating_GetModelPtr(int iEntity)
