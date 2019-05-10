@@ -90,13 +90,13 @@ public Plugin myinfo =
 #define PAGE_GRABSOUND "slender/newgrabpage.wav"
 
 #define MUSIC_CHAN SNDCHAN_AUTO
-#define MUSIC_GOTPAGES1_SOUND "slender/newambience_1.wav"
-#define MUSIC_GOTPAGES2_SOUND "slender/newambience_2.wav"
-#define MUSIC_GOTPAGES3_SOUND "slender/newambience_3.wav"
-#define MUSIC_GOTPAGES4_SOUND "slender/newambience_4.wav"
+#define MUSIC_GOTPAGES1_SOUND "slender/ambience_1_new.wav"
+#define MUSIC_GOTPAGES2_SOUND "slender/ambience_2_new.wav"
+#define MUSIC_GOTPAGES3_SOUND "slender/ambience_3_new.wav"
+#define MUSIC_GOTPAGES4_SOUND "slender/ambience_4_new.wav"
 #define MUSIC_PAGE_VOLUME 1.0
 
-#define SF2_INTRO_DEFAULT_MUSIC "slender/intro.mp3"
+#define SF2_INTRO_DEFAULT_MUSIC "slender/intro_new.mp3"
 
 #define PROXY_RAGE_MODE_SOUND "slender/proxyrage.mp3"
 
