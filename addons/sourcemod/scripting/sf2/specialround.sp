@@ -5,7 +5,7 @@
 
 #define SR_CYCLELENGTH 10.0
 #define SR_STARTDELAY 1.25
-#define SR_MUSIC "slender/specialround.mp3"
+#define SR_MUSIC "slender/specialround_new.mp3"
 #define SR_SOUND_SELECT "slender/specialroundselect.mp3"
 
 #define FILE_SPECIALROUNDS "configs/sf2/specialrounds.cfg"
