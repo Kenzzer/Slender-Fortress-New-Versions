@@ -139,7 +139,8 @@ void SetupMenus()
 	StrCat(buffer, sizeof(buffer), "Coders: Kit o' Rifty, Benoist3012\n");
 	StrCat(buffer, sizeof(buffer), "\n \n");
 	StrCat(buffer, sizeof(buffer), "Mark J. Hadley -The creator of the Slender game\n");
-	StrCat(buffer, sizeof(buffer), "Mark Steen -Composing the intro music\n");
+	StrCat(buffer, sizeof(buffer), "Axel Nosferatu -Composing the new music\n");
+	StrCat(buffer, sizeof(buffer), "Mark Steen -Composing the original intro music\n");
 	StrCat(buffer, sizeof(buffer), "Mammoth Mogul -for being a GREAT test subject\n");
 	StrCat(buffer, sizeof(buffer), "Egosins -for offering to host this publicly\n");
 	StrCat(buffer, sizeof(buffer), "Glubbable -for working on a ton of maps\n");
